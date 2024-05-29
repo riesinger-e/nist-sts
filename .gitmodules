@@ -1,0 +1,4 @@
+[submodule "libcerf/cerf-wrapper/libcerf"]
+	path = libcerf/cerf-wrapper/libcerf
+	url = https://jugit.fz-juelich.de/mlz/libcerf.git
+	branch = main
