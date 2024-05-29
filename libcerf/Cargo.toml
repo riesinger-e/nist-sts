@@ -1,0 +1,13 @@
+[package]
+name = "libcerf"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>" ]
+rust-version = "1.78"
+description = "A safe abstraction for libcerf"
+readme = true
+repository = "https://git.riesinger.xyz/public/nist-sts"
+license = "MIT"
+links = "cerf-wrapper"
+
+[dependencies]

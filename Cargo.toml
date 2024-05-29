@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "libcerf",
+]
+resolver = "2"
