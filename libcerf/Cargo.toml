@@ -11,3 +11,7 @@ license = "MIT"
 links = "cerf-wrapper"
 
 [dependencies]
+
+[build-dependencies]
+bindgen = "0.69.4"
+cmake = "0.1.50"
