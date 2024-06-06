@@ -12,4 +12,5 @@ license = "MIT"
 [dependencies]
 libcerf = { path = "../libcerf" }
 rayon = "1.10.0"
+statrs = "0.16.1"
 thiserror = "1.0.61"

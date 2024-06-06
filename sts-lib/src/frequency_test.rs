@@ -3,14 +3,14 @@
 //! This test focuses on the numbers of ones and zeros in the sequence - the proportion should
 //! be roughly 50:50.
 
-use crate::internals::erfc;
+use crate::internals::{check_f64, erfc};
 use crate::BYTE_SIZE;
 use crate::{CommonResult, Error};
 use rayon::prelude::*;
 use std::f64::consts::FRAC_1_SQRT_2;
 use crate::bitvec::BitVec;
 
-/// Frequency (mono bit) test - No.1
+/// Frequency (mono bit) test - No. 1
 /// 
 /// See the [module docs](crate::frequency_test).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
@@ -70,8 +70,12 @@ pub fn frequency_test(data: BitVec) -> Result<CommonResult, Error> {
         .ok_or(Error::Overflow(format!("abs({sum}) - type isize")))? as f64)
         / f64::sqrt(data.len_bit() as f64);
     
+    check_f64(s_obs)?;
+    
     // Step 3: compute P-value = erfc(s_obs / sqrt(2))
     let p_value = erfc(s_obs * FRAC_1_SQRT_2);
 
-    Ok(CommonResult { p_value })
+    check_f64(p_value)?;
+    
+    Ok(CommonResult { p_value})
 }

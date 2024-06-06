@@ -2,12 +2,15 @@
 
 use thiserror::Error;
 
+// internal usage only
 pub(crate) mod internals;
-pub mod bitvec;
-pub mod frequency_test;
-
 #[cfg(test)]
 mod unit_tests;
+
+// public exports
+pub mod bitvec;
+pub mod frequency_test;
+pub mod frequency_block_test;
 
 // shared data structures
 
@@ -46,4 +49,10 @@ pub enum Error {
     /// A numeric overflow happened. The String gives further information on where exactly.
     #[error("Overflow in {0}.")]
     Overflow(String),
+    #[error("Result is not a number.")]
+    NaN,
+    #[error("Result is infinite.")]
+    Infinite,
+    #[error(transparent)]
+    GammaFunctionFailed(#[from] statrs::StatsError),
 }
