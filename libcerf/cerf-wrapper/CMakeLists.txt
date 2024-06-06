@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
-project(cerf-wrapper)
+project(cerf-wrapper CXX)
 set(CMAKE_CXX_STANDARD 11)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "force static library" FORCE)
@@ -9,5 +9,7 @@ set(CERF_CPP ON CACHE BOOL "force CPP compilation" FORCE)
 
 add_subdirectory(libcerf)
 
+# necessary for the cerf header file to work
+add_compile_definitions(CERF_AS_CPP)
 add_library(cerf-wrapper STATIC cerf-wrapper.h cerf-wrapper.cpp)
-target_link_libraries(cerfcpp)
+add_dependencies(cerf-wrapper cerfcpp)

@@ -2,7 +2,14 @@
 
 use thiserror::Error;
 
+pub(crate) mod internals;
+pub mod bitvec;
 pub mod frequency_test;
+
+#[cfg(test)]
+mod tests;
+
+// shared data structures
 
 /// Trait with the common methods of all result types
 pub trait TestResult {
@@ -26,7 +33,7 @@ impl TestResult for CommonResult {
     }
 
     fn passed(&self, level_value: f64) -> bool {
-        self.p_value < level_value
+        self.p_value >= level_value
     }
 }
 

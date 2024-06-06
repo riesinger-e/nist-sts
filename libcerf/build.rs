@@ -10,7 +10,9 @@ fn main() {
         .build();
     // Link the library
     println!("cargo:rustc-link-search={}", libcerf_dst.join("build").display());
+    println!("cargo:rustc-link-search={}", libcerf_dst.join("build").join("libcerf").join("lib").display());
     println!("cargo:rustc-link-lib=static=cerf-wrapper");
+    println!("cargo:rustc-link-lib=static=cerfcpp");
 
     // Create rust code to use the library
     let bindings = bindgen::Builder::default()
@@ -23,6 +25,12 @@ fn main() {
         .generate()
         // Unwrap the Result and panic on failure.
         .expect("Unable to generate bindings");
+
+    // Tell cargo to rebuild when one of the following files changed
+    println!("cargo:rerun-if-changed=cerf-wrapper/cerf-wrapper.cpp");
+    println!("cargo:rerun-if-changed=cerf-wrapper/CMakeLists.txt");
+    println!("cargo:rerun-if-changed=cerf-wrapper/libcerf/CMakeLists.txt");
+    println!("cargo:rerun-if-changed=cerf-wrapper/libcerf/lib"); // source directory
 
     // Write the bindings to the $OUT_DIR/bindings.rs file.
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
