@@ -7,9 +7,12 @@ pub mod bitvec;
 pub mod frequency_test;
 
 #[cfg(test)]
-mod tests;
+mod unit_tests;
 
 // shared data structures
+
+/// How many bits a byte has
+const BYTE_SIZE: usize = 8;
 
 /// Trait with the common methods of all result types
 pub trait TestResult {
