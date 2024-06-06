@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "libcerf",
+    "libcerf", "sts-lib",
 ]
 resolver = "2"
