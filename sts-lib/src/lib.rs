@@ -9,6 +9,7 @@ mod unit_tests;
 
 // public exports
 pub mod bitvec;
+pub mod test_runner;
 pub mod tests;
 
 // shared data structures
@@ -16,28 +17,27 @@ pub mod tests;
 /// How many bits a byte has
 const BYTE_SIZE: usize = 8;
 
-/// Trait with the common methods of all result types
-pub trait TestResult {
-    /// The calculated p value
-    fn p_value(&self) -> f64;
-
-    /// If the sequence passed the test.
-    /// `level_value` denotes the needed threshold, e.g. for a 1%-percent level it should be 0.01.
-    fn passed(&self, level_value: f64) -> bool;
+/// List of all tests, used e.g. for automatic running.
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub enum Test {
+    FrequencyTest,
+    FrequencyTestWithinABlock,
 }
 
 /// The common test result type, as used by most tests.
 #[repr(transparent)]
-pub struct CommonResult {
+#[derive(Copy, Clone)]
+pub struct TestResult {
     p_value: f64,
 }
 
-impl TestResult for CommonResult {
-    fn p_value(&self) -> f64 {
+impl TestResult {
+    pub fn p_value(&self) -> f64 {
         self.p_value
     }
 
-    fn passed(&self, level_value: f64) -> bool {
+    pub fn passed(&self, level_value: f64) -> bool {
         self.p_value >= level_value
     }
 }

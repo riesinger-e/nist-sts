@@ -4,7 +4,8 @@
 
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
-use crate::{CommonResult, Error, BYTE_SIZE};
+use crate::test_runner::TestRunner;
+use crate::{Error, TestResult, BYTE_SIZE, Test};
 use rayon::prelude::*;
 
 /// The argument for the Frequency test within a block: the block length.
@@ -36,21 +37,22 @@ impl FrequencyBlockTestArg {
 /// See the [module docs](crate::frequency_block_test).
 /// If test_arg is [FrequencyBlockTestArg::ChooseAutomatically], a reasonable default, based on 2.2.7, is chosen.
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
-pub fn frequency_block_test(
-    data: BitVec,
+pub fn frequency_block_test<R: TestRunner>(
+    runner: &R,
+    data: &BitVec,
     test_arg: FrequencyBlockTestArg,
-) -> Result<CommonResult, Error> {
+) -> Result<TestResult, Error> {
     // Step 0 - get the block length or calculate one
     match test_arg {
         FrequencyBlockTestArg::Bytewise(block_length) => {
-            frequency_block_test_bytes(data, block_length)
+            frequency_block_test_bytes(runner, data, block_length)
         }
         FrequencyBlockTestArg::Bitwise(block_length) => {
-            frequency_block_test_bits(data, block_length)
+            frequency_block_test_bits(runner, data, block_length)
         }
         FrequencyBlockTestArg::ChooseAutomatically => {
             let block_size = choose_block_length(data.data.len());
-            frequency_block_test_bytes(data, block_size)
+            frequency_block_test_bytes(runner, data, block_size)
         }
     }
 }
@@ -58,10 +60,11 @@ pub fn frequency_block_test(
 /// Frequency test within a block, optimization for block sizes that are whole bytes.
 ///
 /// The passed block_length has to in bytes.
-fn frequency_block_test_bytes(
-    data: BitVec,
+fn frequency_block_test_bytes<R: TestRunner>(
+    runner: &R,
+    data: &BitVec,
     block_length_bytes: usize,
-) -> Result<CommonResult, Error> {
+) -> Result<TestResult, Error> {
     // Step 1 - calculate the amount of blocks
     let block_count = data.data.len() / block_length_bytes;
     let block_length_bits = block_length_bytes * BYTE_SIZE;
@@ -110,7 +113,9 @@ fn frequency_block_test_bytes(
 
     check_f64(p_value)?;
 
-    Ok(CommonResult { p_value })
+    let result = TestResult { p_value };
+    runner.store_result(Test::FrequencyTestWithinABlock, result);
+    Ok(result)
 }
 
 /// Choose a block length based on 2.2.7. Needs the amount of bytes (each byte contains 8 values)
@@ -131,10 +136,11 @@ fn choose_block_length(byte_vec_length: usize) -> usize {
 }
 
 /// Frequency test within a block for bit lengths that are not byte-sized.
-fn frequency_block_test_bits(
-    data: BitVec,
+fn frequency_block_test_bits<R: TestRunner>(
+    runner: &R,
+    data: &BitVec,
     block_length_bits: usize,
-) -> Result<CommonResult, Error> {
+) -> Result<TestResult, Error> {
     // Step 1 - calculate the amount of blocks
     let block_count = data.len_bit() / block_length_bits;
 
@@ -222,8 +228,8 @@ fn frequency_block_test_bits(
                     // how many bits are left to be added to the current block_offset
                     let mut bits_left = remainder;
                     // the block offset from the current block
-                    let mut block_offset = ((BYTE_SIZE - remainder) / block_length_bits)
-                        .clamp(1, usize::MAX);
+                    let mut block_offset =
+                        ((BYTE_SIZE - remainder) / block_length_bits).clamp(1, usize::MAX);
                     for shift in 0..BYTE_SIZE {
                         if bits_left == 0 {
                             bits_left = block_length_bits;
@@ -298,5 +304,7 @@ fn frequency_block_test_bits(
 
     check_f64(p_value)?;
 
-    Ok(CommonResult { p_value })
+    let result = TestResult { p_value };
+    runner.store_result(Test::FrequencyTestWithinABlock, result);
+    Ok(result)
 }

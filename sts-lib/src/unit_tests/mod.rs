@@ -17,6 +17,7 @@ macro_rules! assert_f64_eq {
 }
 
 use assert_f64_eq;
+use crate::test_runner::{SingleThreadedTestRunner, TestRunner};
 
 /// Test the creation of a BitVec from a bool vec
 #[test]
@@ -76,17 +77,18 @@ fn test_bitvec_from_c_str() {
 /// Assert that the bitwise and byte-wise version of the frequency block test (No.2) do the same thing
 #[test]
 fn test_frequency_block_bytewise_vs_bitwise() {
-    let input1 = BitVec::from_ascii_str("1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000")
+    let input = BitVec::from_ascii_str("1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000")
         .unwrap();
-    let input2 = input1.clone();
 
     // Same argument, but differently expressed
     let arg1 = FrequencyBlockTestArg::Bitwise(16);
     let arg2 = FrequencyBlockTestArg::Bytewise(2);
 
-    let res1 = frequency_block_test(input1, arg1)
+    let runner = SingleThreadedTestRunner::new();
+
+    let res1 = frequency_block_test(&runner, &input, arg1)
         .unwrap();
-    let res2 = frequency_block_test(input2, arg2)
+    let res2 = frequency_block_test(&runner, &input, arg2)
         .unwrap();
     assert_f64_eq!(res1.p_value, res2.p_value);
 }

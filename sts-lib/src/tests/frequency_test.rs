@@ -4,17 +4,18 @@
 //! be roughly 50:50.
 
 use crate::internals::{check_f64, erfc};
-use crate::BYTE_SIZE;
-use crate::{CommonResult, Error};
+use crate::{BYTE_SIZE, Test};
+use crate::{TestResult, Error};
 use rayon::prelude::*;
 use std::f64::consts::FRAC_1_SQRT_2;
 use crate::bitvec::BitVec;
+use crate::test_runner::TestRunner;
 
 /// Frequency (mono bit) test - No. 1
 /// 
 /// See the [module docs](crate::frequency_test).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
-pub fn frequency_test(data: BitVec) -> Result<CommonResult, Error> {
+pub fn frequency_test<R: TestRunner>(runner: &R, data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: convert 0 values to -1 and calculate the sum of all bits.
     // This operation is done in parallel.
     // first sum up the full bytes, then the remaining bits.
@@ -77,5 +78,7 @@ pub fn frequency_test(data: BitVec) -> Result<CommonResult, Error> {
 
     check_f64(p_value)?;
     
-    Ok(CommonResult { p_value})
+    let result = TestResult { p_value };
+    runner.store_result(Test::FrequencyTest, result);
+    Ok(result)
 }
