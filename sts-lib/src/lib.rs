@@ -9,8 +9,7 @@ mod unit_tests;
 
 // public exports
 pub mod bitvec;
-pub mod frequency_test;
-pub mod frequency_block_test;
+pub mod tests;
 
 // shared data structures
 

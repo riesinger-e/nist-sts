@@ -5,6 +5,7 @@ use rayon::prelude::*;
 use crate::BYTE_SIZE;
 
 /// A list of bits, tightly packed - used in all tests
+#[derive(Clone)]
 pub struct BitVec {
     // the main, compact, data storage
     pub(crate) data: Box<[u8]>,
