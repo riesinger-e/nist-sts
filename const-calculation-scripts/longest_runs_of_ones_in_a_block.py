@@ -61,7 +61,7 @@ def main():
     all_probabilities = dict()
 
     # calculate for each given combination of K and M
-    for K, M in [(3, 8), (5, 128), ]: #(6, 10_000)]:
+    for K, M in [(3, 8), (5, 128), (6, 10_000)]:
         """
         Relevant formulas:
         U = min(M - r + 1, floor(r / (m + 1)) )
