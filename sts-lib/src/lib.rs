@@ -33,10 +33,11 @@ pub enum Test {
 /// 
 /// You can construct an instance, leaving all other arguments as the default, like this:
 /// ```
+/// use std::num::NonZeroUsize;
 /// use sts_lib::TestArgs;
 /// use sts_lib::tests::frequency_block_test::FrequencyBlockTestArg;
 /// let args = TestArgs {
-///     frequency_block_test_arg: FrequencyBlockTestArg::Bitwise(23),
+///     frequency_block_test_arg: FrequencyBlockTestArg::Bitwise(NonZeroUsize::new(23).unwrap()),
 ///     ..Default::default()
 /// };
 /// ```

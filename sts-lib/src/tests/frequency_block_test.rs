@@ -4,6 +4,7 @@
 //! It is recommended that each BitVec has a length of at least 100 bits.
 //! For recommendations for the block length, see [FrequencyBlockTestArg]. 
 
+use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
@@ -13,13 +14,13 @@ use rayon::prelude::*;
 /// 
 /// The block length should be at least 20 bits, with the block length greater than 1% of the
 /// total bit length and fewer than 100 total blocks.
-#[repr(C, u8)]
+#[repr(C, usize)]
 #[derive(Copy, Clone, Default, Debug)]
 pub enum FrequencyBlockTestArg {
     /// The block length is measured in bytes - this allows for faster performance.
-    Bytewise(usize) = 0,
+    Bytewise(NonZero<usize>) = 0,
     /// Bitwise block length
-    Bitwise(usize) = 1,
+    Bitwise(NonZero<usize>) = 1,
     /// A suitable block length will be chosen automatically, based on the criteria outlined in 
     /// [FrequencyBlockTestArg].
     #[default]
@@ -30,9 +31,14 @@ impl FrequencyBlockTestArg {
     /// Creates a new block length argument for the test. The passed block length is in bits.
     /// If block_length is a multiple of 8 (bits in a byte), [Self::Bytewise] is automatically
     /// chosen. Else, [Self::Bitwise] is chosen.
-    pub fn new(block_length: usize) -> Self {
-        if block_length % BYTE_SIZE == 0 {
-            Self::Bytewise(block_length / BYTE_SIZE)
+    pub fn new(block_length: NonZero<usize>) -> Self {
+        if block_length.get() % BYTE_SIZE == 0 {
+            // For this value to be 0, block_length has to be 0, so it can't be, so unwrapping is
+            // no problem.
+            // Because: 0 % 8 == 0 - 8 % 8 == 0 but 1 % 8 == 1
+            let value = NonZero::new(block_length.get() / BYTE_SIZE)
+                .unwrap();
+            Self::Bytewise(value)
         } else {
             Self::Bitwise(block_length)
         }
@@ -48,10 +54,10 @@ pub fn frequency_block_test(data: &BitVec, test_arg: FrequencyBlockTestArg) -> R
     // Step 0 - get the block length or calculate one
     match test_arg {
         FrequencyBlockTestArg::Bytewise(block_length) => {
-            frequency_block_test_bytes(data, block_length)
+            frequency_block_test_bytes(data, block_length.get())
         }
         FrequencyBlockTestArg::Bitwise(block_length) => {
-            frequency_block_test_bits(data, block_length)
+            frequency_block_test_bits(data, block_length.get())
         }
         FrequencyBlockTestArg::ChooseAutomatically => {
             let block_size = choose_block_length(data.data.len());
