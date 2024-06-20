@@ -41,32 +41,7 @@ pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
 
     // Step 3: compute the statistic V = (sum of r(k) for data[1..] - index k) + 1
     //  where r(k) = 0 if data[k] == data[k-1], else 1.
-    // Work with bitwise indices here
-    let v_data = (1..(data.data.len() * BYTE_SIZE)).into_par_iter()
-        .try_fold(|| 0_usize, |sum, bit_idx| {
-            // byte index of current bit
-            let byte_idx = bit_idx / BYTE_SIZE;
-            // byte index of previous bit
-            let byte_idx_prev = (bit_idx - 1) / BYTE_SIZE;
-
-            // index in the byte of the current bit
-            let bit_idx_in_byte = bit_idx % BYTE_SIZE;
-            let bit_idx_in_byte_prev = (bit_idx - 1) % BYTE_SIZE;
-
-            let current_bit = (data.data[byte_idx] >> (BYTE_SIZE - bit_idx_in_byte - 1)) & 0x01;
-            let previous_bit = (data.data[byte_idx_prev] >> (BYTE_SIZE - bit_idx_in_byte_prev - 1)) & 0x01;
-
-            if current_bit == previous_bit {
-                Ok(sum)
-            } else {
-                sum.checked_add(1)
-                    .ok_or(Error::Overflow(format!("adding 1 to {sum}")))
-            }
-        })
-        .try_reduce(|| 0_usize, |a, b| {
-            a.checked_add(b)
-                .ok_or(Error::Overflow(format!("adding sum {a} to {b}")))
-        })?;
+    let v_data = calc_v_data(data.data.as_ref())?;
     // calculate for remainder
     let v_rem = if !data.remainder.is_empty() {
         let start_idx = if data.data.is_empty() { 1 } else { 0 };
@@ -111,4 +86,66 @@ pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
     check_f64(p_value)?;
 
     Ok(TestResult::new(p_value))
+}
+
+/// Calculation of v statistic for the data array.
+fn calc_v_data(data: &[u8]) -> Result<usize, Error> {
+    // guard clause
+    if data.is_empty() {
+        return Ok(0);
+    }
+
+    // Special casing for the first byte
+    let v_first_byte = {
+        // prev_value = first bit
+        let mut prev_value = (data[0] >> (BYTE_SIZE - 1)) & 0x1;
+
+        // for the remaining bits, just get them and compare them to the previous bit to get the value
+        (1..BYTE_SIZE)
+            .try_fold(0_usize, |sum, bit_idx| {
+                let current_bit = (data[0] >> (BYTE_SIZE - 1 - bit_idx)) & 0x1;
+
+                let res = if current_bit == prev_value {
+                    Ok(sum)
+                } else {
+                    sum.checked_add(1)
+                        .ok_or(Error::Overflow(format!("adding 1 to first byte sum {sum}")))
+                };
+                prev_value = current_bit;
+                res
+            })?
+    };
+
+    // remaining bytes (every byte except first)
+    let v_rem_bytes = data[1..].par_iter()
+        .enumerate()
+        .try_fold(|| 0_usize, |sum, (prev_byte_idx, &byte)| {
+            // start with last bit of previous byte
+            // prev_byte_idx is of the previous byte because we start with index 1 --> 0 in
+            // the iterator
+            let mut prev_value = data[prev_byte_idx] & 0x1;
+
+            (0..BYTE_SIZE)
+                .try_fold(0_usize, |sum, bit_idx| {
+                    let current_bit = (byte >> (BYTE_SIZE - 1 - bit_idx)) & 0x1;
+
+                    let res = if current_bit == prev_value {
+                        Ok(sum)
+                    } else {
+                        sum.checked_add(1)
+                            .ok_or(Error::Overflow(format!("adding 1 to byte sum {sum}")))
+                    };
+                    prev_value = current_bit;
+                    res
+                })?
+                .checked_add(sum)
+                .ok_or(Error::Overflow(format!("Adding byte sum to sum {sum}")))
+        })
+        .try_reduce(|| 0_usize, |a, b| {
+            a.checked_add(b)
+                .ok_or(Error::Overflow(format!("adding sum {a} to {b}")))
+        })?;
+
+    v_first_byte.checked_add(v_rem_bytes)
+        .ok_or(Error::Overflow(format!("adding first byte sum {v_first_byte} to rem byte sum {v_rem_bytes}")))
 }
