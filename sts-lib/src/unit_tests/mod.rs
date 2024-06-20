@@ -1,7 +1,8 @@
 //! All unit tests
 
+use std::num::NonZero;
 use crate::bitvec::BitVec;
-use crate::tests::frequency_block_test::{frequency_block_test, FrequencyBlockTestArg};
+use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 
 mod nist_text_examples;
 
@@ -80,8 +81,8 @@ fn test_frequency_block_bytewise_vs_bitwise() {
         .unwrap();
 
     // Same argument, but differently expressed
-    let arg1 = FrequencyBlockTestArg::Bitwise(16);
-    let arg2 = FrequencyBlockTestArg::Bytewise(2);
+    let arg1 = FrequencyBlockTestArg::Bitwise(NonZero::new(16).unwrap());
+    let arg2 = FrequencyBlockTestArg::Bytewise(NonZero::new(2).unwrap());
 
     let res1 = frequency_block_test(&input, arg1)
         .unwrap();

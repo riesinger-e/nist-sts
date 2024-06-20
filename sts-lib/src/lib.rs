@@ -2,7 +2,7 @@
 
 use strum::EnumIter;
 use thiserror::Error;
-use crate::tests::frequency_block_test::FrequencyBlockTestArg;
+use crate::tests::frequency_block::FrequencyBlockTestArg;
 
 // internal usage only
 pub(crate) mod internals;
@@ -35,7 +35,7 @@ pub enum Test {
 /// ```
 /// use std::num::NonZeroUsize;
 /// use sts_lib::TestArgs;
-/// use sts_lib::tests::frequency_block_test::FrequencyBlockTestArg;
+/// use sts_lib::tests::frequency_block::FrequencyBlockTestArg;
 /// let args = TestArgs {
 ///     frequency_block_test_arg: FrequencyBlockTestArg::Bitwise(NonZeroUsize::new(23).unwrap()),
 ///     ..Default::default()

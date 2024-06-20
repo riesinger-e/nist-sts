@@ -12,7 +12,7 @@ use crate::bitvec::BitVec;
 
 /// Frequency (mono bit) test - No. 1
 /// 
-/// See the [module docs](crate::tests::frequency_test).
+/// See the [module docs](crate::tests::frequency).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
 pub fn frequency_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: convert 0 values to -1 and calculate the sum of all bits.

@@ -1,10 +1,12 @@
 //! Checks that a test work using the example inputs shown in the description of the tests
 //! by NIST:
 
+use std::num::NonZero;
 use crate::bitvec::BitVec;
-use crate::tests::frequency_block_test::{frequency_block_test, FrequencyBlockTestArg};
-use crate::tests::frequency_test::frequency_test;
-use crate::tests::runs_test::runs_test;
+use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
+use crate::tests::frequency::frequency_test;
+use crate::tests::longest_run_of_ones::longest_run_of_ones_test;
+use crate::tests::runs::runs_test;
 use super::assert_f64_eq;
 
 const LEVEL_VALUE: f64 = 0.01;
@@ -47,7 +49,7 @@ fn test_frequency_test_2() {
 #[test]
 fn test_frequency_block_test_1() {
     let input = BitVec::from_ascii_str("0110011010").unwrap();
-    let arg = FrequencyBlockTestArg::Bitwise(3);
+    let arg = FrequencyBlockTestArg::Bitwise(NonZero::new(3).unwrap());
 
     let output = frequency_block_test(&input, arg);
     assert!(output.is_ok());
@@ -63,7 +65,7 @@ fn test_frequency_block_test_1() {
 fn test_frequency_block_test_2() {
     let input = BitVec::from_ascii_str("1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000")
         .unwrap();
-    let arg = FrequencyBlockTestArg::new(10);
+    let arg = FrequencyBlockTestArg::new(NonZero::new(10).unwrap());
 
     let output = frequency_block_test(&input, arg);
     assert!(output.is_ok());
@@ -102,4 +104,19 @@ fn test_runs_test_2() {
     assert!(output.passed(LEVEL_VALUE));
 
     assert_f64_eq!(round_to_six_digits(output.p_value), 0.500798);
+}
+
+/// Test the longest run of ones in a block test (no. 4) - input and expected output from 2.4.8
+#[test]
+fn test_longest_run_of_ones() {
+    let input = BitVec::from_ascii_str("11001100000101010110110001001100111000000000001001001101010100010001001111010110100000001101011111001100111001101101100010110010")
+        .unwrap();
+
+    let output = longest_run_of_ones_test(&input);
+    assert!(output.is_ok());
+
+    let output = output.unwrap();
+    // assert!(output.passed(LEVEL_VALUE));
+
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.180598);
 }

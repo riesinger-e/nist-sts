@@ -12,7 +12,7 @@ use crate::internals::{check_f64, erfc};
 
 /// Runs test - No. 3
 ///
-/// See the [module docs](crate::tests::runs_test).
+/// See the [module docs](crate::tests::runs).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
 pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: calculate pi = count of ones / length of data

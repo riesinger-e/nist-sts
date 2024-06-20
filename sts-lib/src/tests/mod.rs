@@ -1,5 +1,6 @@
 //! All NIST STS test implementations
 
-pub mod frequency_test;
-pub mod frequency_block_test;
-pub mod runs_test;
+pub mod frequency;
+pub mod frequency_block;
+pub mod runs;
+pub mod longest_run_of_ones;
