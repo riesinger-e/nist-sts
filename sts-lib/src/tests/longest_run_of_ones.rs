@@ -19,7 +19,7 @@ const TABLE_SORTING_CRITERIA_128: [usize; 6] = [4, 5, 6, 7, 8, 9];
 const TABLE_SORTING_CRITERIA_10_4: [usize; 7] = [10, 11, 12, 13, 14, 15, 16];
 
 //TODO: recalculate
-// probabilities from section 3.4, but recalculated with longest_runs_of_ones_in_a_block.py for
+// probabilities from section 3.4, but recalculated with `longest_runs_of_ones_in_a_block.py` for
 // more accuracy (4 decimal places are not very much).
 const PROBABILITIES_8: [f64; 4] = [0.2148, 0.3672, 0.2305, 0.1875];
 const PROBABILITIES_128: [f64; 6] = [0.1174, 0.2430, 0.2493, 0.1752, 0.1027, 0.1124];

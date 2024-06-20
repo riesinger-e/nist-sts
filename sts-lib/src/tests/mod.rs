@@ -4,3 +4,4 @@ pub mod frequency;
 pub mod frequency_block;
 pub mod runs;
 pub mod longest_run_of_ones;
+pub mod binary_matrix_rank;

@@ -3,6 +3,7 @@
 
 use std::num::NonZero;
 use crate::bitvec::BitVec;
+use crate::tests::binary_matrix_rank::binary_matrix_rank_test;
 use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 use crate::tests::frequency::frequency_test;
 use crate::tests::longest_run_of_ones::longest_run_of_ones_test;
@@ -119,4 +120,13 @@ fn test_longest_run_of_ones() {
     // assert!(output.passed(LEVEL_VALUE));
 
     assert_f64_eq!(round_to_six_digits(output.p_value), 0.180598);
+}
+
+/// Test the binary matrix rank test (no. 5) - input and expected output from 2.5.8.
+/// The values from 2.5.4 cannot be used here, because they would necessitate bitwise-matrices,
+/// while the implementation only supports byte-wise matrices (because the paper itself says that
+/// the implementation only gives usable values for 32x32 matrices)
+#[test]
+fn test_binary_matrix_rank_test() {
+    // TODO: read the input (100 000 binary digits of e) from a file, do the test
 }

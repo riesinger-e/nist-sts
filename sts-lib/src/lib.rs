@@ -23,9 +23,10 @@ const BYTE_SIZE: usize = 8;
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
 pub enum Test {
-    FrequencyTest,
-    FrequencyTestWithinABlock,
-    RunsTest,
+    Frequency,
+    FrequencyWithinABlock,
+    Runs,
+    LongestRunOfOnes,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner), 

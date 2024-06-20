@@ -170,12 +170,13 @@ pub(crate) struct RunnerState {
 /// internally used function to run the test and store the result, used by both runners
 fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec, args: &TestArgs) -> Option<(Test, Error)> {
     let result = match test {
-        Test::FrequencyTest => tests::frequency::frequency_test(data),
-        Test::FrequencyTestWithinABlock => tests::frequency_block::frequency_block_test(
+        Test::Frequency => tests::frequency::frequency_test(data),
+        Test::FrequencyWithinABlock => tests::frequency_block::frequency_block_test(
             data,
             args.frequency_block_test_arg,
         ),
-        Test::RunsTest => tests::runs::runs_test(data),
+        Test::Runs => tests::runs::runs_test(data),
+        Test::LongestRunOfOnes => tests::longest_run_of_ones::longest_run_of_ones_test(data),
     };
 
     match result {
