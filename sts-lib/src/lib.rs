@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 
+use strum::EnumIter;
 use thiserror::Error;
+use crate::tests::frequency_block_test::FrequencyBlockTestArg;
 
 // internal usage only
 pub(crate) mod internals;
@@ -19,26 +21,75 @@ const BYTE_SIZE: usize = 8;
 
 /// List of all tests, used e.g. for automatic running.
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
 pub enum Test {
     FrequencyTest,
     FrequencyTestWithinABlock,
+    RunsTest,
+}
+
+/// All test arguments for use in a [TestRunner](test_runner::TestRunner), 
+/// prefilled with sane defaults.
+/// 
+/// You can construct an instance, leaving all other arguments as the default, like this:
+/// ```
+/// use sts_lib::TestArgs;
+/// use sts_lib::tests::frequency_block_test::FrequencyBlockTestArg;
+/// let args = TestArgs {
+///     frequency_block_test_arg: FrequencyBlockTestArg::Bitwise(23),
+///     ..Default::default()
+/// };
+/// ```
+#[repr(C)]
+#[derive(Clone, Debug, Default)]
+pub struct TestArgs {
+    pub frequency_block_test_arg: FrequencyBlockTestArg,
 }
 
 /// The common test result type, as used by most tests.
-#[repr(transparent)]
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct TestResult {
     p_value: f64,
+    comment: Option<&'static str>,
 }
 
+// private methods
 impl TestResult {
+    /// A new test result without comment.
+    fn new(p_value: f64) -> Self {
+        Self {
+            p_value,
+            comment: None,
+        }
+    }
+
+    /// A new test result with a comment.
+    fn new_with_comment(p_value: f64, comment: &'static str) -> Self {
+        Self {
+            p_value,
+            comment: Some(comment),
+        }
+    }
+}
+
+// public methods
+impl TestResult {
+    /// The p_value (result of the test)
     pub fn p_value(&self) -> f64 {
         self.p_value
     }
 
-    pub fn passed(&self, level_value: f64) -> bool {
-        self.p_value >= level_value
+    /// To determine if the test passed, based on the given threshold:
+    /// The test passes if the [p_value](Self::p_value) is greater or equal to the given
+    /// threshold.
+    pub fn passed(&self, threshold: f64) -> bool {
+        self.p_value >= threshold
+    }
+
+    /// Some tests leave a comment about the outcome.
+    pub fn comment(&self) -> Option<&'static str> {
+        self.comment
     }
 }
 

@@ -17,7 +17,6 @@ macro_rules! assert_f64_eq {
 }
 
 use assert_f64_eq;
-use crate::test_runner::{SingleThreadedTestRunner, TestRunner};
 
 /// Test the creation of a BitVec from a bool vec
 #[test]
@@ -84,11 +83,9 @@ fn test_frequency_block_bytewise_vs_bitwise() {
     let arg1 = FrequencyBlockTestArg::Bitwise(16);
     let arg2 = FrequencyBlockTestArg::Bytewise(2);
 
-    let runner = SingleThreadedTestRunner::new();
-
-    let res1 = frequency_block_test(&runner, &input, arg1)
+    let res1 = frequency_block_test(&input, arg1)
         .unwrap();
-    let res2 = frequency_block_test(&runner, &input, arg2)
+    let res2 = frequency_block_test(&input, arg2)
         .unwrap();
     assert_f64_eq!(res1.p_value, res2.p_value);
 }
