@@ -1,8 +1,8 @@
 //! All unit tests
 
-use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
+use std::num::NonZero;
 
 mod nist_text_examples;
 
@@ -14,7 +14,7 @@ macro_rules! assert_f64_eq {
             f64::abs(got - expected) < f64::EPSILON,
             "Expected {expected}, got {got}"
         );
-    }
+    };
 }
 
 use assert_f64_eq;
@@ -22,7 +22,9 @@ use assert_f64_eq;
 /// Test the creation of a BitVec from a bool vec
 #[test]
 fn test_bitvec_from_bool() {
-    let input_data = [true, false, true, true, false, true, false, true, false, true];
+    let input_data = [
+        true, false, true, true, false, true, false, true, false, true,
+    ];
 
     let bitvec = BitVec::from(input_data.as_slice());
 
@@ -53,6 +55,50 @@ fn test_bitvec_from_ascii_string() {
     assert_eq!(&*bitvec.remainder, &[false, true])
 }
 
+#[test]
+fn test_bitvec_from_ascii_string_invalid() {
+    let input_data = "10110b10101";
+
+    let bitvec = BitVec::from_ascii_str(input_data);
+
+    assert!(bitvec.is_none());
+}
+
+#[test]
+fn test_bitvec_from_ascii_string_lossy() {
+    let input_data = "101a101100b101010o100";
+
+    let bitvec = BitVec::from_ascii_str_lossy(input_data);
+
+    // assert that length is the expected 18
+    assert_eq!(bitvec.len_bit(), 18);
+    // the first 8 bits should be packed into 1 byte
+    assert_eq!(&*bitvec.data, &[0b10110110, 0b01010101]);
+    // the remaining two bits should be here
+    assert_eq!(&*bitvec.remainder, &[false, false])
+}
+
+#[test]
+fn test_bitvec_from_ascii_string_lossy_with_max_len() {
+    let input_data = "101a101100b101010o100";
+
+    for length in [14, 22] {
+        let bitvec = BitVec::from_ascii_str_lossy_with_max_length(input_data, length);
+
+        // assert that length is the expected 18
+        assert_eq!(bitvec.len_bit(), usize::min(length, 18));
+        if length == 14 {
+            // the first 8 bits should be packed into 1 byte
+            assert_eq!(&*bitvec.data, &[0b10110110]);
+            // the remaining two bits should be here
+            assert_eq!(&*bitvec.remainder, &[false, true, false, true, false, true])
+        } else {
+            assert_eq!(&*bitvec.data, &[0b10110110, 0b01010101]);
+            assert_eq!(&*bitvec.remainder, &[false, false])
+        }
+    }
+}
+
 /// Test the creation of a BitVec from a Pointer.
 #[test]
 fn test_bitvec_from_c_str() {
@@ -62,16 +108,96 @@ fn test_bitvec_from_c_str() {
     // SAFETY: input_data is a valid CStr
     let bitvec = unsafe { BitVec::from_c_str(input_data.as_ptr()) };
 
-    assert!(bitvec.is_some());
-
-    let bitvec = bitvec.unwrap();
-
     // assert that length is the expected 10
     assert_eq!(bitvec.len_bit(), input_len);
     // the first 8 bits should be packed into 1 byte
     assert_eq!(&*bitvec.data, &[0b10110101]);
     // the remaining two bits should be here
     assert_eq!(&*bitvec.remainder, &[false, true])
+}
+
+#[test]
+fn test_bitvec_from_c_str_lossy() {
+    let input_data = c"101a101100b101010o100";
+
+    let bitvec = unsafe { BitVec::from_c_str(input_data.as_ptr()) };
+
+    // assert that length is the expected 18
+    assert_eq!(bitvec.len_bit(), 18);
+    // the first 8 bits should be packed into 1 byte
+    assert_eq!(&*bitvec.data, &[0b10110110, 0b01010101]);
+    // the remaining two bits should be here
+    assert_eq!(&*bitvec.remainder, &[false, false])
+}
+
+#[test]
+fn test_bitvec_from_c_str_with_max_len() {
+    let input_data = c"101a101100b101010o100";
+
+    for length in [13, 22] {
+        let bitvec = unsafe { BitVec::from_c_str_with_max_length(input_data.as_ptr(), length) };
+
+        // assert that length is the expected 18
+        assert_eq!(bitvec.len_bit(), usize::min(length, 18));
+        if length == 13 {
+            // the first 8 bits should be packed into 1 byte
+            assert_eq!(&*bitvec.data, &[0b10110110]);
+            // the remaining two bits should be here
+            assert_eq!(&*bitvec.remainder, &[false, true, false, true, false])
+        } else {
+            assert_eq!(&*bitvec.data, &[0b10110110, 0b01010101]);
+            assert_eq!(&*bitvec.remainder, &[false, false])
+        }
+    }
+}
+
+#[test]
+fn test_bitvec_crop_more_than_1_byte() {
+    let input_data = "10110101101101011011010101";
+    let length = 26;
+
+    let bitvec = BitVec::from_ascii_str(input_data);
+
+    assert!(bitvec.is_some());
+
+    let mut bitvec = bitvec.unwrap();
+
+    // assert that length is the expected 10
+    assert_eq!(bitvec.len_bit(), length);
+    // the first 8 bits should be packed into 1 byte
+    assert_eq!(&*bitvec.data, &[0b10110101, 0b10110101, 0b10110101]);
+    // the remaining two bits should be here
+    assert_eq!(&*bitvec.remainder, &[false, true]);
+
+    let length = 11;
+    bitvec.crop(length);
+
+    assert_eq!(bitvec.len_bit(), length);
+    assert_eq!(&*bitvec.data, &[0b10110101]);
+    assert_eq!(&*bitvec.remainder, &[true, false, true]);
+}
+
+#[test]
+fn test_bitvec_crop_less_than_1_byte() {
+    let input_data = "1011010101";
+    let length = 10;
+
+    let bitvec = BitVec::from_ascii_str(input_data);
+
+    assert!(bitvec.is_some());
+
+    let mut bitvec = bitvec.unwrap();
+
+    assert_eq!(bitvec.len_bit(), length);
+    assert_eq!(&*bitvec.data, &[0b10110101]);
+    assert_eq!(&*bitvec.remainder, &[false, true]);
+
+    let length = 9;
+    bitvec.crop(length);
+
+    assert_eq!(bitvec.len_bit(), length);
+    assert_eq!(&*bitvec.data, &[0b10110101]);
+    assert_eq!(&*bitvec.remainder, &[false]);
 }
 
 /// Assert that the bitwise and byte-wise version of the frequency block test (No.2) do the same thing
@@ -84,9 +210,7 @@ fn test_frequency_block_bytewise_vs_bitwise() {
     let arg1 = FrequencyBlockTestArg::Bitwise(NonZero::new(16).unwrap());
     let arg2 = FrequencyBlockTestArg::Bytewise(NonZero::new(2).unwrap());
 
-    let res1 = frequency_block_test(&input, arg1)
-        .unwrap();
-    let res2 = frequency_block_test(&input, arg2)
-        .unwrap();
+    let res1 = frequency_block_test(&input, arg1).unwrap();
+    let res2 = frequency_block_test(&input, arg2).unwrap();
     assert_f64_eq!(res1.p_value, res2.p_value);
 }
