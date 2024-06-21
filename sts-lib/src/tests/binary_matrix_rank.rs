@@ -6,13 +6,15 @@
 //! The sequence must consist of at least 38 912 bits = 4864 bytes.
 
 use crate::bitvec::BitVec;
+use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
-use crate::internals::{check_f64, igamc};
 
 /// Rows and columns
 const M: usize = 32;
-const MATRIX_BYTE_SIZE: usize = M * M / BYTE_SIZE;
+
+/// The length of a matrix row in bytes.
+const MATRIX_ROW_LEN_BYTE: usize = M / BYTE_SIZE;
 
 // Probabilities, calculated with `binary_matrix_probabilities.py`
 const PROBABILITIES: [f64; 3] = [0.1283502644231667, 0.5775761901732046, 0.2887880951538411];
@@ -81,7 +83,9 @@ pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
         )?;
 
     // Step 4: compute chi
-    let chi = categories.into_iter().zip(PROBABILITIES)
+    let chi = categories
+        .into_iter()
+        .zip(PROBABILITIES)
         .map(|(f, p)| {
             let x = p * (block_count as f64);
             f64::powi((f as f64) - x, 2) / x
@@ -124,14 +128,8 @@ fn binary_rank(mut matrix: [u8; M * M / BYTE_SIZE]) -> Result<usize, Error> {
         // For all rows with a 1 in the column i, replace each element e_r,j in the row with e_r,j ^ e_i,j
         for row in (i + 1)..M {
             // test if row is to be changed
-            if !get_matrix_el_at(&matrix, row, i)? {
-                continue;
-            }
-
-            for col in i..M {
-                let v1 = get_matrix_el_at(&matrix, i, col)?;
-                let v2 = get_matrix_el_at(&matrix, row, col)?;
-                set_matrix_el_at(&mut matrix, row, col, v1 ^ v2)?;
+            if get_matrix_el_at(&matrix, row, i)? {
+                xor_matrix_rows(&mut matrix, row, i)?;
             }
         }
 
@@ -163,14 +161,8 @@ fn binary_rank(mut matrix: [u8; M * M / BYTE_SIZE]) -> Result<usize, Error> {
         // For all rows with a 1 in the column i, replace each element e_r,j in the row with e_r,j ^ e_i,j
         for row in (0..i).rev() {
             // test if row is to be changed
-            if !get_matrix_el_at(&matrix, row, i)? {
-                continue;
-            }
-
-            for col in (0..i).rev() {
-                let v1 = get_matrix_el_at(&matrix, i, col)?;
-                let v2 = get_matrix_el_at(&matrix, row, col)?;
-                set_matrix_el_at(&mut matrix, row, col, v1 ^ v2)?;
+            if get_matrix_el_at(&matrix, row, i)? {
+                xor_matrix_rows(&mut matrix, row, i)?;
             }
         }
 
@@ -206,41 +198,59 @@ fn get_matrix_el_at(
     Ok(bit == 1)
 }
 
-/// Set the matrix element at the specified, zero-based indices.
+/// For each element with index `i` in the row `dest`, do `dest[i] = dest[i] ^ row[i]`.
+/// This function works only if the rows of the matrix are byte-aligned (meaning, [M] has to be
+/// divisible by 8).
 /// Returns [Error::Overflow] if the given indices are invalid.
-fn set_matrix_el_at(
+fn xor_matrix_rows(
     matrix: &mut [u8; M * M / BYTE_SIZE],
+    dest: usize,
     row: usize,
-    col: usize,
-    value: bool,
 ) -> Result<(), Error> {
-    let (byte_idx, bit_idx) = calculate_matrix_indices(row, col)?;
+    const {
+        matrix_guard();
+    }
 
-    let byte = &mut matrix[byte_idx];
+    let (byte_idx_dest, bit_idx_dest) = calculate_matrix_indices(dest, 0)?;
+    // If this is not true, you removed the compile time guard.
+    assert_eq!(bit_idx_dest, 0);
 
-    let new_bit = 1 << (BYTE_SIZE - bit_idx - 1);
+    let (byte_idx_row, bit_idx_row) = calculate_matrix_indices(row, 0)?;
+    // If this is not true, you removed the compile time guard.
+    assert_eq!(bit_idx_row, 0);
 
-    if value {
-        // use binary OR to ensure the 1
-        *byte |= new_bit;
-    } else {
-        // use binary AND to ensure the 0 - binary negation to ensure the right value
-        *byte &= !new_bit;
+    for i in 0..MATRIX_ROW_LEN_BYTE {
+        matrix[byte_idx_dest + i] ^= matrix[byte_idx_row + i];
     }
 
     Ok(())
 }
 
 /// Swap the rows at specified, zero-based column indices.
+/// This function works only if the rows of the matrix are byte-aligned (meaning, [M] has to be
+/// divisible by 8).
 /// Returns [Error::Overflow] if the given indices are invalid.
-fn swap_matrix_rows(matrix: &mut [u8; M * M / BYTE_SIZE], row1: usize, row2: usize) -> Result<(), Error> {
-    for j in 0..M {
-        let el1 = get_matrix_el_at(matrix, row1, j)?;
-        let el2 = get_matrix_el_at(matrix, row2, j)?;
-
-        set_matrix_el_at(matrix, row1, j, el2)?;
-        set_matrix_el_at(matrix, row2, j, el1)?;
+fn swap_matrix_rows(
+    matrix: &mut [u8; M * M / BYTE_SIZE],
+    row1: usize,
+    row2: usize,
+) -> Result<(), Error> {
+    const {
+        matrix_guard();
     }
+
+    let (byte_idx_1, bit_idx_1) = calculate_matrix_indices(row1, 0)?;
+    // If this is not true, you removed the compile time guard.
+    assert_eq!(bit_idx_1, 0);
+
+    let (byte_idx_2, bit_idx_2) = calculate_matrix_indices(row2, 0)?;
+    // If this is not true, you removed the compile time guard.
+    assert_eq!(bit_idx_2, 0);
+
+    for i in 0..MATRIX_ROW_LEN_BYTE {
+        matrix.swap(byte_idx_1 + i, byte_idx_2 + i);
+    }
+
     Ok(())
 }
 
@@ -263,4 +273,13 @@ fn calculate_matrix_indices(row: usize, col: usize) -> Result<(usize, usize), Er
     // Which bit in the byte
     let bit_idx = total_bit_idx % BYTE_SIZE;
     Ok((byte_idx, bit_idx))
+}
+
+/// This constant functions acts as a compile-time guard if called in a const context,
+/// panicking if M is not byte-aligned.
+//noinspection RsAssertEqual
+#[allow(clippy::assertions_on_constants)]
+const fn matrix_guard() {
+    // This is a compile-time guard - it checks the alignment on compile time if the function is used.
+    assert!(M % BYTE_SIZE == 0, "Matrix has to be byte-aligned!");
 }
