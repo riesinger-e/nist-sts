@@ -9,21 +9,35 @@
 //! The data has to be at least 128 bits in length.
 
 use crate::bitvec::BitVec;
+use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
-use crate::internals::{check_f64, igamc};
 
 // Table sorting criteria for the three possible block lengths.
 const TABLE_SORTING_CRITERIA_8: [usize; 4] = [1, 2, 3, 4];
 const TABLE_SORTING_CRITERIA_128: [usize; 6] = [4, 5, 6, 7, 8, 9];
 const TABLE_SORTING_CRITERIA_10_4: [usize; 7] = [10, 11, 12, 13, 14, 15, 16];
 
-//TODO: recalculate
 // probabilities from section 3.4, but recalculated with `longest_runs_of_ones_in_a_block.py` for
 // more accuracy (4 decimal places are not very much).
-const PROBABILITIES_8: [f64; 4] = [0.2148, 0.3672, 0.2305, 0.1875];
-const PROBABILITIES_128: [f64; 6] = [0.1174, 0.2430, 0.2493, 0.1752, 0.1027, 0.1124];
-const PROBABILITIES_10_4: [f64; 7] = [0.0882, 0.2092, 0.2483, 0.1933, 0.1208, 0.0675, 0.0727];
+const PROBABILITIES_8: [f64; 4] = [0.21484375, 0.3671875, 0.23046875, 0.1875];
+const PROBABILITIES_128: [f64; 6] = [
+    0.11740357883779325,
+    0.2429559592774549,
+    0.2493634831790783,
+    0.17517706034678193,
+    0.10270107130405359,
+    0.11239884705483805,
+];
+const PROBABILITIES_10_4: [f64; 7] = [
+    0.08663231107995277,
+    0.2082006483876035,
+    0.24841858194169963,
+    0.1939127867416558,
+    0.12145848508900658,
+    0.06801108930393818,
+    0.07336609745614353,
+];
 
 /// Test for the longest run of ones in a block - No. 4
 ///
@@ -126,7 +140,12 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
     // very likely too much rounding).
     // Here block_count is taken for n = N.
     let chi = (0..bucket_count)
-        .map(|idx| f64::powi((run_table[idx] as f64) - (block_count as f64) * probabilities[idx], 2) / ((block_count as f64) * probabilities[idx]))
+        .map(|idx| {
+            f64::powi(
+                (run_table[idx] as f64) - (block_count as f64) * probabilities[idx],
+                2,
+            ) / ((block_count as f64) * probabilities[idx])
+        })
         .sum::<f64>();
 
     check_f64(chi)?;
@@ -157,10 +176,12 @@ fn add_run_to_table(
             table[0]
         )))?;
     } else if run_length >= criteria[last_idx] {
-        table[last_idx] = table[last_idx].checked_add(1).ok_or(Error::Overflow(format!(
-            "adding 1 to table value {}",
-            table[last_idx]
-        )))?;
+        table[last_idx] = table[last_idx]
+            .checked_add(1)
+            .ok_or(Error::Overflow(format!(
+                "adding 1 to table value {}",
+                table[last_idx]
+            )))?;
     } else {
         // this is an index in the middle - iterate over every criterion except first and last
         for i in 1..last_idx {
