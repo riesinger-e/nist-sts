@@ -6,7 +6,7 @@ use std::ffi::c_char;
 use std::mem;
 
 /// A list of bits, tightly packed - used in all tests
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BitVec {
     // the main, compact, data storage
     pub(crate) data: Box<[u8]>,
@@ -280,6 +280,12 @@ impl BitVec {
             data: data.into_boxed_slice(),
             remainder,
         }
+    }
+
+    /// Destructure the BitVec into its parts: the full bytes and the remaining bits (which are not
+    /// a full byte).
+    pub fn into_parts(self) -> (Box<[u8]>, Box<[bool]>) {
+        (self.data, self.remainder)
     }
 }
 

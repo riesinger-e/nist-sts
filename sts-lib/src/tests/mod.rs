@@ -6,3 +6,4 @@ pub mod runs;
 pub mod longest_run_of_ones;
 pub mod binary_matrix_rank;
 pub mod spectral_dft;
+pub mod non_overlappping_template_matching;

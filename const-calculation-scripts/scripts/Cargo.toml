@@ -1,0 +1,13 @@
+[package]
+name = "scripts"
+version = "0.1.0"
+edition = "2021"
+authors = ["Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>"]
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.5.7", features = ["derive"] }
+lzma-rs = "0.3.0"
+regex = "1.10.5"
+sts-lib = { path = "../../sts-lib" }
+xz2 = "0.1.7"

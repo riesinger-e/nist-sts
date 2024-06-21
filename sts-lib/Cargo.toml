@@ -11,6 +11,7 @@ license = "MIT"
 
 [dependencies]
 libcerf = { path = "../libcerf" }
+lzma-rs = "0.3.0"
 once_cell = "1.19.0"
 rayon = "1.10.0"
 rustfft = "6.2.0"
