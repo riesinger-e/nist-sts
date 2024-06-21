@@ -1,16 +1,21 @@
 //! Checks that a test work using the example inputs shown in the description of the tests
 //! by NIST:
 
-use std::num::NonZero;
+use super::assert_f64_eq;
 use crate::bitvec::BitVec;
 use crate::tests::binary_matrix_rank::binary_matrix_rank_test;
-use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 use crate::tests::frequency::frequency_test;
+use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 use crate::tests::longest_run_of_ones::longest_run_of_ones_test;
 use crate::tests::runs::runs_test;
-use super::assert_f64_eq;
+use crate::BYTE_SIZE;
+use std::fs;
+use std::num::NonZero;
+use std::path::Path;
 
 const LEVEL_VALUE: f64 = 0.01;
+// Path to the test directory
+const TEST_FILE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/test-files");
 
 /// The books only give the values with 6 digits precision - rounding is always necessary
 fn round_to_six_digits(value: f64) -> f64 {
@@ -80,8 +85,7 @@ fn test_frequency_block_test_2() {
 /// Test the runs test (no. 3) - input and expected output from 2.3.4
 #[test]
 fn test_runs_test_1() {
-    let input = BitVec::from_ascii_str("1001101011")
-        .unwrap();
+    let input = BitVec::from_ascii_str("1001101011").unwrap();
 
     let output = runs_test(&input);
     assert!(output.is_ok());
@@ -117,9 +121,11 @@ fn test_longest_run_of_ones() {
     assert!(output.is_ok());
 
     let output = output.unwrap();
-    // assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.180598);
+    // the expected value differs slightly from the textbook values because some constants
+    // were recalculated with higher precision.
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.180609);
 }
 
 /// Test the binary matrix rank test (no. 5) - input and expected output from 2.5.8.
@@ -128,5 +134,36 @@ fn test_longest_run_of_ones() {
 /// the implementation only gives usable values for 32x32 matrices)
 #[test]
 fn test_binary_matrix_rank_test() {
-    // TODO: read the input (100 000 binary digits of e) from a file, do the test
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e5.bin");
+    let length = 100_000;
+
+    // create the file from the original nist sample data
+    // let data = fs::read_to_string(&file_path).unwrap();
+    //
+    // let bitvec = BitVec::from_ascii_str_lossy_with_max_length(&data, 100_000);
+    // assert_eq!(bitvec.len_bit(), length);
+    // assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
+    // assert!(bitvec.remainder.is_empty());
+    //
+    // fs::write(file_path, bitvec.data).unwrap();
+
+    // read in the converted data
+    let data = fs::read(&file_path).unwrap();
+    let bitvec = BitVec::from(data);
+    assert_eq!(bitvec.len_bit(), length);
+    assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
+    assert!(bitvec.remainder.is_empty());
+
+    // run the test
+    let output = binary_matrix_rank_test(&bitvec);
+    assert!(output.is_ok());
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+
+    // the expected value differs slightly from the values from the paper because
+    // 1. some constants were recalculated with higher precision.
+    // 2. the values in the text book are just (slightly) WRONG! - try calculating chi^2 yourself with
+    //    the F_M, F_{M-1} and (N - F_M - F_{M-1}) according to the paper, it does not match!
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.503604);
 }

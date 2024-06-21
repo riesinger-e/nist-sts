@@ -17,7 +17,7 @@ const M: usize = 32;
 const MATRIX_ROW_LEN_BYTE: usize = M / BYTE_SIZE;
 
 // Probabilities, calculated with `binary_matrix_probabilities.py`
-const PROBABILITIES: [f64; 3] = [0.1283502644231667, 0.5775761901732046, 0.2887880951538411];
+const PROBABILITIES: [f64; 3] = [0.2887880951538411, 0.5775761901732046, 0.1283502644231667];
 
 /// Binary matrix rank test.
 ///
@@ -33,7 +33,7 @@ pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
 
     // Step 1: divide the sequence into blocks with length M * Q. Since M and Q are both
     // whole bytes, we don't have to think about the remainder.
-    let block_count = data.data.len() / M * M / BYTE_SIZE;
+    let block_count = data.data.len() / (M * M / BYTE_SIZE);
 
     let categories = data
         .data
