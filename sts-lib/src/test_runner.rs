@@ -2,7 +2,7 @@
 //! tests have a precondition that another test has to pass - the runner allows for easy checking.
 
 use crate::bitvec::BitVec;
-use crate::{tests, Error, Test, TestResult, TestArgs};
+use crate::{tests, Error, Test, TestArgs, TestResult};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::DerefMut;
@@ -65,7 +65,12 @@ pub trait TestRunner: RunnerBase {
     /// using [Self::get_test_result].
     ///
     /// Depending on the runner, this may execute tests in parallel.
-    fn run_tests(&self, tests: impl Iterator<Item = Test>, data: &BitVec, args: TestArgs) -> impl Iterator<Item = (Test, Error)>;
+    fn run_tests(
+        &self,
+        tests: impl Iterator<Item = Test>,
+        data: &BitVec,
+        args: TestArgs,
+    ) -> impl Iterator<Item = (Test, Error)>;
 }
 
 /// Internal trait for using the runner in tests
@@ -107,7 +112,12 @@ impl TestRunner for SingleThreadedTestRunner {
         }
     }
 
-    fn run_tests(&self, tests: impl Iterator<Item=Test>, data: &BitVec, args: TestArgs) -> impl Iterator<Item=(Test, Error)> {
+    fn run_tests(
+        &self,
+        tests: impl Iterator<Item = Test>,
+        data: &BitVec,
+        args: TestArgs,
+    ) -> impl Iterator<Item = (Test, Error)> {
         tests.filter_map(move |test| run_test(self, test, data, &args))
     }
 }
@@ -138,7 +148,12 @@ impl TestRunner for MultiThreadedTestRunner {
         }
     }
 
-    fn run_tests(&self, tests: impl Iterator<Item=Test>, data: &BitVec, args: TestArgs) -> impl Iterator<Item=(Test, Error)> {
+    fn run_tests(
+        &self,
+        tests: impl Iterator<Item = Test>,
+        data: &BitVec,
+        args: TestArgs,
+    ) -> impl Iterator<Item = (Test, Error)> {
         let args = &args;
         thread::scope(|scope| {
             // Spawn all tests as a thread
@@ -149,14 +164,15 @@ impl TestRunner for MultiThreadedTestRunner {
             // wait for all threads to finish and collect the result once again
             // this has to be done because otherwise, the iterator is bound to the scope of the thread
             // and cannot escape it
-            handles.into_iter()
+            handles
+                .into_iter()
                 // propagate panics happening in one thread to this main thread - the
                 // single-threaded implementation does so too
                 .filter_map(move |handle| handle.join().unwrap())
                 .collect::<Vec<_>>()
         })
-            // iterate over the results
-            .into_iter()
+        // iterate over the results
+        .into_iter()
     }
 }
 
@@ -168,15 +184,20 @@ pub(crate) struct RunnerState {
 }
 
 /// internally used function to run the test and store the result, used by both runners
-fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec, args: &TestArgs) -> Option<(Test, Error)> {
+fn run_test<R: TestRunner>(
+    runner: &R,
+    test: Test,
+    data: &BitVec,
+    args: &TestArgs,
+) -> Option<(Test, Error)> {
     let result = match test {
         Test::Frequency => tests::frequency::frequency_test(data),
-        Test::FrequencyWithinABlock => tests::frequency_block::frequency_block_test(
-            data,
-            args.frequency_block_test_arg,
-        ),
+        Test::FrequencyWithinABlock => {
+            tests::frequency_block::frequency_block_test(data, args.frequency_block_test_arg)
+        }
         Test::Runs => tests::runs::runs_test(data),
         Test::LongestRunOfOnes => tests::longest_run_of_ones::longest_run_of_ones_test(data),
+        Test::BinaryMatrixRank => tests::binary_matrix_rank::binary_matrix_rank_test(data),
     };
 
     match result {

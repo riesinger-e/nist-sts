@@ -27,6 +27,7 @@ pub enum Test {
     FrequencyWithinABlock,
     Runs,
     LongestRunOfOnes,
+    BinaryMatrixRank,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner), 

@@ -19,10 +19,9 @@ const MATRIX_ROW_LEN_BYTE: usize = M / BYTE_SIZE;
 // Probabilities, calculated with `binary_matrix_probabilities.py`
 const PROBABILITIES: [f64; 3] = [0.2887880951538411, 0.5775761901732046, 0.1283502644231667];
 
-/// Binary matrix rank test.
+/// Binary matrix rank test - No. 5.
 ///
 /// See also the [module docs](crate::tests::binary_matrix_rank).
-
 pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
     if data.len_bit() < 38_912 {
         return Ok(TestResult::new_with_comment(
