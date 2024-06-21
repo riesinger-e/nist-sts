@@ -55,6 +55,7 @@ fn test_bitvec_from_ascii_string() {
     assert_eq!(&*bitvec.remainder, &[false, true])
 }
 
+/// Test the ASCII string parsing with an invalid ASCII string (should not work)
 #[test]
 fn test_bitvec_from_ascii_string_invalid() {
     let input_data = "10110b10101";
@@ -64,6 +65,7 @@ fn test_bitvec_from_ascii_string_invalid() {
     assert!(bitvec.is_none());
 }
 
+/// Test the lossy ASCII string parsing with invalid characters interspersed.
 #[test]
 fn test_bitvec_from_ascii_string_lossy() {
     let input_data = "101a101100b101010o100";
@@ -78,6 +80,7 @@ fn test_bitvec_from_ascii_string_lossy() {
     assert_eq!(&*bitvec.remainder, &[false, false])
 }
 
+/// Test the lossy ASCII string parsing with a given max len
 #[test]
 fn test_bitvec_from_ascii_string_lossy_with_max_len() {
     let input_data = "101a101100b101010o100";
@@ -116,6 +119,7 @@ fn test_bitvec_from_c_str() {
     assert_eq!(&*bitvec.remainder, &[false, true])
 }
 
+/// Test the c string pointer parsing with invalid characters interspersed.
 #[test]
 fn test_bitvec_from_c_str_lossy() {
     let input_data = c"101a101100b101010o100";
@@ -130,6 +134,7 @@ fn test_bitvec_from_c_str_lossy() {
     assert_eq!(&*bitvec.remainder, &[false, false])
 }
 
+/// Test the c string pointer parsing with invalid characters interspersed and a given max length.
 #[test]
 fn test_bitvec_from_c_str_with_max_len() {
     let input_data = c"101a101100b101010o100";
@@ -151,6 +156,7 @@ fn test_bitvec_from_c_str_with_max_len() {
     }
 }
 
+/// Test bitvec cropping for more than 1 byte.
 #[test]
 fn test_bitvec_crop_more_than_1_byte() {
     let input_data = "10110101101101011011010101";
@@ -177,6 +183,7 @@ fn test_bitvec_crop_more_than_1_byte() {
     assert_eq!(&*bitvec.remainder, &[true, false, true]);
 }
 
+/// Test bitvec cropping for less than 1 byte.
 #[test]
 fn test_bitvec_crop_less_than_1_byte() {
     let input_data = "1011010101";

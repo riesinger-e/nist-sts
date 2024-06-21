@@ -11,7 +11,9 @@ license = "MIT"
 
 [dependencies]
 libcerf = { path = "../libcerf" }
+once_cell = "1.19.0"
 rayon = "1.10.0"
+rustfft = "6.2.0"
 statrs = "0.17.1"
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.61"

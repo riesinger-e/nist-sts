@@ -12,6 +12,7 @@ use crate::BYTE_SIZE;
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
+use crate::tests::spectral_dft::spectral_dft_test;
 
 const LEVEL_VALUE: f64 = 0.01;
 // Path to the test directory
@@ -166,4 +167,39 @@ fn test_binary_matrix_rank_test() {
     // 2. the values in the text book are just (slightly) WRONG! - try calculating chi^2 yourself with
     //    the F_M, F_{M-1} and (N - F_M - F_{M-1}) according to the paper, it does not match!
     assert_f64_eq!(round_to_six_digits(output.p_value), 0.503604);
+}
+
+/// Test the spectral dft test (no 6.) - input and output taken from 2.6.4
+#[test]
+fn test_spectral_dft_1() {
+    let input = BitVec::from_ascii_str("1001010011")
+        .unwrap();
+
+    let output = spectral_dft_test(&input);
+
+    assert!(output.is_ok());
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+
+    // This result is not taken from the paper itself, instead, the original NIST STS was run.
+    // The value in the paper is completely wrong!
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.468160);
+}
+
+/// Test the spectral dft test (no 6.) - input and output taken from 2.6.8
+#[test]
+fn test_spectral_dft_2() {
+    let input = BitVec::from_ascii_str("1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000")
+        .unwrap();
+
+    let output = spectral_dft_test(&input);
+
+    assert!(output.is_ok());
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+
+    // Again: calculated with the original NIST STS, value in the paper is wrong!
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.646355);
 }

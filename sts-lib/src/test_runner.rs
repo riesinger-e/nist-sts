@@ -198,6 +198,7 @@ fn run_test<R: TestRunner>(
         Test::Runs => tests::runs::runs_test(data),
         Test::LongestRunOfOnes => tests::longest_run_of_ones::longest_run_of_ones_test(data),
         Test::BinaryMatrixRank => tests::binary_matrix_rank::binary_matrix_rank_test(data),
+        Test::SpectralDft => tests::spectral_dft::spectral_dft_test(data),
     };
 
     match result {
