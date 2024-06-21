@@ -265,7 +265,7 @@ impl BitVec {
     /// Creates an instance from a byte array that may have an incomplete last byte -
     /// used by [Self::from_c_str_internal] and [Self::from_ascii_str_lossy_internal].
     fn remainder_from_data_and_byte_idx(mut data: Vec<u8>, current_byte_idx: usize) -> Self {
-        let remainder = if current_byte_idx != BYTE_SIZE {
+        let remainder = if current_byte_idx < BYTE_SIZE - 1 {
             // vec cannot be empty
             let byte = data.pop().unwrap();
 
