@@ -117,14 +117,12 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
                     max_run_length = current_run_length;
                 }
 
-                println!("Byte: {:b}: {}", chunk[0], max_run_length);
                 add_run_to_table(table, table_criteria, max_run_length)
             },
         )
         .try_reduce(
             || vec![0_usize; bucket_count],
             |a, b| {
-                println!("{a:?}, {b:?}");
                 a.into_iter()
                     .zip(b.into_iter())
                     .map(|(a, b)| {
