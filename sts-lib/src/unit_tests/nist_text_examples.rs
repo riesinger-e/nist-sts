@@ -7,12 +7,13 @@ use crate::tests::binary_matrix_rank::binary_matrix_rank_test;
 use crate::tests::frequency::frequency_test;
 use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 use crate::tests::longest_run_of_ones::longest_run_of_ones_test;
+use crate::tests::non_overlapping_template_matching::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 use crate::tests::runs::runs_test;
-use crate::BYTE_SIZE;
+use crate::tests::spectral_dft::spectral_dft_test;
+use crate::{BYTE_SIZE, Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
-use crate::tests::spectral_dft::spectral_dft_test;
 
 const LEVEL_VALUE: f64 = 0.01;
 // Path to the test directory
@@ -23,13 +24,21 @@ fn round_to_six_digits(value: f64) -> f64 {
     (value * 1_000_000.0).round() / 1_000_000.0
 }
 
+/// Check the test result: Assert that it is OK and print the error if it is not.
+fn result_checker<T>(output: &Result<T, Error>) {
+    if let Err(e) = output {
+        println!("Error: {e}")
+    }
+    assert!(output.is_ok())
+}
+
 /// Test the frequency test (no. 1) - input and expected output from 2.1.4
 #[test]
 fn test_frequency_test_1() {
     let input = BitVec::from_ascii_str("1011010101").unwrap();
 
     let output = frequency_test(&input);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -44,7 +53,7 @@ fn test_frequency_test_2() {
         .unwrap();
 
     let output = frequency_test(&input);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -59,7 +68,7 @@ fn test_frequency_block_test_1() {
     let arg = FrequencyBlockTestArg::Bitwise(NonZero::new(3).unwrap());
 
     let output = frequency_block_test(&input, arg);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -75,7 +84,7 @@ fn test_frequency_block_test_2() {
     let arg = FrequencyBlockTestArg::new(NonZero::new(10).unwrap());
 
     let output = frequency_block_test(&input, arg);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -89,7 +98,7 @@ fn test_runs_test_1() {
     let input = BitVec::from_ascii_str("1001101011").unwrap();
 
     let output = runs_test(&input);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -104,7 +113,7 @@ fn test_runs_test_2() {
         .unwrap();
 
     let output = runs_test(&input);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -119,7 +128,7 @@ fn test_longest_run_of_ones() {
         .unwrap();
 
     let output = longest_run_of_ones_test(&input);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -149,7 +158,7 @@ fn test_binary_matrix_rank_test() {
     // fs::write(file_path, bitvec.data).unwrap();
 
     // read in the converted data
-    let data = fs::read(&file_path).unwrap();
+    let data = fs::read(file_path).unwrap();
     let bitvec = BitVec::from(data);
     assert_eq!(bitvec.len_bit(), length);
     assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
@@ -157,7 +166,7 @@ fn test_binary_matrix_rank_test() {
 
     // run the test
     let output = binary_matrix_rank_test(&bitvec);
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -172,12 +181,11 @@ fn test_binary_matrix_rank_test() {
 /// Test the spectral dft test (no 6.) - input and output taken from 2.6.4
 #[test]
 fn test_spectral_dft_1() {
-    let input = BitVec::from_ascii_str("1001010011")
-        .unwrap();
+    let input = BitVec::from_ascii_str("1001010011").unwrap();
 
     let output = spectral_dft_test(&input);
 
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
@@ -195,11 +203,73 @@ fn test_spectral_dft_2() {
 
     let output = spectral_dft_test(&input);
 
-    assert!(output.is_ok());
+    result_checker(&output);
 
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
     // Again: calculated with the original NIST STS, value in the paper is wrong!
     assert_f64_eq!(round_to_six_digits(output.p_value), 0.646355);
+}
+
+/// Test the Non-Overlapping Template Matching test (no. 7) - input and output taken from 2.7.4
+#[test]
+fn test_non_overlapping_template_matching_1() {
+    let input = BitVec::from_ascii_str("10100100101110010110").unwrap();
+
+    let templates = Box::new([vec![0b0010_0000]]);
+    let template_len = 3;
+    let count_blocks = 2;
+    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_templates(
+        templates,
+        template_len,
+        count_blocks,
+    )
+    .unwrap();
+
+    let output = non_overlapping_template_matching_test(&input, test_arg);
+
+    result_checker(&output);
+
+    let output = output.unwrap()[0];
+    assert!(output.passed(LEVEL_VALUE));
+
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.344154);
+}
+
+/// Test the Non-Overlapping Template Matching test (no. 7) - input and output taken from 2.7.8
+///
+/// # Problems with this test
+///
+/// The test from the paper is not reproducible - the output that the reference implementation
+/// gives for 2^20 bits from the G-SHA-1 generator does not agree with the paper.
+///
+/// Because of this, the input pattern and the result value were chosen from the output of
+/// the NIST reference implementation.
+#[test]
+fn test_non_overlapping_template_matching_2() {
+    // This test depends on a test file: the first 2^20 bits of the G-SHA-1 generator
+    let file_path = Path::new(TEST_FILE_PATH).join("sha1.1Mi.bin");
+    let length = 1<<20;
+    let data = fs::read(file_path).unwrap();
+    let input = BitVec::from(data);
+    assert_eq!(input.len_bit(), length);
+
+    let templates = Box::new([vec![0b0010_1111, 0b1000_0000]]);
+    let template_len = 9;
+    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_templates(
+        templates,
+        template_len,
+        DEFAULT_BLOCK_COUNT,
+    )
+        .unwrap();
+    
+    let output = non_overlapping_template_matching_test(&input, test_arg);
+
+    result_checker(&output);
+
+    let output = output.unwrap()[0];
+    assert!(output.passed(LEVEL_VALUE));
+
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.015021);
 }

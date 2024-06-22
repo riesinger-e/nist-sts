@@ -109,4 +109,6 @@ pub enum Error {
     Infinite,
     #[error(transparent)]
     GammaFunctionFailed(#[from] statrs::StatsError),
+    #[error("Invalid Parameter: {0}")]
+    InvalidParameter(String),
 }

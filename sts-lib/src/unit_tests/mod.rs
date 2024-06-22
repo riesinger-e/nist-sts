@@ -3,7 +3,6 @@
 use crate::bitvec::BitVec;
 use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 use std::num::NonZero;
-use crate::BYTE_SIZE;
 
 mod nist_text_examples;
 
