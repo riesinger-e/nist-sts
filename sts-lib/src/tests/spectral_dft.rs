@@ -92,7 +92,6 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 7: compute d = (n_1 - n_0) / sqrt(data.len_bit() * 0.95 * 0.05 / 4.0)
     let d = (n_1 - n_0) / f64::sqrt((data.len_bit() as f64) * 0.95 * 0.05 / 4.0);
     check_f64(d)?;
-    println!("d: {d}");
 
     // Step 8: compute p_value = erfc(|d| * 1 / sqrt(2))
     let p_value = erfc(d.abs() * FRAC_1_SQRT_2);

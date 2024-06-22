@@ -7,22 +7,23 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::Mutex;
-use std::thread;
+use std::{mem, thread};
 use strum::IntoEnumIterator;
+use tests::*;
 
 /// Trait for a testrunner, to be used in every test.
 // private bound here is used to seal the trait.
 #[allow(private_bounds)]
 pub trait TestRunner: RunnerBase {
-    /// Create a new Testrunner that uses the passed test data.
-    fn new() -> Self
-    where
-        Self: Sized;
-
-    /// Get the test result for the specific tests. Test results are always stored when a test
-    /// is run and overwrite earlier results.
-    fn get_test_result(&self, test: Test) -> Option<TestResult> {
-        self.use_state(|state| state.stored_results.get(&test).copied())
+    /// Get the test results for the specific tests. Test results are always stored when a test
+    /// is run.
+    ///
+    /// Because some tests yield multiple results, a list of test results is returned.
+    ///
+    /// A call to this function takes the indicated result out of storage, meaning that a call after
+    /// the first for the same test will return `None`.
+    fn get_test_result(&self, test: Test) -> Option<Vec<TestResult>> {
+        self.use_state(|state| state.stored_results.remove(&test))
     }
 
     /// Runs all available tests automatically, with necessary arguments automatically chosen.
@@ -46,7 +47,7 @@ pub trait TestRunner: RunnerBase {
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
     ) -> impl Iterator<Item = (Test, Error)> {
-        self.run_tests(tests, data, TestArgs::default())
+        <Self as TestRunner>::run_tests(self, tests, data, TestArgs::default())
     }
 
     /// Runs all available tests with the used arguments taken from the passed [args](TestArgs).
@@ -56,7 +57,7 @@ pub trait TestRunner: RunnerBase {
     ///
     /// Depending on the runner, this may execute tests in parallel.
     fn run_all_tests(&self, data: &BitVec, args: TestArgs) -> impl Iterator<Item = (Test, Error)> {
-        self.run_tests(Test::iter(), data, args)
+        <Self as TestRunner>::run_tests(self, Test::iter(), data, args)
     }
 
     /// Runs all given tests with the used arguments taken from the passed [args](TestArgs).
@@ -64,14 +65,26 @@ pub trait TestRunner: RunnerBase {
     /// Returns all errors that happened when running the tests, the results can be queried by
     /// using [Self::get_test_result].
     ///
+    /// All previous state is cleared.
+    ///
     /// Depending on the runner, this may execute tests in parallel.
     fn run_tests(
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
         args: TestArgs,
-    ) -> impl Iterator<Item = (Test, Error)>;
+    ) -> impl Iterator<Item = (Test, Error)> {
+        // clear all previous state, store the arguments
+        self.use_state(|state| {
+            state.stored_results.clear();
+            state.args = args;
+        });
+
+        <Self as RunnerBase>::run_tests(self, tests, data)
+    }
 }
+
+impl<T: RunnerBase> TestRunner for T {}
 
 /// Internal trait for using the runner in tests
 pub(crate) trait RunnerBase {
@@ -82,14 +95,44 @@ pub(crate) trait RunnerBase {
 
     /// Store the test result.
     fn store_result(&self, test: Test, result: TestResult) {
-        self.use_state(|state| state.stored_results.insert(test, result));
+        self.use_state(|state| {
+            state
+                .stored_results
+                .entry(test)
+                .and_modify(|result_list| result_list.push(result))
+                .or_insert_with(|| vec![result]);
+        });
     }
+
+    /// Store multiple test results at once
+    fn store_results(&self, test: Test, results: Vec<TestResult>) {
+        self.use_state(|state| state.stored_results.insert(test, results));
+    }
+
+    /// Run the tests, as passed by [TestRunner::run_tests]. This function is used because
+    /// the function in [TestRunner] contains some glue that the internal implementations should
+    /// not need to care about.
+    fn run_tests(
+        &self,
+        tests: impl Iterator<Item = Test>,
+        data: &BitVec,
+    ) -> impl Iterator<Item = (Test, Error)>;
 }
 
 /// Single threaded implementation of a test runner.
 #[repr(C)]
+#[derive(Default)]
 pub struct SingleThreadedTestRunner {
     state: RefCell<RunnerState>,
+}
+
+impl SingleThreadedTestRunner {
+    /// Create a new instance of the runner.
+    pub fn new() -> Self {
+        Self {
+            state: RefCell::new(RunnerState::default()),
+        }
+    }
 }
 
 impl RunnerBase for SingleThreadedTestRunner {
@@ -100,32 +143,30 @@ impl RunnerBase for SingleThreadedTestRunner {
         let mut state = self.state.borrow_mut();
         call(state.deref_mut())
     }
-}
-
-impl TestRunner for SingleThreadedTestRunner {
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        Self {
-            state: RefCell::new(RunnerState::default()),
-        }
-    }
 
     fn run_tests(
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
-        args: TestArgs,
     ) -> impl Iterator<Item = (Test, Error)> {
-        tests.filter_map(move |test| run_test(self, test, data, &args))
+        tests.filter_map(move |test| run_test(self, test, data))
     }
 }
 
 /// Implementation of a test runner that can be used multithreaded.
 #[repr(C)]
+#[derive(Default)]
 pub struct MultiThreadedTestRunner {
     state: Mutex<RunnerState>,
+}
+
+impl MultiThreadedTestRunner {
+    /// Create a new instance of the runner.
+    pub fn new() -> Self {
+        Self {
+            state: Mutex::new(RunnerState::default()),
+        }
+    }
 }
 
 impl RunnerBase for MultiThreadedTestRunner {
@@ -136,29 +177,16 @@ impl RunnerBase for MultiThreadedTestRunner {
         let mut state = self.state.lock().unwrap();
         call(state.deref_mut())
     }
-}
-
-impl TestRunner for MultiThreadedTestRunner {
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        Self {
-            state: Mutex::new(RunnerState::default()),
-        }
-    }
 
     fn run_tests(
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
-        args: TestArgs,
     ) -> impl Iterator<Item = (Test, Error)> {
-        let args = &args;
         thread::scope(|scope| {
             // Spawn all tests as a thread
             let handles = tests
-                .map(|test| scope.spawn(move || run_test(self, test, data, args)))
+                .map(|test| scope.spawn(move || run_test(self, test, data)))
                 .collect::<Vec<_>>();
 
             // wait for all threads to finish and collect the result once again
@@ -180,30 +208,55 @@ impl TestRunner for MultiThreadedTestRunner {
 #[derive(Default)]
 pub(crate) struct RunnerState {
     // the stored test results
-    pub(crate) stored_results: HashMap<Test, TestResult>,
+    pub(crate) stored_results: HashMap<Test, Vec<TestResult>>,
+    // the current arguments, initialized with the default value
+    pub(crate) args: TestArgs,
 }
 
 /// internally used function to run the test and store the result, used by both runners
-fn run_test<R: TestRunner>(
-    runner: &R,
-    test: Test,
-    data: &BitVec,
-    args: &TestArgs,
-) -> Option<(Test, Error)> {
+fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec) -> Option<(Test, Error)> {
     let result = match test {
-        Test::Frequency => tests::frequency::frequency_test(data),
+        Test::Frequency => frequency::frequency_test(data),
         Test::FrequencyWithinABlock => {
-            tests::frequency_block::frequency_block_test(data, args.frequency_block_test_arg)
+            let arg = runner.use_state(|state| state.args.frequency_block_test_arg);
+            frequency_block::frequency_block_test(data, arg)
         }
-        Test::Runs => tests::runs::runs_test(data),
-        Test::LongestRunOfOnes => tests::longest_run_of_ones::longest_run_of_ones_test(data),
-        Test::BinaryMatrixRank => tests::binary_matrix_rank::binary_matrix_rank_test(data),
-        Test::SpectralDft => tests::spectral_dft::spectral_dft_test(data),
+        Test::Runs => runs::runs_test(data),
+        Test::LongestRunOfOnes => longest_run_of_ones::longest_run_of_ones_test(data),
+        Test::BinaryMatrixRank => binary_matrix_rank::binary_matrix_rank_test(data),
+        Test::SpectralDft => spectral_dft::spectral_dft_test(data),
+        // early return for the few tests that give multiple results
+        Test::NonOverlappingTemplateMatching => {
+            let arg = runner
+                .use_state(|state| mem::take(&mut state.args.non_overlapping_template_test_args));
+            return handle_multiple_test_results(
+                runner,
+                test,
+                non_overlapping_template_matching::non_overlapping_template_matching_test(
+                    data, arg,
+                ),
+            );
+        }
     };
 
     match result {
         Ok(result) => {
             runner.store_result(test, result);
+            None
+        }
+        Err(e) => Some((test, e)),
+    }
+}
+
+/// Handle results of tests that yield multiple values
+fn handle_multiple_test_results<R: TestRunner>(
+    runner: &R,
+    test: Test,
+    results: Result<Vec<TestResult>, Error>,
+) -> Option<(Test, Error)> {
+    match results {
+        Ok(results) => {
+            runner.store_results(test, results);
             None
         }
         Err(e) => Some((test, e)),

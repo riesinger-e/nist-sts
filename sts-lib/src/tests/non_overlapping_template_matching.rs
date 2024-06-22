@@ -317,13 +317,6 @@ pub fn non_overlapping_template_matching_test(
                         (template, last_bit_index)
                     };
 
-                    //TODO: remove
-                    // let mut file = if block_idx == 3 {
-                    //     Some(std::fs::File::create("/home/elias/result.txt").unwrap())
-                    // } else {
-                    //     None
-                    // };
-
                     // go over the current chunk
                     let mut count_matches: usize = 0;
 
@@ -333,15 +326,6 @@ pub fn non_overlapping_template_matching_test(
                         // for every bit, apply bitwise AND with the current mask (which is shifted bitwise
                         // for new position) - now only the bits the template tries to match, are there.
                         let current_byte = (start_byte * BYTE_SIZE + i) / BYTE_SIZE;
-
-                        // TODO: remove
-                        // if 438312 == start_byte * BYTE_SIZE + i {
-                        //     println!("Reached {i}");
-                        //     println!("{}", current_byte);
-                        //     println!("{}", get_byte(&data.data, &last_byte, current_byte));
-                        //     println!("{}", get_byte(&data.data, &last_byte, current_byte + 1));
-                        //
-                        // }
 
                         let matched = (0..mask.len()).all(|idx| {
                             let byte = get_byte(&data.data, &last_byte, current_byte + idx);
@@ -353,12 +337,6 @@ pub fn non_overlapping_template_matching_test(
                         let shift = if matched {
                             // There are not enough matches possible to warrant checked arithmetic
                             count_matches += 1;
-                            //TODO: remove
-                            // if let Some(file) = &mut file {
-                            //     use std::io::Write;
-                            //     writeln!(file, "match: {}", start_byte * BYTE_SIZE + i)
-                            //         .unwrap();
-                            // }
                             template_len
                         } else {
                             1
@@ -413,10 +391,6 @@ pub fn non_overlapping_template_matching_test(
         * (1.0 / power_2_template_len
         - (2.0 * (template_len as f64) - 1.0) / f64::powi(power_2_template_len, 2));
 
-    println!("matches: {count_matches_per_chunk_per_template:?}");
-    println!("mean: {mean}");
-    println!("variance: {variance}");
-
     // Step 4: for each template, compute chi = sum( (W_j - mean)^2 / variance ) ,
     // with W_j denoting the count of matches in the current block.
     // Step 5: for each template, compute p_value = igamc(count_blocks / 2, chi / 2)
@@ -432,8 +406,6 @@ pub fn non_overlapping_template_matching_test(
                 .sum::<f64>();
 
             check_f64(chi)?;
-
-            println!("chi: {chi}");
 
             let p_value = igamc((count_blocks as f64) / 2.0, chi / 2.0)?;
             check_f64(p_value)?;
