@@ -15,6 +15,7 @@ use std::fs;
 use std::num::NonZero;
 use std::path::Path;
 use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
+use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
 
 const LEVEL_VALUE: f64 = 0.01;
 // Path to the test directory
@@ -145,22 +146,13 @@ fn test_longest_run_of_ones() {
 /// the implementation only gives usable values for 32x32 matrices)
 #[test]
 fn test_binary_matrix_rank_test() {
-    let file_path = Path::new(TEST_FILE_PATH).join("e.1e5.bin");
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e6.bin");
     let length = 100_000;
 
-    // create the file from the original nist sample data
-    // let data = fs::read_to_string(&file_path).unwrap();
-    //
-    // let bitvec = BitVec::from_ascii_str_lossy_with_max_length(&data, 100_000);
-    // assert_eq!(bitvec.len_bit(), length);
-    // assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
-    // assert!(bitvec.remainder.is_empty());
-    //
-    // fs::write(file_path, bitvec.data).unwrap();
-
-    // read in the converted data
+    // read in the test data
     let data = fs::read(file_path).unwrap();
-    let bitvec = BitVec::from(data);
+    let mut bitvec = BitVec::from(data);
+    bitvec.crop(length);
     assert_eq!(bitvec.len_bit(), length);
     assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
     assert!(bitvec.remainder.is_empty());
@@ -277,4 +269,40 @@ fn test_non_overlapping_template_matching_2() {
     assert!(output.passed(LEVEL_VALUE));
 
     assert_f64_eq!(round_to_six_digits(output.p_value), 0.015021);
+}
+
+/// Test the overlapping template matching test (no. 8) - input and expected output from 2.8.8.
+/// The values from 2.8.4 cannot be used here, because they would necessitate supporting different
+/// freedom degrees, which the reference implementation itself does not.
+///
+/// # Problems with this test
+///
+/// The results shown in the paper use inaccurate values for the pis. This is mitigated by using
+/// the pi values from the reference implementation, which is entirely inaccurate for most 
+/// bigger sequences (> 1e6).
+#[test]
+fn test_overlapping_template_matching_test() {
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e6.bin");
+    let length = 1_000_000;
+
+    // read in the test data
+    let data = fs::read(file_path).unwrap();
+    let bitvec = BitVec::from(data);
+    assert_eq!(bitvec.len_bit(), length);
+    assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
+    assert!(bitvec.remainder.is_empty());
+
+    // create the custom template
+    let arg = OverlappingTemplateTestArgs::new_nist_behaviour(9)
+        .unwrap();
+
+    // run the test
+    let output = overlapping_template_matching_test(&bitvec, arg);
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+
+    // This value is taken from the NIST reference implementation since the paper is (yet again) wrong.
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.110434);
 }

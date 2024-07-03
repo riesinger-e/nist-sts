@@ -1,7 +1,6 @@
 //! Internal functions that are used by tests - can be changed anytime
 
 use libcerf::erfcx;
-use std::f64::consts::E;
 use statrs::function::gamma::{checked_gamma_ur};
 use crate::Error;
 
@@ -12,7 +11,7 @@ pub(crate) fn erfc(value: f64) -> f64 {
     // if arithmetic underflow is observed, switching to pure erfcx would likely help
 
     let exponent = -(value * value);
-    E.powf(exponent) * erfcx(value)
+    f64::exp(exponent) * erfcx(value)
 }
 
 /// igamc, the upper regularized incomplete gamma function.

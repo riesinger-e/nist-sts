@@ -18,6 +18,7 @@ macro_rules! assert_f64_eq {
 }
 
 use assert_f64_eq;
+use crate::tests::template_matching::overlapping::calculate_hamano_kaneko_pis;
 
 /// Test the creation of a BitVec from a bool vec
 #[test]
@@ -220,4 +221,22 @@ fn test_frequency_block_bytewise_vs_bitwise() {
     let res1 = frequency_block_test(&input, arg1).unwrap();
     let res2 = frequency_block_test(&input, arg2).unwrap();
     assert_f64_eq!(res1.p_value, res2.p_value);
+}
+
+/// Test the pi calculation according to Hamano and Kaneko. Used in the overlapping template matching
+/// test.
+#[test]
+fn test_pi_calculation() {
+    let block_length = 1032;
+    let template_length = 9;
+    let freedom = 6;
+
+    let pis = calculate_hamano_kaneko_pis(block_length, template_length, freedom);
+    let expected = [0.364091, 0.185659, 0.139381, 0.100571, 0.070432, 0.139867];
+
+    for i in 0..6 {
+        // round to six digits
+        let pi = (pis[i] * 1_000_000.0).round() / 1_000_000.0;
+        assert_f64_eq!(pi, expected[i]);
+    }
 }

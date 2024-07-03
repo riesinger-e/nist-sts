@@ -11,6 +11,7 @@ use std::{thread};
 use strum::IntoEnumIterator;
 use tests::*;
 use crate::tests::template_matching::non_overlapping;
+use crate::tests::template_matching::overlapping;
 
 /// Trait for a testrunner, to be used in every test.
 // private bound here is used to seal the trait.
@@ -233,6 +234,9 @@ fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec, args: &TestArg
                     data, args.non_overlapping_template_test_args,
                 ),
             );
+        },
+        Test::OverlappingTemplateMatching => {
+            overlapping::overlapping_template_matching_test(data, args.overlapping_template_test_args)
         }
     };
 
