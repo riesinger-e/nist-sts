@@ -3,7 +3,7 @@
 use strum::EnumIter;
 use thiserror::Error;
 use crate::tests::frequency_block::FrequencyBlockTestArg;
-use crate::tests::non_overlapping_template_matching::NonOverlappingTemplateTestArgs;
+use crate::tests::template_matching::non_overlapping::NonOverlappingTemplateTestArgs;
 
 // internal usage only
 pub(crate) mod internals;
@@ -47,10 +47,10 @@ pub enum Test {
 /// };
 /// ```
 #[repr(C)]
-#[derive(Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct TestArgs {
     pub frequency_block_test_arg: FrequencyBlockTestArg,
-    pub non_overlapping_template_test_args: NonOverlappingTemplateTestArgs,
+    pub non_overlapping_template_test_args: NonOverlappingTemplateTestArgs<'static>,
 }
 
 /// The common test result type, as used by most tests.

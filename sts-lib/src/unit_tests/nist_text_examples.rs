@@ -7,13 +7,14 @@ use crate::tests::binary_matrix_rank::binary_matrix_rank_test;
 use crate::tests::frequency::frequency_test;
 use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 use crate::tests::longest_run_of_ones::longest_run_of_ones_test;
-use crate::tests::non_overlapping_template_matching::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
+use crate::tests::template_matching::TemplateArg;
 use crate::tests::runs::runs_test;
 use crate::tests::spectral_dft::spectral_dft_test;
 use crate::{BYTE_SIZE, Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
+use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 
 const LEVEL_VALUE: f64 = 0.01;
 // Path to the test directory
@@ -217,15 +218,17 @@ fn test_spectral_dft_2() {
 fn test_non_overlapping_template_matching_1() {
     let input = BitVec::from_ascii_str("10100100101110010110").unwrap();
 
-    let templates = Box::new([vec![0b0010_0000]]);
+    let template = [0b0010_0000_u8];
+    let templates = [template.as_slice()];
     let template_len = 3;
     let count_blocks = 2;
-    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_templates(
-        templates,
+    let template_arg = TemplateArg::new_with_custom_templates(
+        templates.as_slice(),
         template_len,
-        count_blocks,
     )
     .unwrap();
+    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_template(template_arg, count_blocks)
+        .unwrap();
 
     let output = non_overlapping_template_matching_test(&input, test_arg);
 
@@ -255,13 +258,15 @@ fn test_non_overlapping_template_matching_2() {
     let input = BitVec::from(data);
     assert_eq!(input.len_bit(), length);
 
-    let templates = Box::new([vec![0b0010_1111, 0b1000_0000]]);
+    let template: [u8; 2] = [0b0010_1111, 0b1000_0000];
+    let templates = [template.as_slice()];
     let template_len = 9;
-    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_templates(
-        templates,
+    let template_arg = TemplateArg::new_with_custom_templates(
+        templates.as_slice(),
         template_len,
-        DEFAULT_BLOCK_COUNT,
     )
+        .unwrap();
+    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_template(template_arg, DEFAULT_BLOCK_COUNT)
         .unwrap();
     
     let output = non_overlapping_template_matching_test(&input, test_arg);

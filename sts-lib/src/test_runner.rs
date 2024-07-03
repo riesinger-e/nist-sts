@@ -2,14 +2,15 @@
 //! tests have a precondition that another test has to pass - the runner allows for easy checking.
 
 use crate::bitvec::BitVec;
-use crate::{tests, Error, Test, TestArgs, TestResult};
+use crate::{Error, Test, TestArgs, TestResult, tests};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::Mutex;
-use std::{mem, thread};
+use std::{thread};
 use strum::IntoEnumIterator;
 use tests::*;
+use crate::tests::template_matching::non_overlapping;
 
 /// Trait for a testrunner, to be used in every test.
 // private bound here is used to seal the trait.
@@ -32,7 +33,7 @@ pub trait TestRunner: RunnerBase {
     /// using [Self::get_test_result].
     ///
     /// Depending on the runner, this may execute tests in parallel.
-    fn run_all_tests_automatic(&self, data: &BitVec) -> impl Iterator<Item = (Test, Error)> {
+    fn run_all_tests_automatic(&self, data: &BitVec) -> Box<[(Test, Error)]> {
         self.run_tests_automatic(Test::iter(), data)
     }
 
@@ -46,7 +47,7 @@ pub trait TestRunner: RunnerBase {
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
-    ) -> impl Iterator<Item = (Test, Error)> {
+    ) -> Box<[(Test, Error)]> {
         <Self as TestRunner>::run_tests(self, tests, data, TestArgs::default())
     }
 
@@ -56,7 +57,7 @@ pub trait TestRunner: RunnerBase {
     /// using [Self::get_test_result].
     ///
     /// Depending on the runner, this may execute tests in parallel.
-    fn run_all_tests(&self, data: &BitVec, args: TestArgs) -> impl Iterator<Item = (Test, Error)> {
+    fn run_all_tests(&self, data: &BitVec, args: TestArgs) -> Box<[(Test, Error)]> {
         <Self as TestRunner>::run_tests(self, Test::iter(), data, args)
     }
 
@@ -73,14 +74,13 @@ pub trait TestRunner: RunnerBase {
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
         args: TestArgs,
-    ) -> impl Iterator<Item = (Test, Error)> {
+    ) -> Box<[(Test, Error)]> {
         // clear all previous state, store the arguments
         self.use_state(|state| {
             state.stored_results.clear();
-            state.args = args;
         });
 
-        <Self as RunnerBase>::run_tests(self, tests, data)
+        <Self as RunnerBase>::run_tests(self, tests, data, args)
     }
 }
 
@@ -116,7 +116,8 @@ pub(crate) trait RunnerBase {
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
-    ) -> impl Iterator<Item = (Test, Error)>;
+        args: TestArgs,
+    ) -> Box<[(Test, Error)]>;
 }
 
 /// Single threaded implementation of a test runner.
@@ -148,8 +149,10 @@ impl RunnerBase for SingleThreadedTestRunner {
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
-    ) -> impl Iterator<Item = (Test, Error)> {
-        tests.filter_map(move |test| run_test(self, test, data))
+        args: TestArgs
+    ) -> Box<[(Test, Error)]> {
+        tests.filter_map(move |test| run_test(self, test, data, &args))
+            .collect()
     }
 }
 
@@ -182,11 +185,12 @@ impl RunnerBase for MultiThreadedTestRunner {
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
-    ) -> impl Iterator<Item = (Test, Error)> {
+        args: TestArgs,
+    ) -> Box<[(Test, Error)]> {
         thread::scope(|scope| {
             // Spawn all tests as a thread
             let handles = tests
-                .map(|test| scope.spawn(move || run_test(self, test, data)))
+                .map(|test| scope.spawn(move || run_test(self, test, data, &args)))
                 .collect::<Vec<_>>();
 
             // wait for all threads to finish and collect the result once again
@@ -197,10 +201,8 @@ impl RunnerBase for MultiThreadedTestRunner {
                 // propagate panics happening in one thread to this main thread - the
                 // single-threaded implementation does so too
                 .filter_map(move |handle| handle.join().unwrap())
-                .collect::<Vec<_>>()
+                .collect()
         })
-        // iterate over the results
-        .into_iter()
     }
 }
 
@@ -209,17 +211,14 @@ impl RunnerBase for MultiThreadedTestRunner {
 pub(crate) struct RunnerState {
     // the stored test results
     pub(crate) stored_results: HashMap<Test, Vec<TestResult>>,
-    // the current arguments, initialized with the default value
-    pub(crate) args: TestArgs,
 }
 
 /// internally used function to run the test and store the result, used by both runners
-fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec) -> Option<(Test, Error)> {
+fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec, args: &TestArgs) -> Option<(Test, Error)> {
     let result = match test {
         Test::Frequency => frequency::frequency_test(data),
         Test::FrequencyWithinABlock => {
-            let arg = runner.use_state(|state| state.args.frequency_block_test_arg);
-            frequency_block::frequency_block_test(data, arg)
+            frequency_block::frequency_block_test(data, args.frequency_block_test_arg)
         }
         Test::Runs => runs::runs_test(data),
         Test::LongestRunOfOnes => longest_run_of_ones::longest_run_of_ones_test(data),
@@ -227,13 +226,11 @@ fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec) -> Option<(Tes
         Test::SpectralDft => spectral_dft::spectral_dft_test(data),
         // early return for the few tests that give multiple results
         Test::NonOverlappingTemplateMatching => {
-            let arg = runner
-                .use_state(|state| mem::take(&mut state.args.non_overlapping_template_test_args));
             return handle_multiple_test_results(
                 runner,
                 test,
-                non_overlapping_template_matching::non_overlapping_template_matching_test(
-                    data, arg,
+                non_overlapping::non_overlapping_template_matching_test(
+                    data, args.non_overlapping_template_test_args,
                 ),
             );
         }
