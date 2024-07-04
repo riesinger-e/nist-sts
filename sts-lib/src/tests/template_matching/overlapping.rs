@@ -26,7 +26,7 @@ use crate::{Error, TestResult, BYTE_SIZE};
 use bigdecimal::num_bigint::BigInt;
 use bigdecimal::num_traits::ToPrimitive;
 use bigdecimal::BigDecimal;
-use once_cell::sync::Lazy;
+use once_cell::unsync::Lazy;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -114,7 +114,7 @@ impl Default for OverlappingTemplateTestArgs {
 /// # About performance
 ///
 /// This test is quite slow in debug mode when using the more precise pi values, taking several
-/// seconds - it runs okay (0.25s) when using release mode.
+/// seconds - it runs good when using release mode.
 /// For better performance, values that are calculated once are cached.
 pub fn overlapping_template_matching_test(
     data: &BitVec,
@@ -235,18 +235,27 @@ type CacheHashMap = HashMap<(usize, usize, usize), Vec<f64>>;
 ///
 /// Returns an array of count *freedom* with the pi values.
 ///
-/// The code here is an adapted form of the code described in https://eprint.iacr.org/2022/540 , but
-/// with arbitrary decimal precision.
+/// The code here is an implementation of the formulas described in
+/// 'Hamano, Kenji & Kaneko, Toshinobu. (2007). Correction of Overlapping Template Matching Test
+/// Included in NIST Randomness Test Suite. IEICE Transactions. 90-A. 1788-1792.
+/// 10.1093/ietfec/e90-a.9.1788.'
 ///
 /// # About performance
 ///
 /// This method is quite slow in debug mode, taking several seconds - it runs okay (0.25s) when using
-/// release mode.
-pub(crate) fn calculate_hamano_kaneko_pis(
-    block_length: usize,
-    template_length: usize,
-    freedom: usize,
-) -> Vec<f64> {
+/// release mode. For better performance when running multiple tests, once calculated results are
+/// cached.
+pub(crate) fn calculate_hamano_kaneko_pis(block_length: usize, template_length: usize, freedom: usize) -> Vec<f64> {
+    // index transformation helper for the column indexes - rust does not support negative indexes.
+    #[inline]
+    fn idx(i: isize) -> usize {
+        (i + 1) as usize
+    }
+
+    // The type to use in the calculations - may be swapped out if e.g. f128 becomes stable in Rust.
+    type Decimal = BigDecimal;
+
+    // static cache for already calculated values.
     static CACHE: Mutex<Lazy<CacheHashMap>> = Mutex::new(Lazy::new(HashMap::new));
 
     // check if already cached & return early if it is
@@ -257,90 +266,83 @@ pub(crate) fn calculate_hamano_kaneko_pis(
         }
     }
 
-    let signed_template_length = template_length as isize;
-    // create tables
-    let mut tables: Vec<Vec<BigDecimal>> = vec![Vec::with_capacity(block_length + 2); freedom - 1];
+    // internally, this uses the identifiers used in the paper
+    let m = template_length as isize;
+    let n = block_length as isize;
 
-    // compute first table row tables[0]
-    (0..(block_length + 2)).for_each(|n| {
-        if n == 0 || n == 1 {
-            tables[0].push(1u32.into())
-        } else if n <= template_length {
-            let prev_value = &tables[0][n - 1];
-            let new_value = BigDecimal::from(2u32) * prev_value;
-            tables[0].push(new_value);
-        } else {
-            let prev_value_1 = &tables[0][n - 1];
-            let prev_value_2 = &tables[0][n - template_length - 1];
-            let new_value = BigDecimal::from(2u32) * prev_value_1 - prev_value_2;
-            tables[0].push(new_value);
-        }
-    });
+    // allocate the necessary tables
+    let mut tables: Vec<Vec<Decimal>> = vec![Vec::with_capacity(block_length + 2); freedom - 1];
 
-    // compute second table row tables[1]
-    (0..(block_length + 2)).for_each(|n| {
-        if n <= template_length {
-            tables[1].push(0u32.into());
-        } else if n == template_length + 1 {
-            tables[1].push(1u32.into());
-        } else if n == template_length + 2 {
-            tables[1].push(2u32.into());
-        } else {
-            // signed math is needed here
-            let n = n as isize - 1;
-
-            let sum = (-1..(n - signed_template_length))
-                .map(|j| {
-                    &tables[0][(j + 1) as usize]
-                        * &tables[0][(n - signed_template_length - 2 - j + 1) as usize]
-                })
-                .sum::<BigDecimal>();
-            tables[1].push(sum)
-        }
-    });
-
-    // compute the remaining rows - signed math is needed here
-    (2..(freedom - 1)).for_each(|a| {
-        (0..(block_length + 2)).for_each(|n| {
-            let a = a as isize;
-            // signed maths is needed here
-            let n = n as isize - 1;
-
-            let sum = (-1..(n - (2 * signed_template_length) - a))
-                .map(|j| {
-                    &tables[0][(j + 1) as usize]
-                        * &tables[(a - 1) as usize]
-                            [(n - signed_template_length - 2 - j + 1) as usize]
-                })
-                .sum::<BigDecimal>();
-
-            let sum = if n >= 0 {
-                sum + &tables[(a - 1) as usize][n as usize]
+    // Step 1: compute T_0(n) according to formula (2) - use iterators to allow the Rust compiler
+    // to optimize as much as possible.
+    (-1..(n+1))
+        .for_each(|n| {
+            if n == -1 || n == 0 {
+                tables[0].push(Decimal::from(1u16));
+            } else if n < m {
+                let value = 2 * &tables[0][idx(n - 1)];
+                tables[0].push(value);
             } else {
-                sum
-            };
+                let value = 2 * &tables[0][idx(n - 1)] - &tables[0][idx(n - m - 1)];
+                tables[0].push(value);
+            }
+        });
 
-            tables[a as usize].push(sum);
-        })
-    });
+    // Step 2: calculate T_1(n) according to formula (3)
+    (-1..(n+1))
+        .for_each(|n| {
+            if n < m {
+                tables[1].push(Decimal::from(0u16));
+            } else if n == m {
+                tables[1].push(Decimal::from(1u16));
+            } else if n == m + 1 {
+                tables[1].push(Decimal::from(2u16));
+            } else {
+                let sum = (-1..(n-m))
+                    .map(|j| {
+                        &tables[0][idx(j)] * &tables[0][idx(n - m - 2 - j)]
+                    })
+                    .sum::<Decimal>();
+                tables[1].push(sum);
+            }
+        });
 
+    // Step 3: for each row with index 'a' left, calculate T_a(n) according to formula (4)
+    (2..(freedom - 1))
+        .for_each(|a| {
+            // 'a' is the row index.
+            // Add a start element with value 0 to each row: this is necessary because else we would
+            // try to access the non-existent value at index '-2', we can avoid that by starting
+            // with index 0 and setting the first value to 0 (which is the correct one)
+            tables[a].push(Decimal::from(0u16));
+
+            (0..(n+1))
+                .for_each(|n| {
+                    let part_1 = &tables[a-1][idx(n - 1)];
+                    let sum = (-1..(n - 2*m - (a as isize) + 1))
+                        .map(|j| {
+                            &tables[0][idx(j)] * &tables[a-1][idx(n - m - 2 - j)]
+                        })
+                        .sum::<Decimal>();
+                    let total = part_1 + sum;
+                    tables[a].push(total);
+                })
+        });
+
+    // Step 4: calculate each pi value using formula (1) and calculate the last value
     // create the pi vector, the last element is the sum of all pi elements
-    let mut pi_sum = 0.0;
+    let mut pi_sum = Decimal::from(0u8);
     let mut pis = tables
         .iter()
         .map(|row| {
-            let pi = {
-                let divisor = BigInt::from(2u32).pow(block_length as u32).into();
-                let pi = &row[block_length + 1] / &divisor;
+            let divisor = BigInt::from(2u16).pow(block_length as u32).into();
+            let pi = &row[block_length + 1] / &divisor;
 
-                pi.to_f64().unwrap()
-            };
-
-            pi_sum += pi;
-            pi
+            pi_sum += &pi;
+            pi.to_f64().unwrap()
         })
         .collect::<Vec<_>>();
-    pis.push(1.0 - pi_sum);
+    pis.push((Decimal::from(1u8) - pi_sum).to_f64().unwrap());
 
     // insert values into cache
     {
