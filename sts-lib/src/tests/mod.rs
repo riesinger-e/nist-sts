@@ -8,3 +8,4 @@ pub mod binary_matrix_rank;
 pub mod spectral_dft;
 pub mod template_matching;
 pub mod maurers_universal_statistical;
+pub mod linear_complexity;
