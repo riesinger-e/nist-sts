@@ -33,6 +33,7 @@ pub enum Test {
     SpectralDft,
     NonOverlappingTemplateMatching,
     OverlappingTemplateMatching,
+    MaurersUniversalStatistical,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner), 

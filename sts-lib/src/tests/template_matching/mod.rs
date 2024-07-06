@@ -222,17 +222,7 @@ fn count_matches_per_chunk_per_template<'a>(
     } = templates;
 
     // Create the last byte from the bit list
-    let last_byte = data
-        .remainder
-        .iter()
-        .enumerate()
-        .fold(0_u8, |byte, (idx, &bit)| {
-            if bit {
-                byte | (1 << (BYTE_SIZE - idx - 1))
-            } else {
-                byte
-            }
-        });
+    let last_byte = data.get_last_byte();
 
     // For each block, calculate the times each template matches.
     (0..block_count)

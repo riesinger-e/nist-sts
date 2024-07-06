@@ -237,6 +237,9 @@ fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec, args: &TestArg
         },
         Test::OverlappingTemplateMatching => {
             overlapping::overlapping_template_matching_test(data, args.overlapping_template_test_args)
+        },
+        Test::MaurersUniversalStatistical => {
+            maurers_universal_statistical::maurers_universal_statistic_test(data)
         }
     };
 

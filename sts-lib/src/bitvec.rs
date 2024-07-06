@@ -110,47 +110,6 @@ impl BitVec {
     }
 
     /// Creates a [BitVec] from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
-    /// Any other character is ignored. [usize::MAX] bits can be stored.
-    /// If a max length is given, a maximum of `max_length` valid bits are read
-    /// (not counting any invalid characters).
-    ///
-    /// This function runs sequential. (In contrast to [Self::from_ascii_str]).
-    fn from_ascii_str_lossy_internal(value: &str, max_length: Option<usize>) -> Self {
-        let mut full_bytes = Vec::new();
-        let mut current_byte_idx = BYTE_SIZE - 1; // start with a wrap around
-        let mut found_bit_len = max_length.map(|_| 0_usize);
-
-        for char in value.bytes() {
-            // only increment the current byte idx if the current value is a valid character
-            if char == b'1' || char == b'0' {
-                current_byte_idx += 1;
-                found_bit_len = found_bit_len.map(|i| i + 1);
-
-                if current_byte_idx == BYTE_SIZE {
-                    // allocate an additional byte and reset index
-                    current_byte_idx = 0;
-                    full_bytes.push(0);
-                }
-
-                if char == b'1' {
-                    // there is always at least 1 byte in the vec
-                    if let Some(b) = full_bytes.last_mut() {
-                        *b |= 1 << (BYTE_SIZE - current_byte_idx - 1)
-                    }
-                }
-
-                // if both values are equal (and Some())
-                if found_bit_len == max_length && found_bit_len.is_some() {
-                    break;
-                }
-            }
-        }
-
-        // string has ended - if the last byte is incomplete, it has to be saved separately
-        Self::remainder_from_data_and_byte_idx(full_bytes, current_byte_idx)
-    }
-
-    /// Creates a [BitVec] from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
     /// Any other character is ignored.
     ///
     /// ## Safety
@@ -196,6 +155,74 @@ impl BitVec {
         Self::from_c_str_internal(ptr, Some(max_length))
     }
 
+    /// Destructure the BitVec into its parts: the full bytes and the remaining bits (which are not
+    /// a full byte).
+    pub fn into_parts(self) -> (Box<[u8]>, Box<[bool]>) {
+        (self.data, self.remainder)
+    }
+}
+
+// crate internals
+impl BitVec {
+    /// creates the last byte from `self.remainder`.
+    pub(crate) fn get_last_byte(&self) -> u8 {
+        self
+            .remainder
+            .iter()
+            .enumerate()
+            .fold(0_u8, |byte, (idx, &bit)| {
+                if bit {
+                    byte | (1 << (BYTE_SIZE - idx - 1))
+                } else {
+                    byte
+                }
+            })
+    }
+}
+
+// private functions
+impl BitVec {
+    /// Creates a [BitVec] from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
+    /// Any other character is ignored. [usize::MAX] bits can be stored.
+    /// If a max length is given, a maximum of `max_length` valid bits are read
+    /// (not counting any invalid characters).
+    ///
+    /// This function runs sequential. (In contrast to [Self::from_ascii_str]).
+    fn from_ascii_str_lossy_internal(value: &str, max_length: Option<usize>) -> Self {
+        let mut full_bytes = Vec::new();
+        let mut current_byte_idx = BYTE_SIZE - 1; // start with a wrap around
+        let mut found_bit_len = max_length.map(|_| 0_usize);
+
+        for char in value.bytes() {
+            // only increment the current byte idx if the current value is a valid character
+            if char == b'1' || char == b'0' {
+                current_byte_idx += 1;
+                found_bit_len = found_bit_len.map(|i| i + 1);
+
+                if current_byte_idx == BYTE_SIZE {
+                    // allocate an additional byte and reset index
+                    current_byte_idx = 0;
+                    full_bytes.push(0);
+                }
+
+                if char == b'1' {
+                    // there is always at least 1 byte in the vec
+                    if let Some(b) = full_bytes.last_mut() {
+                        *b |= 1 << (BYTE_SIZE - current_byte_idx - 1)
+                    }
+                }
+
+                // if both values are equal (and Some())
+                if found_bit_len == max_length && found_bit_len.is_some() {
+                    break;
+                }
+            }
+        }
+
+        // string has ended - if the last byte is incomplete, it has to be saved separately
+        Self::remainder_from_data_and_byte_idx(full_bytes, current_byte_idx)
+    }
+    
     /// Creates a [BitVec] from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
     /// Any other character is ignored.  If a `max_length` is given, a maximum of `max_length` valid
     /// bits are read (not counting any invalid characters) and the maximum bit length ist
@@ -280,12 +307,6 @@ impl BitVec {
             data: data.into_boxed_slice(),
             remainder,
         }
-    }
-
-    /// Destructure the BitVec into its parts: the full bytes and the remaining bits (which are not
-    /// a full byte).
-    pub fn into_parts(self) -> (Box<[u8]>, Box<[bool]>) {
-        (self.data, self.remainder)
     }
 }
 

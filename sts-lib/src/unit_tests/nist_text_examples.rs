@@ -14,6 +14,7 @@ use crate::{BYTE_SIZE, Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
+use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
 use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
 
@@ -305,4 +306,34 @@ fn test_overlapping_template_matching_test() {
 
     // This value is taken from the NIST reference implementation since the paper is (yet again) wrong.
     assert_f64_eq!(round_to_six_digits(output.p_value), 0.110434);
+}
+
+/// Test Maurer's "Universal Statistical" Test (no. 9).
+///
+/// Input values are similar to 2.9.8, output values are taken from the NIST reference implementation.
+///
+/// # Problems with the examples from the paper
+///
+/// 1. The values form 2.9.4 cannot be used here, because the parameters used in the example
+///    are not valid for real tests.
+/// 2. Because the parameters for the G-SHA-1 generator used in 2.9.8 are unknown, the exact sequence
+///    used in the example is unknown and the values from 2.9.8 can also not be used.
+#[test]
+fn test_maurers_universal_statistical_test() {
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e6.bin");
+    let length = 1_000_000;
+
+    // read in the test data
+    let data = fs::read(file_path).unwrap();
+    let bitvec = BitVec::from(data);
+    assert_eq!(bitvec.len_bit(), length);
+
+    // run the test
+    let output = maurers_universal_statistic_test(&bitvec);
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.282568);
 }
