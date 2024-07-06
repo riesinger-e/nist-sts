@@ -19,6 +19,7 @@ macro_rules! assert_f64_eq {
 }
 
 use assert_f64_eq;
+use crate::tests::linear_complexity::berlekamp_massey;
 
 /// Test the creation of a BitVec from a bool vec
 #[test]
@@ -239,4 +240,30 @@ fn test_pi_calculation() {
         let pi = (pis[i] * 1_000_000.0).round() / 1_000_000.0;
         assert_f64_eq!(pi, expected[i]);
     }
+}
+
+/// Test the Berlekamp-Massey algorithm used in the linear complexity test.
+#[test]
+fn test_berlekamp_massey() {
+    // start_bit is 0, everything in the sequence
+    let sequence = [0b1101_0111, 0b1000_1000];
+    let bit_len = 13;
+    let start_bit = 0;
+
+    assert_eq!(berlekamp_massey(&sequence, None, bit_len, start_bit), 4);
+
+    // start_bit is 0, last byte comes separate
+    let sequence = [0b1101_0111];
+    let additional_bit = 0b1000_1000;
+    let bit_len = 13;
+    let start_bit = 0;
+
+    assert_eq!(berlekamp_massey(&sequence, Some(additional_bit), bit_len, start_bit), 4);
+    
+    // start bit is != 0
+    let sequence = [0b0110_1011, 0b1100_0100];
+    let bit_len = 13;
+    let start_bit = 1;
+
+    assert_eq!(berlekamp_massey(&sequence, None, bit_len, start_bit), 4);
 }
