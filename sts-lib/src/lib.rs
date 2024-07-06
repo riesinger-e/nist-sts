@@ -3,6 +3,7 @@
 use strum::EnumIter;
 use thiserror::Error;
 use crate::tests::frequency_block::FrequencyBlockTestArg;
+use crate::tests::linear_complexity::LinearComplexityTestArg;
 use crate::tests::template_matching::non_overlapping::NonOverlappingTemplateTestArgs;
 use crate::tests::template_matching::overlapping::OverlappingTemplateTestArgs;
 
@@ -34,6 +35,7 @@ pub enum Test {
     NonOverlappingTemplateMatching,
     OverlappingTemplateMatching,
     MaurersUniversalStatistical,
+    LinearComplexity,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner), 
@@ -45,16 +47,17 @@ pub enum Test {
 /// use sts_lib::TestArgs;
 /// use sts_lib::tests::frequency_block::FrequencyBlockTestArg;
 /// let args = TestArgs {
-///     frequency_block_test_arg: FrequencyBlockTestArg::Bitwise(NonZeroUsize::new(23).unwrap()),
+///     frequency_block: FrequencyBlockTestArg::Bitwise(NonZeroUsize::new(23).unwrap()),
 ///     ..Default::default()
 /// };
 /// ```
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default)]
 pub struct TestArgs {
-    pub frequency_block_test_arg: FrequencyBlockTestArg,
-    pub non_overlapping_template_test_args: NonOverlappingTemplateTestArgs<'static>,
-    pub overlapping_template_test_args: OverlappingTemplateTestArgs,
+    pub frequency_block: FrequencyBlockTestArg,
+    pub non_overlapping_template: NonOverlappingTemplateTestArgs<'static>,
+    pub overlapping_template: OverlappingTemplateTestArgs,
+    pub linear_complexity: LinearComplexityTestArg,
 }
 
 /// The common test result type, as used by most tests.

@@ -2,16 +2,16 @@
 //! tests have a precondition that another test has to pass - the runner allows for easy checking.
 
 use crate::bitvec::BitVec;
-use crate::{Error, Test, TestArgs, TestResult, tests};
+use crate::{tests, Error, Test, TestArgs, TestResult};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::Mutex;
-use std::{thread};
+use std::thread;
 use strum::IntoEnumIterator;
+use tests::template_matching::non_overlapping;
+use tests::template_matching::overlapping;
 use tests::*;
-use crate::tests::template_matching::non_overlapping;
-use crate::tests::template_matching::overlapping;
 
 /// Trait for a testrunner, to be used in every test.
 // private bound here is used to seal the trait.
@@ -150,9 +150,10 @@ impl RunnerBase for SingleThreadedTestRunner {
         &self,
         tests: impl Iterator<Item = Test>,
         data: &BitVec,
-        args: TestArgs
+        args: TestArgs,
     ) -> Box<[(Test, Error)]> {
-        tests.filter_map(move |test| run_test(self, test, data, &args))
+        tests
+            .filter_map(move |test| run_test(self, test, data, &args))
             .collect()
     }
 }
@@ -215,11 +216,16 @@ pub(crate) struct RunnerState {
 }
 
 /// internally used function to run the test and store the result, used by both runners
-fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec, args: &TestArgs) -> Option<(Test, Error)> {
+fn run_test<R: TestRunner>(
+    runner: &R,
+    test: Test,
+    data: &BitVec,
+    args: &TestArgs,
+) -> Option<(Test, Error)> {
     let result = match test {
         Test::Frequency => frequency::frequency_test(data),
         Test::FrequencyWithinABlock => {
-            frequency_block::frequency_block_test(data, args.frequency_block_test_arg)
+            frequency_block::frequency_block_test(data, args.frequency_block)
         }
         Test::Runs => runs::runs_test(data),
         Test::LongestRunOfOnes => longest_run_of_ones::longest_run_of_ones_test(data),
@@ -231,15 +237,19 @@ fn run_test<R: TestRunner>(runner: &R, test: Test, data: &BitVec, args: &TestArg
                 runner,
                 test,
                 non_overlapping::non_overlapping_template_matching_test(
-                    data, args.non_overlapping_template_test_args,
+                    data,
+                    args.non_overlapping_template,
                 ),
             );
-        },
+        }
         Test::OverlappingTemplateMatching => {
-            overlapping::overlapping_template_matching_test(data, args.overlapping_template_test_args)
-        },
+            overlapping::overlapping_template_matching_test(data, args.overlapping_template)
+        }
         Test::MaurersUniversalStatistical => {
             maurers_universal_statistical::maurers_universal_statistic_test(data)
+        }
+        Test::LinearComplexity => {
+            linear_complexity::linear_complexity_test(data, args.linear_complexity)
         }
     };
 

@@ -14,6 +14,7 @@ use crate::{BYTE_SIZE, Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
+use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
 use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
 use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
@@ -336,4 +337,40 @@ fn test_maurers_universal_statistical_test() {
     assert!(output.passed(LEVEL_VALUE));
 
     assert_f64_eq!(round_to_six_digits(output.p_value), 0.282568);
+}
+
+
+/// Test the linear complexity test (no. 10).
+/// Input an output values are taken from 2.10.8. 2.10.4. has no complete example given.
+///
+/// # Problems with the test
+///
+/// The test result is directly from the NIST reference implementation, which has one
+/// critical error: pi\[0] is given as 0.01047 instead of the 0.010417 it should be. This leads
+/// to a wrong result, it was manually verified that this implementation is correct (by temporarily
+/// changing the constant to the wrong value).
+///
+/// Because of this, the output value is not exactly the one given in 2.10.8, but instead the one
+/// it would be if the correct constant was used.
+#[test]
+fn test_linear_complexity_test() {
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e6.bin");
+    let length = 1_000_000;
+
+    // read in the test data
+    let data = fs::read(file_path).unwrap();
+    let bitvec = BitVec::from(data);
+    assert_eq!(bitvec.len_bit(), length);
+
+    // construct the argument
+    let arg = LinearComplexityTestArg::ManualBlockLength(1000);
+
+    // run the test
+    let output = linear_complexity_test(&bitvec, arg);
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+
+    assert_f64_eq!(round_to_six_digits(output.p_value), 0.844738);
 }
