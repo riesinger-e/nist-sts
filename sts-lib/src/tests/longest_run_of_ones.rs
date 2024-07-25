@@ -77,8 +77,8 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
         .data
         .par_chunks_exact(block_length_bytes)
         .try_fold(
-            || vec![0_usize; bucket_count],
-            |table, chunk| {
+            || vec![0_usize; bucket_count].into_boxed_slice(),
+            |mut table, chunk| {
                 // only runs of 1 are relevant here
                 let mut current_run_length: usize = 0;
                 let mut max_run_length: usize = 0;
@@ -117,19 +117,20 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
                     max_run_length = current_run_length;
                 }
 
-                add_run_to_table(table, table_criteria, max_run_length)
+                add_run_to_table(&mut table, table_criteria, max_run_length)?;
+                Ok(table)
             },
         )
         .try_reduce(
-            || vec![0_usize; bucket_count],
+            || vec![0_usize; bucket_count].into_boxed_slice(),
             |a, b| {
-                a.into_iter()
-                    .zip(b.into_iter())
+                Box::into_iter(a)
+                    .zip(Box::into_iter(b))
                     .map(|(a, b)| {
                         a.checked_add(b)
                             .ok_or(Error::Overflow(format!("Adding run part sums {a} and {b}")))
                     })
-                    .collect::<Result<Vec<_>, _>>()
+                    .collect::<Result<Box<_>, _>>()
             },
         )?;
 
@@ -160,10 +161,10 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
 
 /// to sort a given run length into the run table described in 2.4.4 (2)
 fn add_run_to_table(
-    mut table: Vec<usize>,
+    table: &mut Box<[usize]>,
     criteria: &[usize],
     run_length: usize,
-) -> Result<Vec<usize>, Error> {
+) -> Result<(), Error> {
     // length is at least 4 (table is one of three constants)
     let last_idx = criteria.len() - 1;
 
@@ -193,5 +194,5 @@ fn add_run_to_table(
         }
     }
 
-    Ok(table)
+    Ok(())
 }

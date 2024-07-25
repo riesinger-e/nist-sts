@@ -8,7 +8,7 @@ pub mod overlapping;
 
 use crate::bitvec::BitVec;
 use crate::{BYTE_SIZE, Error};
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 use std::cmp::Ordering;
 use std::io::BufReader;
 use rayon::prelude::*;
@@ -96,36 +96,36 @@ impl TemplateArg<'static> {
         ];
 
         // decompression and splitting is lazily done on first access
-        static DECOMPRESSED_TEMPLATE_FILES: [Lazy<Box<[u8]>>; 4] = [
-            Lazy::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[0])),
-            Lazy::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[1])),
-            Lazy::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[2])),
-            Lazy::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[3])),
+        static DECOMPRESSED_TEMPLATE_FILES: [LazyLock<Box<[u8]>>; 4] = [
+            LazyLock::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[0])),
+            LazyLock::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[1])),
+            LazyLock::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[2])),
+            LazyLock::new(|| decompress_template_file(COMPRESSED_TEMPLATE_FILES[3])),
         ];
 
         // The split references are stored for reuse later.
-        // Again: Lazy creation so that this is not done on startup.
-        static TEMPLATES: [Lazy<Box<[&[u8]]>>; 20] = [
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[0], 2)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[1], 3)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[2], 4)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[3], 5)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[4], 6)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[5], 7)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[6], 8)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[7], 9)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[8], 10)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[9], 11)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[10], 12)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[11], 13)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[12], 14)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[13], 15)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[14], 16)),
-            Lazy::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[15], 17)),
-            Lazy::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[0].as_ref(), 18)),
-            Lazy::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[1].as_ref(), 19)),
-            Lazy::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[2].as_ref(), 20)),
-            Lazy::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[3].as_ref(), 21)),
+        // Again: LazyLock creation so that this is not done on startup.
+        static TEMPLATES: [LazyLock<Box<[&[u8]]>>; 20] = [
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[0], 2)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[1], 3)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[2], 4)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[3], 5)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[4], 6)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[5], 7)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[6], 8)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[7], 9)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[8], 10)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[9], 11)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[10], 12)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[11], 13)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[12], 14)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[13], 15)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[14], 16)),
+            LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[15], 17)),
+            LazyLock::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[0].as_ref(), 18)),
+            LazyLock::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[1].as_ref(), 19)),
+            LazyLock::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[2].as_ref(), 20)),
+            LazyLock::new(|| split_template_file(DECOMPRESSED_TEMPLATE_FILES[3].as_ref(), 21)),
         ];
 
         // this call decompresses, if necessary, then splits the file into the individual templates

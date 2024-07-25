@@ -7,16 +7,15 @@
 
 use crate::bitvec::BitVec;
 use crate::{Error, TestResult, BYTE_SIZE};
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rustfft::num_complex::Complex;
 use rustfft::FftPlanner;
-use std::sync::Mutex;
+use std::sync::{Mutex, LazyLock};
 use crate::internals::{check_f64, erfc};
 use std::f64::consts::FRAC_1_SQRT_2;
 
 // Use a global planner to allow for caching if the test is run multiple times.
-static FFT_PLANNER: Lazy<Mutex<FftPlanner<f32>>> = Lazy::new(|| Mutex::new(FftPlanner::new()));
+static FFT_PLANNER: LazyLock<Mutex<FftPlanner<f32>>> = LazyLock::new(|| Mutex::new(FftPlanner::new()));
 
 /// Spectral DFT test - No. 6
 ///

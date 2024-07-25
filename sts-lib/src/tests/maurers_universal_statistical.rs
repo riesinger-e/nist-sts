@@ -58,7 +58,7 @@ pub fn maurers_universal_statistic_test(data: &BitVec) -> Result<TestResult, Err
     let count_test_blocks = data_len / block_length - count_init_blocks;
 
     // Step 2: create a table for each possible L-bit value
-    let mut table = vec![0; 1 << block_length];
+    let mut table = vec![0; 1 << block_length].into_boxed_slice();
 
     // Step 2: fill the table with the block number of the last occurrence of the pattern in the
     // init blocks.

@@ -26,9 +26,8 @@ use crate::{Error, TestResult, BYTE_SIZE};
 use bigdecimal::num_bigint::BigInt;
 use bigdecimal::num_traits::ToPrimitive;
 use bigdecimal::BigDecimal;
-use once_cell::unsync::Lazy;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 /// The default length of each block M, in bits.
 pub const DEFAULT_BLOCK_LENGTH: usize = 1032;
@@ -170,27 +169,29 @@ pub fn overlapping_template_matching_test(
     // 1 for 1 match, ..., 5 for 5 or more matches
     let occurrences =
         count_matches_per_chunk_per_template(block_count, DEFAULT_BLOCK_LENGTH, data, templates, 1)
-            .try_fold(vec![0_usize; freedom], |mut sum, matches_per_template| {
-                // short circuit; there is only on template
-                let matches = matches_per_template?[0];
+            .try_fold(
+                vec![0_usize; freedom].into_boxed_slice(),
+                |mut sum, matches_per_template| {
+                    // short circuit; there is only on template
+                    let matches = matches_per_template?[0];
 
-                // element to increment
-                let el_idx = matches.clamp(0, 5);
-                let element = &mut sum[el_idx];
-                *element = element
-                    .checked_add(1)
-                    .ok_or(Error::Overflow(format!(" adding 1 to {}", *element)))?;
+                    // element to increment
+                    let el_idx = matches.clamp(0, 5);
+                    let element = &mut sum[el_idx];
+                    *element = element
+                        .checked_add(1)
+                        .ok_or(Error::Overflow(format!(" adding 1 to {}", *element)))?;
 
-                Ok::<_, Error>(sum)
-            })?;
+                    Ok::<_, Error>(sum)
+                },
+            )?;
 
     // Step 3 makes no sense without the formulae for pi
 
     // Step 4: compute chi^2 = sum of (v_i - N * pi_i)^2 / (N * pi_i) for each template,
     // with N denoting the block count, v_i denoting each entry in the occurrences array for the template,
     // and pi_i denoting the value of PI_VALUES in the corresponding index.
-    let chi = occurrences
-        .into_iter()
+    let chi = Box::into_iter(occurrences)
         .zip(pi_values)
         .fold(0.0, |sum, (v_i, pi_i)| {
             let numerator = f64::powi((v_i as f64) - (block_count as f64) * pi_i, 2);
@@ -245,7 +246,11 @@ type CacheHashMap = HashMap<(usize, usize, usize), Vec<f64>>;
 /// This method is quite slow in debug mode, taking several seconds - it runs okay (0.25s) when using
 /// release mode. For better performance when running multiple tests, once calculated results are
 /// cached.
-pub(crate) fn calculate_hamano_kaneko_pis(block_length: usize, template_length: usize, freedom: usize) -> Vec<f64> {
+pub(crate) fn calculate_hamano_kaneko_pis(
+    block_length: usize,
+    template_length: usize,
+    freedom: usize,
+) -> Vec<f64> {
     // index transformation helper for the column indexes - rust does not support negative indexes.
     #[inline]
     fn idx(i: isize) -> usize {
@@ -256,7 +261,7 @@ pub(crate) fn calculate_hamano_kaneko_pis(block_length: usize, template_length: 
     type Decimal = BigDecimal;
 
     // static cache for already calculated values.
-    static CACHE: Mutex<Lazy<CacheHashMap>> = Mutex::new(Lazy::new(HashMap::new));
+    static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(|| Mutex::new(CacheHashMap::new()));
 
     // check if already cached & return early if it is
     {
@@ -275,59 +280,51 @@ pub(crate) fn calculate_hamano_kaneko_pis(block_length: usize, template_length: 
 
     // Step 1: compute T_0(n) according to formula (2) - use iterators to allow the Rust compiler
     // to optimize as much as possible.
-    (-1..(n+1))
-        .for_each(|n| {
-            if n == -1 || n == 0 {
-                tables[0].push(Decimal::from(1u16));
-            } else if n < m {
-                let value = 2 * &tables[0][idx(n - 1)];
-                tables[0].push(value);
-            } else {
-                let value = 2 * &tables[0][idx(n - 1)] - &tables[0][idx(n - m - 1)];
-                tables[0].push(value);
-            }
-        });
+    (-1..(n + 1)).for_each(|n| {
+        if n == -1 || n == 0 {
+            tables[0].push(Decimal::from(1u16));
+        } else if n < m {
+            let value = 2 * &tables[0][idx(n - 1)];
+            tables[0].push(value);
+        } else {
+            let value = 2 * &tables[0][idx(n - 1)] - &tables[0][idx(n - m - 1)];
+            tables[0].push(value);
+        }
+    });
 
     // Step 2: calculate T_1(n) according to formula (3)
-    (-1..(n+1))
-        .for_each(|n| {
-            if n < m {
-                tables[1].push(Decimal::from(0u16));
-            } else if n == m {
-                tables[1].push(Decimal::from(1u16));
-            } else if n == m + 1 {
-                tables[1].push(Decimal::from(2u16));
-            } else {
-                let sum = (-1..(n-m))
-                    .map(|j| {
-                        &tables[0][idx(j)] * &tables[0][idx(n - m - 2 - j)]
-                    })
-                    .sum::<Decimal>();
-                tables[1].push(sum);
-            }
-        });
+    (-1..(n + 1)).for_each(|n| {
+        if n < m {
+            tables[1].push(Decimal::from(0u16));
+        } else if n == m {
+            tables[1].push(Decimal::from(1u16));
+        } else if n == m + 1 {
+            tables[1].push(Decimal::from(2u16));
+        } else {
+            let sum = (-1..(n - m))
+                .map(|j| &tables[0][idx(j)] * &tables[0][idx(n - m - 2 - j)])
+                .sum::<Decimal>();
+            tables[1].push(sum);
+        }
+    });
 
     // Step 3: for each row with index 'a' left, calculate T_a(n) according to formula (4)
-    (2..(freedom - 1))
-        .for_each(|a| {
-            // 'a' is the row index.
-            // Add a start element with value 0 to each row: this is necessary because else we would
-            // try to access the non-existent value at index '-2', we can avoid that by starting
-            // with index 0 and setting the first value to 0 (which is the correct one)
-            tables[a].push(Decimal::from(0u16));
+    (2..(freedom - 1)).for_each(|a| {
+        // 'a' is the row index.
+        // Add a start element with value 0 to each row: this is necessary because else we would
+        // try to access the non-existent value at index '-2', we can avoid that by starting
+        // with index 0 and setting the first value to 0 (which is the correct one)
+        tables[a].push(Decimal::from(0u16));
 
-            (0..(n+1))
-                .for_each(|n| {
-                    let part_1 = &tables[a-1][idx(n - 1)];
-                    let sum = (-1..(n - 2*m - (a as isize) + 1))
-                        .map(|j| {
-                            &tables[0][idx(j)] * &tables[a-1][idx(n - m - 2 - j)]
-                        })
-                        .sum::<Decimal>();
-                    let total = part_1 + sum;
-                    tables[a].push(total);
-                })
-        });
+        (0..(n + 1)).for_each(|n| {
+            let part_1 = &tables[a - 1][idx(n - 1)];
+            let sum = (-1..(n - 2 * m - (a as isize) + 1))
+                .map(|j| &tables[0][idx(j)] * &tables[a - 1][idx(n - m - 2 - j)])
+                .sum::<Decimal>();
+            let total = part_1 + sum;
+            tables[a].push(total);
+        })
+    });
 
     // Step 4: calculate each pi value using formula (1) and calculate the last value
     // create the pi vector, the last element is the sum of all pi elements

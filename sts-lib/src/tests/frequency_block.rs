@@ -166,7 +166,7 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
         .into_par_iter()
         .enumerate()
         .try_fold(
-            || vec![0_usize; block_count],
+            || vec![0_usize; block_count].into_boxed_slice(),
             |mut sum, (idx, value)| {
                 // Calculate, based on the index, the index of the current block
                 let current_block_idx = idx * BYTE_SIZE / block_length_bits;
@@ -254,16 +254,16 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
             },
         )
         .try_reduce(
-            || vec![0_usize; block_count],
+            || vec![0_usize; block_count].into_boxed_slice(),
             |a, b| {
-                a.into_iter()
-                    .zip(b.into_iter())
+                Box::into_iter(a)
+                    .zip(Box::into_iter(b))
                     .map(|(a, b)| {
                         a.checked_add(b).ok_or(Error::Overflow(format!(
                             "Adding two parts of the sum: {a} + {b}"
                         )))
                     })
-                    .collect::<Result<Vec<_>, Error>>()
+                    .collect::<Result<Box<_>, Error>>()
             },
         )?;
 
@@ -285,8 +285,7 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
             )))?;
     }
 
-    let pis = count_ones_per_block
-        .into_iter()
+    let pis = Box::into_iter(count_ones_per_block)
         .map(|count_ones| (count_ones as f64) / (block_length_bits as f64));
 
     // Step 3 - compute the chi^2 statistics - calculate the values for each element in the sum
