@@ -1,11 +1,12 @@
 #![doc = include_str!("../README.md")]
 
-use strum::EnumIter;
-use thiserror::Error;
 use crate::tests::frequency_block::FrequencyBlockTestArg;
 use crate::tests::linear_complexity::LinearComplexityTestArg;
+use crate::tests::serial::SerialTestArg;
 use crate::tests::template_matching::non_overlapping::NonOverlappingTemplateTestArgs;
 use crate::tests::template_matching::overlapping::OverlappingTemplateTestArgs;
+use strum::EnumIter;
+use thiserror::Error;
 
 // internal usage only
 pub(crate) mod internals;
@@ -36,11 +37,12 @@ pub enum Test {
     OverlappingTemplateMatching,
     MaurersUniversalStatistical,
     LinearComplexity,
+    Serial,
 }
 
-/// All test arguments for use in a [TestRunner](test_runner::TestRunner), 
+/// All test arguments for use in a [TestRunner](test_runner::TestRunner),
 /// prefilled with sane defaults.
-/// 
+///
 /// You can construct an instance, leaving all other arguments as the default, like this:
 /// ```
 /// use std::num::NonZeroUsize;
@@ -58,6 +60,7 @@ pub struct TestArgs {
     pub non_overlapping_template: NonOverlappingTemplateTestArgs<'static>,
     pub overlapping_template: OverlappingTemplateTestArgs,
     pub linear_complexity: LinearComplexityTestArg,
+    pub serial: SerialTestArg,
 }
 
 /// The common test result type, as used by most tests.

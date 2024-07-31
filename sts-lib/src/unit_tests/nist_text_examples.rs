@@ -16,6 +16,7 @@ use std::num::NonZero;
 use std::path::Path;
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
 use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
+use crate::tests::serial::{serial_test, SerialTestArg};
 use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
 
@@ -23,9 +24,10 @@ const LEVEL_VALUE: f64 = 0.01;
 // Path to the test directory
 const TEST_FILE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/test-files");
 
-/// The books only give the values with 6 digits precision - rounding is always necessary
-fn round_to_six_digits(value: f64) -> f64 {
-    (value * 1_000_000.0).round() / 1_000_000.0
+/// The book only gives the value with reduces precision - rounding is nearly always necessary
+fn round(value: f64, digits: u8) -> f64 {
+    let t = f64::powi(10.0, digits as i32);
+    (value * t).round() / t
 }
 
 /// Check the test result: Assert that it is OK and print the error if it is not.
@@ -47,7 +49,7 @@ fn test_frequency_test_1() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.527089);
+    assert_f64_eq!(round(output.p_value, 6), 0.527089);
 }
 
 /// Test the frequency test (no.1) - input and expected output from 2.1.8
@@ -62,7 +64,7 @@ fn test_frequency_test_2() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.109599);
+    assert_f64_eq!(round(output.p_value, 6), 0.109599);
 }
 
 /// Test the frequency within a block test (no. 2) - input and expected output from 2.2.4
@@ -77,7 +79,7 @@ fn test_frequency_block_test_1() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.801252);
+    assert_f64_eq!(round(output.p_value, 6), 0.801252);
 }
 
 /// Test the frequency within a block test (no. 2) - input and expected output from 2.2.8
@@ -93,7 +95,7 @@ fn test_frequency_block_test_2() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.706438);
+    assert_f64_eq!(round(output.p_value, 6), 0.706438);
 }
 
 /// Test the runs test (no. 3) - input and expected output from 2.3.4
@@ -107,7 +109,7 @@ fn test_runs_test_1() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.147232);
+    assert_f64_eq!(round(output.p_value, 6), 0.147232);
 }
 
 /// Test the runs test (no. 3) - input and expected output from 2.3.8
@@ -122,7 +124,7 @@ fn test_runs_test_2() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.500798);
+    assert_f64_eq!(round(output.p_value, 6), 0.500798);
 }
 
 /// Test the longest run of ones in a block test (no. 4) - input and expected output from 2.4.8
@@ -139,7 +141,7 @@ fn test_longest_run_of_ones() {
 
     // the expected value differs slightly from the textbook values because some constants
     // were recalculated with higher precision.
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.180609);
+    assert_f64_eq!(round(output.p_value, 6), 0.180609);
 }
 
 /// Test the binary matrix rank test (no. 5) - input and expected output from 2.5.8.
@@ -170,7 +172,7 @@ fn test_binary_matrix_rank_test() {
     // 1. some constants were recalculated with higher precision.
     // 2. the values in the text book are just (slightly) WRONG! - try calculating chi^2 yourself with
     //    the F_M, F_{M-1} and (N - F_M - F_{M-1}) according to the paper, it does not match!
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.503604);
+    assert_f64_eq!(round(output.p_value, 6), 0.503604);
 }
 
 /// Test the spectral dft test (no 6.) - input and output taken from 2.6.4
@@ -187,7 +189,7 @@ fn test_spectral_dft_1() {
 
     // This result is not taken from the paper itself, instead, the original NIST STS was run.
     // The value in the paper is completely wrong!
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.468160);
+    assert_f64_eq!(round(output.p_value, 6), 0.468160);
 }
 
 /// Test the spectral dft test (no 6.) - input and output taken from 2.6.8
@@ -204,7 +206,7 @@ fn test_spectral_dft_2() {
     assert!(output.passed(LEVEL_VALUE));
 
     // Again: calculated with the original NIST STS, value in the paper is wrong!
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.646355);
+    assert_f64_eq!(round(output.p_value, 6), 0.646355);
 }
 
 /// Test the Non-Overlapping Template Matching test (no. 7) - input and output taken from 2.7.4
@@ -231,7 +233,7 @@ fn test_non_overlapping_template_matching_1() {
     let output = output.unwrap()[0];
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.344154);
+    assert_f64_eq!(round(output.p_value, 6), 0.344154);
 }
 
 /// Test the Non-Overlapping Template Matching test (no. 7) - input and output taken from 2.7.8
@@ -270,7 +272,7 @@ fn test_non_overlapping_template_matching_2() {
     let output = output.unwrap()[0];
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.015021);
+    assert_f64_eq!(round(output.p_value, 6), 0.015021);
 }
 
 /// Test the overlapping template matching test (no. 8) - input and expected output from 2.8.8.
@@ -306,7 +308,7 @@ fn test_overlapping_template_matching_test() {
     assert!(output.passed(LEVEL_VALUE));
 
     // This value is taken from the NIST reference implementation since the paper is (yet again) wrong.
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.110434);
+    assert_f64_eq!(round(output.p_value, 6), 0.110434);
 }
 
 /// Test Maurer's "Universal Statistical" Test (no. 9).
@@ -336,7 +338,7 @@ fn test_maurers_universal_statistical_test() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.282568);
+    assert_f64_eq!(round(output.p_value, 6), 0.282568);
 }
 
 
@@ -372,5 +374,52 @@ fn test_linear_complexity_test() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
 
-    assert_f64_eq!(round_to_six_digits(output.p_value), 0.844738);
+    assert_f64_eq!(round(output.p_value, 6), 0.844738);
+}
+
+/// Test the serial test (no. 11) - input from 2.11.4, output from 2.11.6
+///
+/// # Problems with the test
+///
+/// The output described in 2.11.5 step 5 is just wrong, 2.11.6 contains the correct output.
+/// Also, as described in the [test module documentation](crate::tests::serial), the description
+/// in 2.11.5 step 5 is wrong.
+#[test]
+fn test_serial_test_1() {
+    let data = BitVec::from_ascii_str("0011011101").unwrap();
+    let test_arg = SerialTestArg::new(3).unwrap();
+
+    let output = serial_test(&data, test_arg);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output[0].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[0].p_value, 6), 0.808792);
+    assert!(output[1].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[1].p_value, 6), 0.670320);
+}
+
+/// Test the serial test (no. 11) - input and output from 2.11.8
+#[test]
+fn test_serial_test_2() {
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e6.bin");
+    let length = 1_000_000;
+
+    // read in the test data
+    let data = fs::read(file_path).unwrap();
+    let data = BitVec::from(data);
+    assert_eq!(data.len_bit(), length);
+
+    let test_arg = SerialTestArg::new(2).unwrap();
+
+    let output = serial_test(&data, test_arg);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output[0].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[0].p_value, 6), 0.843764);
+    assert!(output[1].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[1].p_value, 6), 0.561915);
 }

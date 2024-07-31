@@ -251,6 +251,13 @@ fn run_test<R: TestRunner>(
         Test::LinearComplexity => {
             linear_complexity::linear_complexity_test(data, args.linear_complexity)
         }
+        Test::Serial => {
+            return handle_multiple_test_results(
+                runner,
+                test,
+                serial::serial_test(data, args.serial),
+            )
+        }
     };
 
     match result {
@@ -263,14 +270,14 @@ fn run_test<R: TestRunner>(
 }
 
 /// Handle results of tests that yield multiple values
-fn handle_multiple_test_results<R: TestRunner>(
+fn handle_multiple_test_results<R: TestRunner, T: Into<Vec<TestResult>>>(
     runner: &R,
     test: Test,
-    results: Result<Vec<TestResult>, Error>,
+    results: Result<T, Error>,
 ) -> Option<(Test, Error)> {
     match results {
         Ok(results) => {
-            runner.store_results(test, results);
+            runner.store_results(test, results.into());
             None
         }
         Err(e) => Some((test, e)),
