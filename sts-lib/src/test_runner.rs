@@ -261,6 +261,13 @@ fn run_test<R: TestRunner>(
         Test::ApproximateEntropy => {
             approximate_entropy::approximate_entropy_test(data, args.approximate_entropy)
         }
+        Test::CumulativeSums => {
+            return handle_multiple_test_results(
+                runner,
+                test,
+                cumulative_sums::cumulative_sums_test(data),
+            )
+        }
     };
 
     match result {

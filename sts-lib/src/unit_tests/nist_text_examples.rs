@@ -15,6 +15,7 @@ use std::fs;
 use std::num::NonZero;
 use std::path::Path;
 use crate::tests::approximate_entropy::{approximate_entropy_test, ApproximateEntropyTestArg};
+use crate::tests::cumulative_sums::{cumulative_sums_test, cusum_test_internal};
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
 use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
 use crate::tests::serial::{serial_test, SerialTestArg};
@@ -429,7 +430,7 @@ fn test_serial_test_2() {
 #[test]
 fn test_approximate_entropy_test_1() {
     let data = BitVec::from_ascii_str("0100110101").unwrap();
-    
+
     let test_arg = ApproximateEntropyTestArg::new(3)
         .unwrap();
 
@@ -460,4 +461,38 @@ fn test_approximate_entropy_test_2() {
     let output = output.unwrap();
     assert!(output.passed(LEVEL_VALUE));
     assert_f64_eq!(round(output.p_value, 6), 0.235301);
+}
+
+/// Test the cumulative sum test (no. 13) - input and output taken from 2.13.4
+#[test]
+fn test_cumulative_sums_test_1() {
+    let data = BitVec::from_ascii_str("1011010111")
+        .unwrap();
+
+    let output = cusum_test_internal(&data, false);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+    // Expected value is slightly different from the paper because of a different method to
+    // calculate the standard normal cumulative distribution function. Diff: 1e-6
+    assert_f64_eq!(round(output.p_value, 6), 0.411659);
+}
+
+#[test]
+fn test_cumulative_sums_test_2() {
+    let data = BitVec::from_ascii_str(
+        "1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000"
+    ).unwrap();
+
+    let output = cumulative_sums_test(&data);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output[0].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[0].p_value, 6), 0.219194);
+    assert!(output[1].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[1].p_value, 6), 0.114866);
 }

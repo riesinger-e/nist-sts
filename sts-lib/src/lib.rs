@@ -40,6 +40,7 @@ pub enum Test {
     LinearComplexity,
     Serial,
     ApproximateEntropy,
+    CumulativeSums,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner),

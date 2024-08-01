@@ -14,3 +14,4 @@ pub mod template_matching;
 // were defined in this module.
 mod serial_and_approximate_entropy;
 pub use serial_and_approximate_entropy::{serial, approximate_entropy};
+pub mod cumulative_sums;
