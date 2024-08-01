@@ -14,6 +14,7 @@ use crate::{BYTE_SIZE, Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
+use crate::tests::approximate_entropy::{approximate_entropy_test, ApproximateEntropyTestArg};
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
 use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
 use crate::tests::serial::{serial_test, SerialTestArg};
@@ -422,4 +423,41 @@ fn test_serial_test_2() {
     assert_f64_eq!(round(output[0].p_value, 6), 0.843764);
     assert!(output[1].passed(LEVEL_VALUE));
     assert_f64_eq!(round(output[1].p_value, 6), 0.561915);
+}
+
+/// Test the approximate entropy test (no. 12) - input and output from 2.12.4
+#[test]
+fn test_approximate_entropy_test_1() {
+    let data = BitVec::from_ascii_str("0100110101").unwrap();
+    
+    let test_arg = ApproximateEntropyTestArg::new(3)
+        .unwrap();
+
+    let output = approximate_entropy_test(&data, test_arg);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output.p_value, 6), 0.261961);
+}
+
+/// Test the approximate entropy test (no. 12) - input and output from 2.12.8
+#[test]
+fn test_approximate_entropy_test_2() {
+    let data = BitVec::from_ascii_str(
+        "1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000"
+    ).unwrap();
+    assert_eq!(data.len_bit(), 100);
+
+    let test_arg = ApproximateEntropyTestArg::new(2)
+        .unwrap();
+
+    let output = approximate_entropy_test(&data, test_arg);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    assert!(output.passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output.p_value, 6), 0.235301);
 }

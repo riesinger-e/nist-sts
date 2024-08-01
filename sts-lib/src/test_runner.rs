@@ -258,6 +258,9 @@ fn run_test<R: TestRunner>(
                 serial::serial_test(data, args.serial),
             )
         }
+        Test::ApproximateEntropy => {
+            approximate_entropy::approximate_entropy_test(data, args.approximate_entropy)
+        }
     };
 
     match result {

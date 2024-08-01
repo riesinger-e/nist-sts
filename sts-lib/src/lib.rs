@@ -7,6 +7,7 @@ use crate::tests::template_matching::non_overlapping::NonOverlappingTemplateTest
 use crate::tests::template_matching::overlapping::OverlappingTemplateTestArgs;
 use strum::EnumIter;
 use thiserror::Error;
+use crate::tests::approximate_entropy::ApproximateEntropyTestArg;
 
 // internal usage only
 pub(crate) mod internals;
@@ -38,6 +39,7 @@ pub enum Test {
     MaurersUniversalStatistical,
     LinearComplexity,
     Serial,
+    ApproximateEntropy,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner),
@@ -61,6 +63,7 @@ pub struct TestArgs {
     pub overlapping_template: OverlappingTemplateTestArgs,
     pub linear_complexity: LinearComplexityTestArg,
     pub serial: SerialTestArg,
+    pub approximate_entropy: ApproximateEntropyTestArg,
 }
 
 /// The common test result type, as used by most tests.
