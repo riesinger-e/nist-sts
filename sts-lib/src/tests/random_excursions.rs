@@ -2,7 +2,7 @@
 //!
 //! This test, similarly to the [cumulative sums test](crate::tests::cumulative_sums), calculates
 //! cumulative sums of a digit-adjusted (-1, +1) bit sequence, but only from the beginning to the end.
-//! This test checks if the occurrence count of cumulative sums values per cycle is as expected for
+//! This test checks if the frequency of cumulative sums values per cycle is as expected for
 //! a random sequence. A cycle consists of all cumulative sums between 2 "0"-values.
 //!
 //! Since the test needs at least 500 cycles to occur, bit sequences to fewer cycles will lead to an
@@ -45,6 +45,9 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
         }
     }
 
+    // Steps 1 to 5: calculate the cum sums (stored in prev), increment a counter per state
+    // per cycle, dynamically create a new entry per cycle. The count of cycles can be determined
+    // afterwards from the length of states_per_cycle.
     let mut states_per_cycle = vec![[0_u8; 8]];
     let mut last_index = 0;
     let mut prev: i64 = 0;

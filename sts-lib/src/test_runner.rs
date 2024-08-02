@@ -275,6 +275,13 @@ fn run_test<R: TestRunner>(
                 random_excursions::random_excursions_test(data),
             )
         }
+        Test::RandomExcursionsVariant => {
+            return handle_multiple_test_results(
+                runner,
+                test,
+                random_excursions_variant::random_excursions_variant_test(data),
+            )
+        }
     };
 
     match result {

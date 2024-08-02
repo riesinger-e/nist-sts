@@ -19,6 +19,7 @@ use crate::tests::cumulative_sums::{cumulative_sums_test, cusum_test_internal};
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
 use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
 use crate::tests::random_excursions::random_excursions_test;
+use crate::tests::random_excursions_variant::random_excursions_variant_test;
 use crate::tests::serial::{serial_test, SerialTestArg};
 use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
@@ -544,6 +545,48 @@ fn test_random_excursions_test_2() {
 
     let output = output.unwrap();
     let expected_values = [0.573306, 0.197996, 0.164011, 0.007779, 0.786868, 0.440912, 0.797854, 0.778186];
+
+    for (result, expected) in output.into_iter().zip(expected_values) {
+        assert_f64_eq!(round(result.p_value, 6), expected);
+    }
+}
+
+/// Test the random excursions variant test (no. 15) - input and output taken from 2.15.4.
+#[test]
+fn test_random_excursions_variant_test_1() {
+    let data = BitVec::from_ascii_str("0110110101")
+        .unwrap();
+
+    let output = random_excursions_variant_test(&data);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+
+    assert!(output[9].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[9].p_value, 6), 0.683091);
+}
+
+/// Test the random excursions variant test (no. 15) - input and output taken from 2.15.8
+#[test]
+fn test_random_excursions_variant_test_2() {
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e6.bin");
+    let length = 1_000_000;
+
+    // read in the test data
+    let data = fs::read(file_path).unwrap();
+    let data = BitVec::from(data);
+    assert_eq!(data.len_bit(), length);
+
+    let output = random_excursions_variant_test(&data);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    let expected_values = [
+        0.858946, 0.794755, 0.576249, 0.493417, 0.633873, 0.917283, 0.934708, 0.816012, 0.826009,
+        0.137861, 0.200642, 0.441254, 0.939291, 0.505683, 0.445935, 0.512207, 0.538635, 0.593930,
+    ];
 
     for (result, expected) in output.into_iter().zip(expected_values) {
         assert_f64_eq!(round(result.p_value, 6), expected);

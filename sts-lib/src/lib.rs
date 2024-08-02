@@ -42,6 +42,7 @@ pub enum Test {
     ApproximateEntropy,
     CumulativeSums,
     RandomExcursions,
+    RandomExcursionsVariant,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner),
@@ -68,7 +69,7 @@ pub struct TestArgs {
     pub approximate_entropy: ApproximateEntropyTestArg,
 }
 
-/// The common test result type, as used by most tests.
+/// The common test result type, as used by all tests.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct TestResult {

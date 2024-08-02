@@ -191,6 +191,7 @@ impl BitVec {
     fn from_ascii_str_lossy_internal(value: &str, max_length: Option<usize>) -> Self {
         let mut full_bytes = Vec::new();
         let mut current_byte_idx = BYTE_SIZE - 1; // start with a wrap around
+        // we only need to increment if the length is relevant.
         let mut found_bit_len = max_length.map(|_| 0_usize);
 
         for char in value.bytes() {
@@ -291,12 +292,12 @@ impl BitVec {
 
     /// Creates an instance from a byte array that may have an incomplete last byte -
     /// used by [Self::from_c_str_internal] and [Self::from_ascii_str_lossy_internal].
-    fn remainder_from_data_and_byte_idx(mut data: Vec<u8>, current_byte_idx: usize) -> Self {
-        let remainder = if current_byte_idx < BYTE_SIZE - 1 {
+    fn remainder_from_data_and_byte_idx(mut data: Vec<u8>, current_bit_idx: usize) -> Self {
+        let remainder = if current_bit_idx < BYTE_SIZE - 1 {
             // vec cannot be empty
             let byte = data.pop().unwrap();
 
-            (0..=current_byte_idx)
+            (0..=current_bit_idx)
                 .map(|idx| ((byte >> (BYTE_SIZE - idx - 1)) & 0x01) != 0)
                 .collect()
         } else {

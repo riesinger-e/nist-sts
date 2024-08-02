@@ -16,3 +16,4 @@ mod serial_and_approximate_entropy;
 pub use serial_and_approximate_entropy::{serial, approximate_entropy};
 pub mod cumulative_sums;
 pub mod random_excursions;
+pub mod random_excursions_variant;
