@@ -10,6 +10,7 @@
       <sourceFolder url="file://$MODULE_DIR$/libcerf/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/sts-lib/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/const-calculation-scripts/scripts/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/sts-cbindings/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/const-calculation-scripts/venv" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

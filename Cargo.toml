@@ -1,6 +1,8 @@
 [workspace]
-
-members = [ "const-calculation-scripts/scripts",
-    "libcerf", "sts-lib",
+members = [
+    "const-calculation-scripts/scripts",
+    "libcerf",
+    "sts-lib",
+    "sts-cbindings",
 ]
 resolver = "2"

@@ -71,7 +71,6 @@ pub struct TestArgs {
 }
 
 /// The common test result type, as used by all tests.
-#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct TestResult {
     p_value: f64,

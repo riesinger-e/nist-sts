@@ -1,0 +1,13 @@
+[package]
+name = "sts-cbindings"
+version = "0.1.0"
+edition = "2021"
+authors = ["Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>"]
+rust-version = "1.80"
+description = "An implementation of the NIST STS - C API"
+readme = true
+repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
+license = "MIT"
+
+[dependencies]
+sts-lib = { path = "../sts-lib" }

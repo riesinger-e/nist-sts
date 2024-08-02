@@ -785,6 +785,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sts-cbindings"
+version = "0.1.0"
+dependencies = [
+ "sts-lib",
+]
+
+[[package]]
 name = "sts-lib"
 version = "0.1.0"
 dependencies = [
