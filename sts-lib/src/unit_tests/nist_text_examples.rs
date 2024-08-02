@@ -18,6 +18,7 @@ use crate::tests::approximate_entropy::{approximate_entropy_test, ApproximateEnt
 use crate::tests::cumulative_sums::{cumulative_sums_test, cusum_test_internal};
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
 use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
+use crate::tests::random_excursions::random_excursions_test;
 use crate::tests::serial::{serial_test, SerialTestArg};
 use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
@@ -480,6 +481,7 @@ fn test_cumulative_sums_test_1() {
     assert_f64_eq!(round(output.p_value, 6), 0.411659);
 }
 
+/// Test the cumulative sum test (no. 13) - input and output taken from 2.13.8
 #[test]
 fn test_cumulative_sums_test_2() {
     let data = BitVec::from_ascii_str(
@@ -495,4 +497,55 @@ fn test_cumulative_sums_test_2() {
     assert_f64_eq!(round(output[0].p_value, 6), 0.219194);
     assert!(output[1].passed(LEVEL_VALUE));
     assert_f64_eq!(round(output[1].p_value, 6), 0.114866);
+}
+
+/// Test the random excursions test (no. 14) - input and output taken from 2.14.4.
+///
+/// ## Problems with this test
+///
+/// Since the constants used in the paper are not really precise, with
+/// the recalculated constants used in this test being much better, the calculated result deviates
+/// from the result in the paper (beginning with step 7). This test passes because the result was
+/// manually recalculated with the new constants.
+#[test]
+fn test_random_excursions_test_1() {
+    let data = BitVec::from_ascii_str("0110110101")
+        .unwrap();
+
+    let output = random_excursions_test(&data);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+
+    assert!(output[4].passed(LEVEL_VALUE));
+    assert_f64_eq!(round(output[4].p_value, 6), 0.502488);
+}
+
+/// Test the random excursions test (no. 14) - input and output taken from 2.14.8.
+///
+/// ## Problems with this test
+///
+/// See [test_random_excursions_test_1]. Once again, the difference was verified manually to be a
+/// result of the changed constants.
+#[test]
+fn test_random_excursions_test_2() {
+    let file_path = Path::new(TEST_FILE_PATH).join("e.1e6.bin");
+    let length = 1_000_000;
+
+    // read in the test data
+    let data = fs::read(file_path).unwrap();
+    let data = BitVec::from(data);
+    assert_eq!(data.len_bit(), length);
+
+    let output = random_excursions_test(&data);
+
+    result_checker(&output);
+
+    let output = output.unwrap();
+    let expected_values = [0.573306, 0.197996, 0.164011, 0.007779, 0.786868, 0.440912, 0.797854, 0.778186];
+
+    for (result, expected) in output.into_iter().zip(expected_values) {
+        assert_f64_eq!(round(result.p_value, 6), expected);
+    }
 }

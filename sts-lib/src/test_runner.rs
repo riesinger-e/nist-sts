@@ -268,6 +268,13 @@ fn run_test<R: TestRunner>(
                 cumulative_sums::cumulative_sums_test(data),
             )
         }
+        Test::RandomExcursions => {
+            return handle_multiple_test_results(
+                runner,
+                test,
+                random_excursions::random_excursions_test(data),
+            )
+        }
     };
 
     match result {

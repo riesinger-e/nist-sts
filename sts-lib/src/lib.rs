@@ -41,6 +41,7 @@ pub enum Test {
     Serial,
     ApproximateEntropy,
     CumulativeSums,
+    RandomExcursions,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner),
