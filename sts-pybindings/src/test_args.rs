@@ -364,7 +364,7 @@ impl SerialTestArg {
 /// 1. the given block length must be >= 2.
 /// 2. each value of with the bit length the given block length must be representable as usize,
 ///     i.e. depending on the platform, 32 or 64 bits.
-/// 3. the block length must be < (log2(bit_len of sequence]) as int) - 5
+/// 3. the block length must be < (log2(bit_len of sequence) as int) - 5
 ///
 /// Constraints 1 and 2 are checked when creating the arguments.
 ///
