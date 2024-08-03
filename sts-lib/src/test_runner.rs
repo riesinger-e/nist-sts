@@ -150,7 +150,7 @@ impl TestRunner {
                 overlapping::overlapping_template_matching_test(data, args.overlapping_template)
             }
             Test::MaurersUniversalStatistical => {
-                maurers_universal_statistical::maurers_universal_statistic_test(data)
+                maurers_universal_statistical::maurers_universal_statistical_test(data)
             }
             Test::LinearComplexity => {
                 linear_complexity::linear_complexity_test(data, args.linear_complexity)

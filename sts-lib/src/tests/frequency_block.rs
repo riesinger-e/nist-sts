@@ -1,8 +1,8 @@
 //! Frequency Test within a block.
 //!
 //! This tests for the same property as [crate::frequency_test], but within M-bit blocks.
-//! It is recommended that each BitVec has a length of at least 100 bits.
-//! For recommendations for the block length, see [FrequencyBlockTestArg]. 
+//! It is recommended that each block  has a length of at least 100 bits.
+//! This test needs an argument, see [FrequencyBlockTestArg].
 
 use std::num::NonZero;
 use crate::bitvec::BitVec;

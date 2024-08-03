@@ -32,7 +32,7 @@ pub enum Test {
     Frequency,
     /// See [tests::frequency_block].
     FrequencyWithinABlock,
-    /// See [tests::runs::runs_test].
+    /// See [tests::runs].
     Runs,
     /// See [tests::longest_run_of_ones].
     LongestRunOfOnes,

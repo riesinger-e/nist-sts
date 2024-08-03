@@ -5,7 +5,7 @@
 //! This test checks if the frequency of cumulative sums values per cycle is as expected for
 //! a random sequence. A cycle consists of all cumulative sums between 2 "0"-values.
 //!
-//! Since the test needs at least 500 cycles to occur, bit sequences to fewer cycles will lead to an
+//! Since the test needs at least 500 cycles to occur, bit sequences with fewer cycles will lead to an
 //! `Ok()` result, but with the values filled with "0.0".
 //!
 //! If the computation finishes successfully, 8 [TestResult] are returned: one for each tested state,

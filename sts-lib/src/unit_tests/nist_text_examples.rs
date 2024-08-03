@@ -17,7 +17,7 @@ use std::path::Path;
 use crate::tests::approximate_entropy::{approximate_entropy_test, ApproximateEntropyTestArg};
 use crate::tests::cumulative_sums::{cumulative_sums_test, cusum_test_internal};
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
-use crate::tests::maurers_universal_statistical::maurers_universal_statistic_test;
+use crate::tests::maurers_universal_statistical::maurers_universal_statistical_test;
 use crate::tests::random_excursions::random_excursions_test;
 use crate::tests::random_excursions_variant::random_excursions_variant_test;
 use crate::tests::serial::{serial_test, SerialTestArg};
@@ -336,7 +336,7 @@ fn test_maurers_universal_statistical_test() {
     assert_eq!(bitvec.len_bit(), length);
 
     // run the test
-    let output = maurers_universal_statistic_test(&bitvec);
+    let output = maurers_universal_statistical_test(&bitvec);
     result_checker(&output);
 
     let output = output.unwrap();
@@ -369,7 +369,7 @@ fn test_linear_complexity_test() {
     assert_eq!(bitvec.len_bit(), length);
 
     // construct the argument
-    let arg = LinearComplexityTestArg::ManualBlockLength(1000);
+    let arg = LinearComplexityTestArg::ManualBlockLength(NonZero::new(1000).unwrap());
 
     // run the test
     let output = linear_complexity_test(&bitvec, arg);

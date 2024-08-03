@@ -7,8 +7,7 @@
 //!
 //! The default arguments for this test derivate significantly from the NIST reference implementation,
 //! since the NIST reference implementation for this test is known bad.
-//! The corrections are taken from https://eprint.iacr.org/2022/540 - they are the only freely available
-//! source on how to calculate the precise PI values according to Hamano and Kaneko.
+//! The problem is that the PI values from NIST are wrong - the correction from Hamano and Kaneko is used.
 //!
 //! Details about the problems:
 //! * Even though the pi values should be revised according to the paper, both the example and

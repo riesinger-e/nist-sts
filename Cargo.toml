@@ -4,5 +4,11 @@ members = [
     "libcerf",
     "sts-lib",
     "sts-cbindings",
+    "sts-pybindings",
+]
+default-members = [
+    "libcerf",
+    "sts-lib",
+    "sts-cbindings",
 ]
 resolver = "2"

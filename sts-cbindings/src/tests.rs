@@ -220,8 +220,7 @@ test_wrapper! {
     /// Frequency Test within a block - No. 2
     ///
     /// This tests for the same property as [frequency_test], but within M-bit blocks.
-    /// It is recommended that each BitVec has a length of at least 100 bits.
-    /// For recommendations for the block length, see [TestArgFrequencyBlock].
+    /// It is recommended that each block has a length of at least 100 bits.
     fn frequency_block_test(TestArgFrequencyBlock) => tests::frequency_block::frequency_block_test;
 }
 
@@ -287,8 +286,7 @@ test_wrapper! {
     ///
     /// The default arguments for this test derivate significantly from the NIST reference implementation,
     /// since the NIST reference implementation for this test is known bad.
-    /// The corrections are taken from https://eprint.iacr.org/2022/540 - they are the only freely available
-    /// source on how to calculate the precise PI values according to Hamano and Kaneko.
+    /// The problem is that the PI values from NIST are wrong - the correction from Hamano and Kaneko is used.
     ///
     /// Details about the problems:
     /// * Even though the pi values should be revised according to the paper, both the example and
@@ -318,7 +316,7 @@ test_wrapper! {
     ///
     /// The recommended minimum length of the sequence is 387 840 bits. The absolute minimum length to
     /// be used is 2020 bits, smaller inputs will raise an error.
-    fn maurers_universal_statistical_test => tests::maurers_universal_statistical::maurers_universal_statistic_test;
+    fn maurers_universal_statistical_test => tests::maurers_universal_statistical::maurers_universal_statistical_test;
 }
 
 test_wrapper! {
@@ -393,7 +391,7 @@ test_wrapper! {
     /// This test checks if the frequency of cumulative sums values per cycle is as expected for
     /// a random sequence. A cycle consists of all cumulative sums between 2 "0"-values.
     ///
-    /// Since the test needs at least 500 cycles to occur, bit sequences to fewer cycles will lead to an
+    /// Since the test needs at least 500 cycles to occur, bit sequences with fewer cycles will lead to an
     /// `Ok()` result, but with the values filled with "0.0".
     ///
     /// If the computation finishes successfully, 8 [TestResult] are returned: one for each tested state,

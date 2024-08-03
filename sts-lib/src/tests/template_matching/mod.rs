@@ -16,8 +16,7 @@ use std::sync::LazyLock;
 /// The default template length. For use in [TemplateArg].
 pub const DEFAULT_TEMPLATE_LEN: usize = 9;
 
-/// This argument contains the template to use, both in the non-overlapping and in the overlapping
-/// template matching test.
+/// This argument contains the template to use.
 ///
 /// For the template length `m`, the following bounds must be met: 2 <= `m` <= 21 - recommended: 9.
 /// Templates are chosen automatically. Unit is bits.

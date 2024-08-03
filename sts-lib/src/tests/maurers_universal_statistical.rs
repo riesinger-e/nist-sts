@@ -32,7 +32,7 @@ const VARIANCES: [f64; 16] = [
 /// Maurers "Universal Statistical" Test  - No. 9
 ///
 /// See also the [module docs](crate::tests::maurers_universal_statistical).
-pub fn maurers_universal_statistic_test(data: &BitVec) -> Result<TestResult, Error> {
+pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 0: calculate which block length L is fitting and the other inputs based on that
     let data_len = data.len_bit();
     let block_length = (1..17).rev().find(|&l| {

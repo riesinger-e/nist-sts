@@ -1,0 +1,20 @@
+[package]
+# python package name
+name = "sts-pybindings"
+version = "0.1.0"
+edition = "2021"
+authors = ["Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>"]
+rust-version = "1.80"
+description = "An implementation of the NIST STS - Python API"
+readme = true
+repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
+license = "MIT"
+
+[lib]
+# python module name
+name = "nist_sts"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22.2", features = ["extension-module", "abi3", "abi3-py37"] }
+sts-lib = { path = "../sts-lib"}
