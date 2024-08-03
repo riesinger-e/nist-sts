@@ -28,20 +28,35 @@ const BYTE_SIZE: usize = 8;
 /// List of all tests, used e.g. for automatic running.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter, Display)]
 pub enum Test {
+    /// See [tests::frequency].
     Frequency,
+    /// See [tests::frequency_block].
     FrequencyWithinABlock,
+    /// See [tests::runs::runs_test].
     Runs,
+    /// See [tests::longest_run_of_ones].
     LongestRunOfOnes,
+    /// See [tests::binary_matrix_rank].
     BinaryMatrixRank,
+    /// See [tests::spectral_dft].
     SpectralDft,
+    /// See [tests::template_matching::non_overlapping].
     NonOverlappingTemplateMatching,
+    /// See [tests::template_matching::overlapping].
     OverlappingTemplateMatching,
+    /// See [tests::maurers_universal_statistical]
     MaurersUniversalStatistical,
+    /// See [tests::linear_complexity]
     LinearComplexity,
+    /// See [tests::serial]
     Serial,
+    /// See [tests::approximate_entropy]
     ApproximateEntropy,
+    /// See [tests::cumulative_sums]
     CumulativeSums,
+    /// See [tests::random_excursions]
     RandomExcursions,
+    /// See [tests::random_excursions_variant]
     RandomExcursionsVariant,
 }
 

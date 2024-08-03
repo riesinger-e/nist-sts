@@ -1,9 +1,18 @@
+# programming language = "C"
 language = "C"
+# make the header c++-compatbile
 cpp_compat = true
+# usize is used as size_t
 usize_is_size_t = true
 
+# always export these 2 enums
 [export]
-include = ["ErrorCode"]
+include = ["ErrorCode", "Test"]
 
+# rename RawTest to Test to "fake" that it is the enum.
+[export.rename]
+"RawTest" = "Test"
+
+# expand all macros before trying to generate the header.
 [parse.expand]
 crates = ["sts-cbindings"]

@@ -64,12 +64,90 @@ typedef enum ErrorCode {
    * One or multiple tests that were run with the test runner failed.
    */
   ErrorCode_TestFailed = 9,
+  /**
+   * The test whose result was tried to be retrieved from the test runner was not run.
+   */
+  ErrorCode_TestWasNotRun = 10,
 } ErrorCode;
+
+/**
+ * List of all tests, used for automatic running.
+ */
+typedef enum Test {
+  /**
+   * See [frequency_test](crate::tests::frequency_test).
+   */
+  Frequency = 0,
+  /**
+   * See [frequency_block_test](crate::tests::frequency_block_test).
+   */
+  FrequencyWithinABlock = 1,
+  /**
+   * See [runs_test](crate::tests::runs_test).
+   */
+  Runs = 2,
+  /**
+   * See [longest_run_of_ones_test](crate::tests::longest_run_of_ones_test).
+   */
+  LongestRunOfOnes = 3,
+  /**
+   * See [binary_matrix_rank_test](crate::tests::binary_matrix_rank_test).
+   */
+  BinaryMatrixRank = 4,
+  /**
+   * See [spectral_dft_test](crate::tests::spectral_dft_test).
+   */
+  SpectralDft = 5,
+  /**
+   * See [non_overlapping_template_matching_test](crate::tests::non_overlapping_template_matching_test).
+   */
+  NonOverlappingTemplateMatching = 6,
+  /**
+   * See [overlapping_template_matching_test](crate::tests::overlapping_template_matching_test).
+   */
+  OverlappingTemplateMatching = 7,
+  /**
+   * See [maurers_universal_statistical_test](crate::tests::maurers_universal_statistical_test).
+   */
+  MaurersUniversalStatistical = 8,
+  /**
+   * See [linear_complexity_test](crate::tests::linear_complexity_test).
+   */
+  LinearComplexity = 9,
+  /**
+   * See [serial_test](crate::tests::serial_test).
+   */
+  Serial = 10,
+  /**
+   * See [approximate_entropy_test](crate::tests::approximate_entropy_test).
+   */
+  ApproximateEntropy = 11,
+  /**
+   * See [cumulative_sums_test](crate::tests::cumulative_sums_test).
+   */
+  CumulativeSums = 12,
+  /**
+   * See [random_excursions_test](crate::tests::random_excursions_test).
+   */
+  RandomExcursions = 13,
+  /**
+   * See [random_excursions_variant_test](crate::tests::random_excursions_variant_test).
+   */
+  RandomExcursionsVariant = 14,
+} Test;
 
 /**
  * BitVec: a list of bits to run statistical tests on.
  */
 typedef struct BitVec BitVec;
+
+/**
+ * All test arguments for use in a *TestRunner*,
+ * prefilled with sane defaults.
+ *
+ * To set an argument, use the appropriate `runner_test_args_set_...` function.
+ */
+typedef struct RunnerTestArgs RunnerTestArgs;
 
 /**
  * The argument for the Approximate Entropy Test: the block length in bits to check.
@@ -161,6 +239,12 @@ typedef struct TestArgSerial TestArgSerial;
  * The result of a statistical test.
  */
 typedef struct TestResult TestResult;
+
+/**
+ * This test runner can be used to run several / all tests on a sequence in one call.
+ */
+typedef struct TestRunner TestRunner;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -1004,6 +1088,290 @@ struct TestResult **random_excursions_test(const struct BitVec *data);
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
 struct TestResult **random_excursions_variant_test(const struct BitVec *data);
+
+/**
+ * Creates a new test runner. This test runner can be used to run multiple tests on 1 sequence in
+ * 1 function call.
+ *
+ * The result pointer must be freed with [test_runner_destroy].
+ */
+struct TestRunner *test_runner_new(void);
+
+/**
+ * Destroys the given test runner.
+ *
+ * ## Safety
+ *
+ * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must be valid for reads and writes and non-null.
+ * * `runner` may not be mutated for the duration of this call.
+ * * `runner` will be an invalid pointer after this call, trying to access its memory will lead to
+ *   undefined behaviour.
+ */
+void test_runner_destroy(struct TestRunner *runner);
+
+/**
+ * Returns the result of the given test, if it was run. Since some tests return multiple results,
+ * the returned pointer is an array, the count of elements will be stored into `length`.
+ *
+ * After this call, the result is no longer stored inside the runner.
+ *
+ * The resulting list of test results must be destroyed with
+ * [test_result_list_destroy](crate::test_result::test_result_list_destroy).
+ *
+ * ## Safety
+ *
+ * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must be valid for reads and writes and non-null.
+ * * `runner` may not be mutated for the duration of this call.
+ * * `length` must be a non-null pointer valid for writes.
+ * * `length` may not be mutated for the duration of this call.
+ */
+struct TestResult **test_runner_get_result(struct TestRunner *runner, Test test, size_t *length);
+
+/**
+ * Runs all tests on the given bit sequence with the default test arguments.
+ *
+ * ## Return value
+ *
+ * * If all tests ran successfully, `0` is returned.
+ * * If an error occurred while running the tests, `1` is returned, and the error message and code
+ *   can be found out with [get_last_error_str](crate::get_last_error_str).
+ *
+ * ## Safety
+ *
+ * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must be valid for reads and writes and non-null.
+ * * `runner` may not be mutated for the duration of this call.
+ * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
+ *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
+ *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
+ *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
+ *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must be a non-null pointer valid for reads.
+ * * `bitvec` may not be mutated for the duration of this call.
+ */
+int test_runner_run_all_automatic(struct TestRunner *runner, const struct BitVec *data);
+
+/**
+ * Runs all chosen tests on the given bit sequence with the default test arguments.
+ *
+ * ## Return value
+ *
+ * * If all tests ran successfully, `0` is returned.
+ * * If one of the tests specified was a duplicate of a previous test, `1` is returned.
+ * * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
+ * * If an error occurred while running the tests, `1` is returned.
+ *
+ * In each error case, the error message and code can be found out with
+ * [get_last_error_str](crate::get_last_error_str).
+ *
+ * ## Safety
+ *
+ * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must be valid for reads and writes and non-null.
+ * * `runner` may not be mutated for the duration of this call.
+ * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
+ *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
+ *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
+ *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
+ *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must be a non-null pointer valid for reads.
+ * * `bitvec` may not be mutated for the duration of this call.
+ * * `tests` must be a valid, non-null pointer readable for up to `tests_len` elements.
+ * * `tests` may not be mutated for the duration of this call.
+ */
+int test_runner_run_automatic(struct TestRunner *runner,
+                              const struct BitVec *data,
+                              const Test *tests,
+                              size_t tests_len);
+
+/**
+ * Runs all tests on the given bit sequence with the given test arguments.
+ *
+ * ## Return value
+ *
+ * * If all tests ran successfully, `0` is returned.
+ * * If an error occurred while running the tests, `1` is returned, and the error message and code
+ *   can be found out with [get_last_error_str](crate::get_last_error_str).
+ *
+ * ## Safety
+ *
+ * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must be valid for reads and writes and non-null.
+ * * `runner` may not be mutated for the duration of this call.
+ * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
+ *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
+ *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
+ *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
+ *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must be a non-null pointer valid for reads.
+ * * `bitvec` may not be mutated for the duration of this call.
+ * * `test_args` must have been created by [runner_test_args_new](test_args::runner_test_args_new).
+ * * `test_args` must be a non-null pointer valid for reads.
+ */
+int test_runner_run_all_tests(struct TestRunner *runner,
+                              const struct BitVec *data,
+                              const struct RunnerTestArgs *test_args);
+
+/**
+ * Runs all chosen tests on the given bit sequence with the given test arguments.
+ *
+ * ## Return value
+ *
+ * * If all tests ran successfully, `0` is returned.
+ * * If one of the tests specified was a duplicate of a previous test, `1` is returned.
+ * * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
+ * * If an error occurred while running the tests, `1` is returned.
+ *
+ * In each error case, the error message and code can be found out with
+ * [get_last_error_str](crate::get_last_error_str).
+ *
+ * ## Safety
+ *
+ * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must be valid for reads and writes and non-null.
+ * * `runner` may not be mutated for the duration of this call.
+ * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
+ *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
+ *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
+ *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
+ *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must be a non-null pointer valid for reads.
+ * * `bitvec` may not be mutated for the duration of this call.
+ * * `tests` must be a valid, non-null pointer readable for up to `tests_len` elements.
+ * * `tests` may not be mutated for the duration of this call.
+ * * `test_args` must have been created by [runner_test_args_new](test_args::runner_test_args_new).
+ * * `test_args` must be a non-null pointer valid for reads.
+ */
+int test_runner_run_tests(struct TestRunner *runner,
+                          const struct BitVec *data,
+                          const Test *tests,
+                          size_t tests_len,
+                          const struct RunnerTestArgs *test_args);
+
+/**
+ * Create new [RunnerTestArgs], prefilled with sane defaults.
+ *
+ * To set an argument, use the appropriate `runner_test_args_set_...` function.
+ *
+ * The resulting pointer must be freed via [runner_test_args_destroy].
+ */
+struct RunnerTestArgs *runner_test_args_new(void);
+
+/**
+ * Destroy the given [RunnerTestArgs].
+ *
+ * ## Safety
+ *
+ * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must be valid for reads and writes and non-null.
+ * * `args` may not be mutated for the duration of this call.
+ * * `args` will be an invalid pointer after this call, trying to access its memory will lead to
+ *   undefined behaviour.
+ */
+void runner_test_args_destroy(struct RunnerTestArgs *args);
+
+/**
+ * Set the argument for the Frequency Block Test to the given value.
+ *
+ * ## Safety
+ *
+ * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must be valid for reads and writes and non-null.
+ * * `args` may not be mutated for the duration of this call.
+ * * `arg` must have been created by one of the construction methods provided by this library.
+ * * `arg` must be valid for reads and non-null.
+ * * `arg` may not be mutated for the duration of this call.
+ * * All responsibility for `arg`, particularly its deallocation, remains with the caller.
+ *   This function copies the content of `arg`.
+ */
+void runner_test_args_set_frequency_block(struct RunnerTestArgs *args,
+                                          const struct TestArgFrequencyBlock *arg);
+
+/**
+ * Set the argument for the Non-Overlapping Template Matching Test to the given value.
+ *
+ * ## Safety
+ *
+ * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must be valid for reads and writes and non-null.
+ * * `args` may not be mutated for the duration of this call.
+ * * `arg` must have been created by one of the construction methods provided by this library.
+ * * `arg` must be valid for reads and non-null.
+ * * `arg` may not be mutated for the duration of this call.
+ * * All responsibility for `arg`, particularly its deallocation, remains with the caller.
+ *   This function copies the content of `arg`.
+ */
+void runner_test_args_set_non_overlapping_template(struct RunnerTestArgs *args,
+                                                   const struct TestArgNonOverlappingTemplate *arg);
+
+/**
+ * Set the argument for the Overlapping Template Matching Test to the given value.
+ *
+ * ## Safety
+ *
+ * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must be valid for reads and writes and non-null.
+ * * `args` may not be mutated for the duration of this call.
+ * * `arg` must have been created by one of the construction methods provided by this library.
+ * * `arg` must be valid for reads and non-null.
+ * * `arg` may not be mutated for the duration of this call.
+ * * All responsibility for `arg`, particularly its deallocation, remains with the caller.
+ *   This function copies the content of `arg`.
+ */
+void runner_test_args_set_overlapping_template(struct RunnerTestArgs *args,
+                                               const struct TestArgOverlappingTemplate *arg);
+
+/**
+ * Set the argument for the Linear Complexity Test to the given value.
+ *
+ * ## Safety
+ *
+ * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must be valid for reads and writes and non-null.
+ * * `args` may not be mutated for the duration of this call.
+ * * `arg` must have been created by one of the construction methods provided by this library.
+ * * `arg` must be valid for reads and non-null.
+ * * `arg` may not be mutated for the duration of this call.
+ * * All responsibility for `arg`, particularly its deallocation, remains with the caller.
+ *   This function copies the content of `arg`.
+ */
+void runner_test_args_set_linear_complexity(struct RunnerTestArgs *args,
+                                            const struct TestArgLinearComplexity *arg);
+
+/**
+ * Set the argument for the Serial Test to the given value.
+ *
+ * ## Safety
+ *
+ * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must be valid for reads and writes and non-null.
+ * * `args` may not be mutated for the duration of this call.
+ * * `arg` must have been created by one of the construction methods provided by this library.
+ * * `arg` must be valid for reads and non-null.
+ * * `arg` may not be mutated for the duration of this call.
+ * * All responsibility for `arg`, particularly its deallocation, remains with the caller.
+ *   This function copies the content of `arg`.
+ */
+void runner_test_args_set_serial(struct RunnerTestArgs *args, const struct TestArgSerial *arg);
+
+/**
+ * Set the argument for the Approximate Entropy Test to the given value.
+ *
+ * ## Safety
+ *
+ * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must be valid for reads and writes and non-null.
+ * * `args` may not be mutated for the duration of this call.
+ * * `arg` must have been created by one of the construction methods provided by this library.
+ * * `arg` must be valid for reads and non-null.
+ * * `arg` may not be mutated for the duration of this call.
+ * * All responsibility for `arg`, particularly its deallocation, remains with the caller.
+ *   This function copies the content of `arg`.
+ */
+void runner_test_args_set_approximate_entropy(struct RunnerTestArgs *args,
+                                              const struct TestArgApproximateEntropy *arg);
 
 #ifdef __cplusplus
 } // extern "C"

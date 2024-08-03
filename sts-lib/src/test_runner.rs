@@ -12,7 +12,6 @@ use tests::*;
 /// 1. In the iterator with the tests to run, one test is contained more than 1 time.
 /// 2. One or more of the tests themselves returned an error.
 #[derive(Debug, Error)]
-#[repr(C)]
 pub enum RunnerError {
     #[error("Test {0} is a duplicate!")]
     Duplicate(Test),
@@ -20,8 +19,7 @@ pub enum RunnerError {
     Test(Box<[(Test, Error)]>),
 }
 
-/// Single threaded implementation of a test runner.
-#[repr(C)]
+/// This test runner can be used to run several / all tests on a sequence in one call.
 #[derive(Default)]
 pub struct TestRunner {
     stored_results: HashMap<Test, Vec<TestResult>>,

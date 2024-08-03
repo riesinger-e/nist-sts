@@ -1,21 +1,20 @@
 #![doc = include_str!("../README.md")]
 
-// TODO: create test runner infrastructure - pointers only?
-
 pub mod bitvec;
 pub mod test_args;
 pub mod test_result;
 pub mod tests;
+pub mod test_runner;
 
 use std::cell::RefCell;
 use std::ffi::{c_char, c_int};
 use std::ptr::slice_from_raw_parts_mut;
-use sts_lib::Error;
 use sts_lib::test_runner::RunnerError;
+use sts_lib::{Error, Test};
 
 thread_local! {
     /// This variable stores the Display impl of the last error.
-    static LAST_ERROR: RefCell<Option<(ErrorCode, String)>> = const { RefCell::new(None) };
+    static LAST_ERROR: RefCell<(ErrorCode, String)> = const { RefCell::new((ErrorCode::NoError, String::new())) };
 }
 
 /// Returns the last error that happened in the calling thread. This function works in 2 steps:
@@ -40,15 +39,13 @@ thread_local! {
 #[no_mangle]
 pub unsafe extern "C" fn get_last_error_str(ptr: *mut c_char, len: &mut usize) -> c_int {
     // check if there is an error
-    if LAST_ERROR.with_borrow(|e| e.is_none()) {
+    if LAST_ERROR.with_borrow(|(e, _)| matches!(e, ErrorCode::NoError)) {
         return 0;
     }
 
-    // LAST_ERROR is guaranteed to be Some, we just checked. + 1 for the nul byte
-    let (error_code, needed_length) = LAST_ERROR.with_borrow(|e| {
-        let (error_code, msg) = e.as_ref().unwrap();
-        (*error_code, msg.as_bytes().len() + 1)
-    });
+    // LAST_ERROR is guaranteed to contain an error, we just checked. + 1 for the nul byte
+    let (error_code, needed_length) =
+        LAST_ERROR.with_borrow(|(error_code, msg)| (*error_code, msg.as_bytes().len() + 1));
 
     if ptr.is_null() {
         // caller only asks for the length
@@ -62,8 +59,12 @@ pub unsafe extern "C" fn get_last_error_str(ptr: *mut c_char, len: &mut usize) -
             -1
         } else {
             // length is OK, write the String
-            // again: LAST_ERROR is guaranteed to be Some
-            let error_msg = LAST_ERROR.with_borrow_mut(|e| e.take()).unwrap().1;
+            // again: LAST_ERROR is guaranteed to contain a valid error.
+            let error_msg = LAST_ERROR.with_borrow_mut(|e| {
+                let mut value = (ErrorCode::NoError, String::new());
+                std::mem::swap(e, &mut value);
+                value.1
+            });
 
             // convert the buffer into a suitable type
             let buffer = slice_from_raw_parts_mut(ptr as *mut u8, *len);
@@ -106,7 +107,7 @@ pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
         Ok(()) => 0,
         Err(e) => {
             LAST_ERROR
-                .with_borrow_mut(|err| *err = Some((ErrorCode::SetMaxThreads, e.to_string())));
+                .with_borrow_mut(|err| *err = (ErrorCode::SetMaxThreads, e.to_string()));
             1
         }
     }
@@ -138,6 +139,8 @@ pub enum ErrorCode {
     DuplicateTest = 8,
     /// One or multiple tests that were run with the test runner failed.
     TestFailed = 9,
+    /// The test whose result was tried to be retrieved from the test runner was not run.
+    TestWasNotRun = 10,
 }
 
 /// Sets the last error from the specified [Error].
@@ -150,15 +153,27 @@ fn set_last_from_error(error: Error) {
         e @ Error::InvalidParameter(_) => (ErrorCode::InvalidParameter, e.to_string()),
     };
 
-    LAST_ERROR.with_borrow_mut(|e| *e = Some((code, msg)));
+    LAST_ERROR.with_borrow_mut(|e| *e = (code, msg));
 }
 
-/// Sets the last error code from the specified [RunnerError].
+/// Sets the last error from the specified [RunnerError].
 fn set_last_from_runner_error(error: RunnerError) {
     let (code, msg) = match error {
         e @ RunnerError::Duplicate(_) => (ErrorCode::DuplicateTest, e.to_string()),
         e @ RunnerError::Test(_) => (ErrorCode::TestFailed, e.to_string()),
     };
 
-    LAST_ERROR.with_borrow_mut(|e| *e = Some((code, msg)));
+    LAST_ERROR.with_borrow_mut(|e| *e = (code, msg));
+}
+
+/// Sets the last error to be about an invalid test (the given value was passed from FFI).
+fn set_last_invalid_test(test_no: c_int) {
+    let msg = format!("The numerical value {test_no} is not a valid test!");
+    LAST_ERROR.with_borrow_mut(|e| *e = (ErrorCode::InvalidTest, msg));
+}
+
+/// Sets the last error to be about the fact that the specified test was not run.
+fn set_last_test_was_not_run(test: Test) {
+    let msg = format!("The test {test} was not run!");
+    LAST_ERROR.with_borrow_mut(|e| *e = (ErrorCode::TestWasNotRun, msg));
 }
