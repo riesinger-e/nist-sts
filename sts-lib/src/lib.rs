@@ -26,7 +26,6 @@ pub mod tests;
 const BYTE_SIZE: usize = 8;
 
 /// List of all tests, used e.g. for automatic running.
-#[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter, Display)]
 pub enum Test {
     Frequency,
@@ -59,7 +58,6 @@ pub enum Test {
 ///     ..Default::default()
 /// };
 /// ```
-#[repr(C)]
 #[derive(Copy, Clone, Debug, Default)]
 pub struct TestArgs {
     pub frequency_block: FrequencyBlockTestArg,

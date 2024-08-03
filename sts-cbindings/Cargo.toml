@@ -9,5 +9,10 @@ readme = true
 repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
 license = "MIT"
 
+# generate static and dynamic c libaries, libsts.so / libsts.a
+[lib]
+name = "sts"
+crate-type = ["cdylib", "staticlib"]
+
 [dependencies]
 sts-lib = { path = "../sts-lib" }

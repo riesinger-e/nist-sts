@@ -8,6 +8,7 @@
 
 use crate::{BYTE_SIZE, Error, TestResult};
 use std::cmp::Ordering;
+use std::num::NonZero;
 use crate::bitvec::BitVec;
 use rayon::prelude::*;
 use crate::internals::{check_f64, igamc};
@@ -33,12 +34,11 @@ const PI_VALUES: [f64; FREEDOM_DEGREES + 1] = [
 /// If the block length is chosen manually, the following equations must be true:
 /// * 500 <= block length <= 5000
 /// * total bit length / block length >= 200
-#[repr(C)]
 #[derive(Copy, Clone, Debug, Default)]
 pub enum LinearComplexityTestArg {
     /// Choose the block length (in bit) manually. Must be between 500 and 5000.
     /// See also [LinearComplexityTestArg].
-    ManualBlockLength(usize),
+    ManualBlockLength(NonZero<usize>),
     /// Choose the block length automatically.
     #[default]
     ChooseAutomatically,
@@ -55,6 +55,7 @@ pub fn linear_complexity_test(data: &BitVec, arg: LinearComplexityTestArg) -> Re
 
     let (block_length, count_blocks) = match arg {
         LinearComplexityTestArg::ManualBlockLength(block_length) => {
+            let block_length = block_length.get();
             // validate block length and count blocks
             if !(500..=5000).contains(&block_length) {
                 return Err(Error::InvalidParameter(format!("block length must be between 500 and 5000. Is: {block_length}")))

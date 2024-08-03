@@ -7,6 +7,7 @@ use std::ptr::slice_from_raw_parts;
 use sts_lib::bitvec::BitVec as InternalBitVec;
 
 /// BitVec: a list of bits to run statistical tests on.
+#[derive(Clone)]
 pub struct BitVec(pub(crate) InternalBitVec);
 
 /// Creates a Bit Vector from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
@@ -96,6 +97,21 @@ pub unsafe extern "C" fn bitvec_from_bits(ptr: *const bool, len: usize) -> &'sta
 /// * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
 ///   [bitvec_from_bytes] or [bitvec_from_bits].
 /// * `bitvec` must be a valid pointer.
+/// * `bitvec` may not be mutated for the duration of this call..
+#[no_mangle]
+pub unsafe extern "C" fn bitvec_clone(bitvec: &BitVec) -> &'static mut BitVec {
+    let bitvec = Box::new(bitvec.clone());
+    
+    Box::leak(bitvec)
+}
+
+/// Destroys a created BitVec.
+///
+/// ## Safety
+///
+/// * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
+///   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
+/// * `bitvec` must be a valid pointer.
 /// * There must be no other references to `bitvec`.
 /// * After this call, the memory referenced by `bitvec` is freed. Trying to access this memory
 ///   will lead to undefined behaviour.
@@ -111,7 +127,7 @@ pub unsafe extern "C" fn bitvec_destroy(bitvec: *mut BitVec) {
 /// ## Safety
 ///
 /// * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
-///   [bitvec_from_bytes] or [bitvec_from_bits].
+///   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
 /// * `bitvec` must be a valid pointer.
 /// * `bitvec` may not be mutated for the duration of this call.
 #[no_mangle]
@@ -125,7 +141,7 @@ pub unsafe extern "C" fn bitvec_len_bit(bitvec: &'static BitVec) -> usize {
 /// ## Safety
 ///
 /// * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
-///   [bitvec_from_bytes] or [bitvec_from_bits].
+///   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
 /// * `bitvec` must be a valid pointer.
 /// * `bitvec` may not be mutated by other functions for the duration of this call.
 #[no_mangle]

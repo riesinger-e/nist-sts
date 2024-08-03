@@ -2,27 +2,52 @@
 
 use std::ffi::{c_char, c_int};
 use std::ptr::{slice_from_raw_parts_mut};
+use std::slice;
 use sts_lib::TestResult as InternalTestResult;
 
 /// The default threshold for determining if a test passes its criteria.
 pub const DEFAULT_THRESHOLD: f64 = 0.01;
 
 /// The result of a statistical test.
+#[derive(Copy, Clone)]
 pub struct TestResult(pub(crate) InternalTestResult);
 
-/// Destroys the given test results.
+/// Destroys the given test result. If you want to destroy a whole list, use [test_result_list_destroy].
+/// You cannot destroy only a part of a list with this function.
 ///
 /// ## Safety
 ///
-/// * `ptr` must have been created by one of the tests.
-/// * `ptr` must be a valid array with `count` elements.
+/// * `ptr` must have been created by one of the tests and must have been returned as a single pointer.
+/// * `ptr` must be a valid, non-null element.
+/// * `ptr` must not be mutated for the duration of this call.
 /// * `ptr` will be invalid after this call, access will lead to undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn test_results_destroy(ptr: *mut TestResult, count: usize) {
-    let slice = slice_from_raw_parts_mut(ptr, count);
+pub unsafe extern "C" fn test_result_destroy(ptr: *mut TestResult) {
+    // SAFETY: caller has to ensure that the pointer is valid
+    let _ = unsafe { Box::from_raw(ptr) };
+}
 
+/// Destroys the given list of test results. If you want to destroy only a single test result,
+/// use [test_result_destroy].
+///
+/// ## Safety
+///
+/// * `ptr` must have been created by one of the tests or by the test runner, and must have been
+///   returned by the creating function as a list.
+/// * `ptr` must be valid allocation with `count` elements.
+/// * `ptr` must not be mutated for the duration of this call.
+/// * `ptr` will be invalid after this call, access will lead to undefined behaviour.
+#[no_mangle]
+pub unsafe extern "C" fn test_result_list_destroy(ptr: *mut *mut TestResult, count: usize) {
     // SAFETY: caller has to ensure that the pointer is valid with count elements
-    let _ = unsafe { Box::from_raw(slice) };
+    let list = unsafe {
+        Box::from_raw(slice::from_raw_parts_mut(ptr, count))
+    };
+
+    for ptr in list {
+        // SAFETY: caller has to ensure that the pointer is valid.
+        let _ = unsafe { Box::from_raw(ptr) };
+    }
 }
 
 /// Returns the p_value of the test result.

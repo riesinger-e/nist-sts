@@ -14,17 +14,16 @@ use rayon::prelude::*;
 /// 
 /// The block length should be at least 20 bits, with the block length greater than 1% of the
 /// total bit length and fewer than 100 total blocks.
-#[repr(C, usize)]
 #[derive(Copy, Clone, Default, Debug)]
 pub enum FrequencyBlockTestArg {
     /// The block length is measured in bytes - this allows for faster performance.
-    Bytewise(NonZero<usize>) = 0,
+    Bytewise(NonZero<usize>),
     /// Bitwise block length
-    Bitwise(NonZero<usize>) = 1,
+    Bitwise(NonZero<usize>),
     /// A suitable block length will be chosen automatically, based on the criteria outlined in 
     /// [FrequencyBlockTestArg].
     #[default]
-    ChooseAutomatically = 2,
+    ChooseAutomatically,
 }
 
 impl FrequencyBlockTestArg {

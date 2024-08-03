@@ -2,9 +2,8 @@ language = "C"
 cpp_compat = true
 usize_is_size_t = true
 
-[parse]
-parse_deps = false
-include = ["sts-lib"]
+[export]
+include = ["ErrorCode"]
 
 [parse.expand]
 crates = ["sts-cbindings"]

@@ -38,7 +38,7 @@ pub const DEFAULT_FREEDOM: usize = 6;
 /// The default template length.
 pub const DEFAULT_TEMPLATE_LENGTH: usize = 9;
 
-/// The arguments for the Non-overlapping Template Matching Test.
+/// The arguments for the Overlapping Template Matching Test.
 ///
 /// 1. The template length *m*. 2 <= *m* <= 21.
 /// 2. The length of each block, *M*, in bits. See [DEFAULT_BLOCK_LENGTH]
@@ -49,7 +49,6 @@ pub const DEFAULT_TEMPLATE_LENGTH: usize = 9;
 /// A default variant is available with [OverlappingTemplateTestArgs::default()].
 ///
 /// To replicate the exact NIST behaviour, use [OverlappingTemplateTestArgs::new_nist_behaviour]
-#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct OverlappingTemplateTestArgs {
     template_length: usize,
@@ -105,8 +104,8 @@ impl Default for OverlappingTemplateTestArgs {
 
 /// Overlapping template match test - No. 8
 ///
-/// This test enforces that the input length must be >= 10^6 bits. Smaller values will lead to 1 result
-/// with a p-value of 0.0.
+/// This test enforces that the input length must be >= 10^6 bits. Smaller values will lead to
+/// [Error::InvalidParameter].
 ///
 /// See the [module docs](crate::tests::template_matching::overlapping)
 ///
@@ -127,6 +126,16 @@ pub fn overlapping_template_matching_test(
     } = arg;
 
     // input check
+    #[cfg(not(test))]
+    {
+        if data.len_bit() < 1_000_000 {
+            return Err(Error::InvalidParameter(format!(
+                "The passed length of the input sequence is smaller than 10^6. Is: {}",
+                data.len_bit()
+            )));
+        }
+    }
+
     if block_length < template_length {
         return Err(Error::InvalidParameter(
             format!("the calculated block length {block_length} is smaller than the passed template length {template_length}!")

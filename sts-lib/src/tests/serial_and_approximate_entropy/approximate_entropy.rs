@@ -17,7 +17,7 @@ use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::f64::consts::LN_2;
 
-/// The argument for the serial test: the block length in bits to check.
+/// The argument for the approximate entropy test: the block length in bits to check.
 ///
 /// Argument constraints:
 /// 1. the given block length must be >= 2.
@@ -27,7 +27,7 @@ use std::f64::consts::LN_2;
 ///
 /// Constraints 1 and 2 are checked when creating the arguments.
 ///
-/// Constraint 3 is checked on executing the test, [serial_test]. If the constraint is violated,
+/// Constraint 3 is checked on executing the test, [approximate_entropy_test]. If the constraint is violated,
 /// [Error::InvalidParameter] will be returned.
 ///
 /// The default value for this argument is 10. For this to work, the input length must be at least

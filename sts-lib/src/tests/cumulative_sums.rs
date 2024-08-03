@@ -5,7 +5,7 @@
 //! the maximum absolute partial sum. The test checks if this maximum is within the expected bounds
 //! for random sequences.
 //!
-//! The input length should be at least 100 bits in length, smaller sequences will raise
+//! The input sequence should be at least 100 bits in length, smaller sequences will raise
 //! [Error::InvalidParameter].
 
 use crate::bitvec::BitVec;

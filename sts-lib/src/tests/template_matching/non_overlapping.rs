@@ -22,7 +22,6 @@ pub const DEFAULT_BLOCK_COUNT: usize = 8;
 ///
 /// These bounds are checked by all creation functions.
 /// A default variant is available with [NonOverlappingTemplateTestArgs::default()].
-#[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct NonOverlappingTemplateTestArgs<'a> {
     templates: TemplateArg<'a>,
