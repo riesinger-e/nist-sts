@@ -1,4 +1,5 @@
 # In general: every option here can be overriden by command line switches.
+# For more information about the input formats and the test arguments, use `--help`.
 
 [input]
 # The path to the input file. If this is missing, it must be supplemented by the command line arguments.
@@ -11,6 +12,13 @@ max-length = 1000000
 
 # If test definitions are missing, all tests are run, except for tests whose input length requirements 
 # are not satisfied.
+# Valid tests are:
+# [
+#   frequency, frequency-within-a-block, runs, longest-run-of-ones, binary-matrix-rank,
+#   spectral-dft, non-overlapping-template-matching, overlapping-template-matching,
+#   maurers-universal-statistical, linear-complexity, serial, approximate-entropy,
+#   cumulative-sums, random-excursions, random-excursions-variant
+# ]
 [test]
 # Allowlist approach: only specified tests are run.
 # If this is specified, "exclude" is ignored.
