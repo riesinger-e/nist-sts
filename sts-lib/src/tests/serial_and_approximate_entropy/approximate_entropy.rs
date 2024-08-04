@@ -17,6 +17,13 @@ use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::f64::consts::LN_2;
 
+// calculation: minimum block length = 2
+// Following relation must be true:
+// 2 < (log2(len_bit) as int) - 5
+// -> log2(2^8) - 5 = 3
+/// The minimum input length for this test.
+pub const MIN_INPUT_LENGTH: usize = 1 << 8;
+
 /// The argument for the approximate entropy test: the block length in bits to check.
 ///
 /// Argument constraints:

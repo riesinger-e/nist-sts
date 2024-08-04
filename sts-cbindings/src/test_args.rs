@@ -3,7 +3,6 @@
 use std::num::NonZero;
 use sts_lib::tests::{
     frequency_block,
-    template_matching,
     template_matching::{overlapping, non_overlapping},
     linear_complexity,
     serial,
@@ -133,11 +132,13 @@ pub extern "C" fn test_arg_non_overlapping_template_new(template_len: usize, cou
     }
 }
 
+// Sadly, these constants need to be defined manually to appear in the header file
+
 /// The default block count to use in the Non-overlapping Template Matching Test.
-pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_COUNT: usize = non_overlapping::DEFAULT_BLOCK_COUNT;
+pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_COUNT: usize = 8;
 
 /// The default template length to use in the Non-overlapping Template Matching Test.
-pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LEN: usize = template_matching::DEFAULT_TEMPLATE_LEN;
+pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LEN: usize = 9;
 
 
 // overlapping template matching
@@ -203,13 +204,13 @@ pub extern "C" fn test_arg_overlapping_template_new_nist_behaviour(template_leng
 }
 
 /// The default length of each block M, in bits, for use in the Overlapping Template Matching Test.
-pub const OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_LENGTH: usize = overlapping::DEFAULT_BLOCK_LENGTH;
+pub const OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_LENGTH: usize = 1032;
 
 /// The default degree of freedom K for use in the Overlapping Template Matching Test.
-pub const OVERLAPPING_TEMPLATE_DEFAULT_FREEDOM: usize = overlapping::DEFAULT_FREEDOM;
+pub const OVERLAPPING_TEMPLATE_DEFAULT_FREEDOM: usize = 6;
 
 /// The default template length use in the Overlapping Template Matching Test.
-pub const OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH: usize = overlapping::DEFAULT_TEMPLATE_LENGTH;
+pub const OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH: usize = 9;
 
 
 // linear complexity test

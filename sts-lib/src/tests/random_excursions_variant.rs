@@ -16,6 +16,9 @@ use crate::bitvec::BitVec;
 use crate::internals::{check_f64, erfc};
 use crate::{Error, TestResult, BYTE_SIZE};
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 1_000_000;
+
 /// Random excursions variant test - No. 15.
 ///
 /// See the [module docs](crate::tests::random_excursions_variant).

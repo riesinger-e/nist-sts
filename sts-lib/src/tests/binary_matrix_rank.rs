@@ -10,6 +10,9 @@ use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 38_912;
+
 /// Rows and columns
 const M: usize = 32;
 

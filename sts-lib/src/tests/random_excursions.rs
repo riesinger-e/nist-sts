@@ -18,6 +18,9 @@ use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 1_000_000;
+
 /// Constant probabilities, calculated with python script `random_excursions.py`, with the values
 /// reinterpreted as fractions.
 #[rustfmt::skip]

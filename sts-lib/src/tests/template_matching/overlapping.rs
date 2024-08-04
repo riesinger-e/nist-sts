@@ -13,8 +13,6 @@
 //! * Even though the pi values should be revised according to the paper, both the example and
 //!   the implementation still use the old, inaccurate calculation.
 //! * The (not working) fixed values according to Hamano and Kaneko only work for very specific cases.
-//! * The value *K*, as given in the paper, ist just wrong. You don't need a statistics degree to see
-//!   that it is 6 and not 5.
 //!
 //! This test needs arguments, see [OverlappingTemplateTestArgs].
 
@@ -27,6 +25,10 @@ use bigdecimal::num_traits::ToPrimitive;
 use bigdecimal::BigDecimal;
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
+
+// calculation: min template length (2) * min block length (4)
+/// The minimum input length, in bits, for this test.
+pub const MIN_INPUT_LENGTH: usize = 2 * 4;
 
 /// The default length of each block M, in bits.
 pub const DEFAULT_BLOCK_LENGTH: usize = 1032;
@@ -123,17 +125,6 @@ pub fn overlapping_template_matching_test(
         freedom,
         inaccurate_nist_calculation,
     } = arg;
-
-    // input check
-    #[cfg(not(test))]
-    {
-        if data.len_bit() < 1_000_000 {
-            return Err(Error::InvalidParameter(format!(
-                "The passed length of the input sequence is smaller than 10^6. Is: {}",
-                data.len_bit()
-            )));
-        }
-    }
 
     if block_length < template_length {
         return Err(Error::InvalidParameter(

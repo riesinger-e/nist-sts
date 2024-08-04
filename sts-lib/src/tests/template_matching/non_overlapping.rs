@@ -5,11 +5,16 @@
 //!
 //! This test allows for parameters, see [NonOverlappingTemplateTestArgs].
 
-use super::TemplateArg;
+use super::{DEFAULT_TEMPLATE_LEN, TemplateArg};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+// calculation: min block count (1) * min template length (2)
+/// The minimum input length, in bits, for this test.
+pub const MIN_INPUT_LENGTH: usize = 2;
+
 
 /// The default block count. For use in [NonOverlappingTemplateTestArgs].
 pub const DEFAULT_BLOCK_COUNT: usize = 8;

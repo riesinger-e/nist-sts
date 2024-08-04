@@ -13,6 +13,9 @@ use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 128;
+
 // Table sorting criteria for the three possible block lengths.
 const TABLE_SORTING_CRITERIA_8: [usize; 4] = [1, 2, 3, 4];
 const TABLE_SORTING_CRITERIA_128: [usize; 6] = [4, 5, 6, 7, 8, 9];
@@ -47,7 +50,12 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
     // Also determine the values bucket_count (= K + 1) and n, as given 2.4.4
     // All possible values are whole bytes.
     let (block_length_bits, bucket_count, table_criteria, probabilities) = match data.len_bit() {
-        0..=127 => return Ok(TestResult::new_with_comment(0.0, "Test data is too short!")),
+        bit_len @ 0..=127 => {
+            return Err(Error::InvalidParameter(format!(
+                "Input length has to be at least 128 bits, is {}",
+                bit_len
+            )))
+        }
         128..=6271 => (
             8,
             4,

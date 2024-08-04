@@ -10,6 +10,9 @@ use rayon::prelude::*;
 use std::f64::consts::FRAC_1_SQRT_2;
 use crate::bitvec::BitVec;
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 100;
+
 /// Frequency (mono bit) test - No. 1
 /// 
 /// See the [module docs](crate::tests::frequency).

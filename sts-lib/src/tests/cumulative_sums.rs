@@ -13,6 +13,9 @@ use crate::internals::{check_f64, erfc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use std::f64::consts::SQRT_2;
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 100;
+
 /// Cumulative Sums Test - No. 13
 ///
 /// See also the [module docs](crate::tests::cumulative_sums).

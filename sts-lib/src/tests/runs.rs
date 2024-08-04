@@ -10,6 +10,9 @@ use crate::{BYTE_SIZE, Error, TestResult};
 use rayon::prelude::*;
 use crate::internals::{check_f64, erfc};
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 100;
+
 /// Runs test - No. 3
 ///
 /// See the [module docs](crate::tests::runs).

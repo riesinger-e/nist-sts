@@ -20,6 +20,13 @@ use crate::{Error, TestResult};
 use rayon::prelude::*;
 use crate::tests::serial_and_approximate_entropy::{access_bits, validate_test_arg};
 
+// calculation: minimum block length = 2
+// Following relation must be true:
+// 2 < (log2(len_bit) as int) - 2
+// -> log2(2^5) - 2 = 3
+/// The minimum input length for this test.
+pub const MIN_INPUT_LENGTH: usize = 1 << 5;
+
 /// The argument for the serial test: the block length in bits to check.
 ///
 /// Argument constraints:

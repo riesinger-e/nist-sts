@@ -14,6 +14,9 @@ use std::sync::{Mutex, LazyLock};
 use crate::internals::{check_f64, erfc};
 use std::f64::consts::FRAC_1_SQRT_2;
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 1000;
+
 // Use a global planner to allow for caching if the test is run multiple times.
 static FFT_PLANNER: LazyLock<Mutex<FftPlanner<f32>>> = LazyLock::new(|| Mutex::new(FftPlanner::new()));
 

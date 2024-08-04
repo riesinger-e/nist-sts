@@ -4,15 +4,30 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+/**
+ * The default block count to use in the Non-overlapping Template Matching Test.
+ */
+#define NON_OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_COUNT 8
 
+/**
+ * The default template length to use in the Non-overlapping Template Matching Test.
+ */
+#define NON_OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LEN 9
 
+/**
+ * The default length of each block M, in bits, for use in the Overlapping Template Matching Test.
+ */
+#define OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_LENGTH 1032
 
+/**
+ * The default degree of freedom K for use in the Overlapping Template Matching Test.
+ */
+#define OVERLAPPING_TEMPLATE_DEFAULT_FREEDOM 6
 
-
-
-
-
-
+/**
+ * The default template length use in the Overlapping Template Matching Test.
+ */
+#define OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH 9
 
 /**
  * The default threshold for determining if a test passes its criteria.
@@ -688,8 +703,7 @@ struct TestResult *frequency_test(const struct BitVec *data);
  * Frequency Test within a block - No. 2
  *
  * This tests for the same property as [frequency_test], but within M-bit blocks.
- * It is recommended that each BitVec has a length of at least 100 bits.
- * For recommendations for the block length, see [TestArgFrequencyBlock].
+ * It is recommended that each block has a length of at least 100 bits.
  *
  * ## Return value
  *
@@ -839,8 +853,7 @@ struct TestResult **non_overlapping_template_matching_test(const struct BitVec *
  *
  * The default arguments for this test derivate significantly from the NIST reference implementation,
  * since the NIST reference implementation for this test is known bad.
- * The corrections are taken from https://eprint.iacr.org/2022/540 - they are the only freely available
- * source on how to calculate the precise PI values according to Hamano and Kaneko.
+ * The problem is that the PI values from NIST are wrong - the correction from Hamano and Kaneko is used.
  *
  * Details about the problems:
  * * Even though the pi values should be revised according to the paper, both the example and
@@ -1035,7 +1048,7 @@ struct TestResult **cumulative_sums_test(const struct BitVec *data);
  * This test checks if the frequency of cumulative sums values per cycle is as expected for
  * a random sequence. A cycle consists of all cumulative sums between 2 "0"-values.
  *
- * Since the test needs at least 500 cycles to occur, bit sequences to fewer cycles will lead to an
+ * Since the test needs at least 500 cycles to occur, bit sequences with fewer cycles will lead to an
  * `Ok()` result, but with the values filled with "0.0".
  *
  * If the computation finishes successfully, 8 [TestResult] are returned: one for each tested state,

@@ -10,6 +10,9 @@ use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 100;
+
 /// The argument for the Frequency test within a block: the block length.
 /// 
 /// The block length should be at least 20 bits, with the block length greater than 1% of the

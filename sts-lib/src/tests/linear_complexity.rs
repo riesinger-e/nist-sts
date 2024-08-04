@@ -13,6 +13,9 @@ use crate::bitvec::BitVec;
 use rayon::prelude::*;
 use crate::internals::{check_f64, igamc};
 
+/// The minimum input length, in bits, for this test, as recommended by NIST.
+pub const MIN_INPUT_LENGTH: usize = 1_000_000;
+
 /// freedom degrees
 const FREEDOM_DEGREES: usize = 6;
 
