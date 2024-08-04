@@ -23,7 +23,7 @@ pub mod nist_sts {
     #[pymodule_export]
     pub use crate::bitvec::BitVec;
     #[pymodule_export]
-    pub use crate::test_runner::TestRunner;
+    pub use crate::test_runner::run_tests;
 
     /// Initialization function, takes care that the custom error types are in the module.
     #[pymodule_init]

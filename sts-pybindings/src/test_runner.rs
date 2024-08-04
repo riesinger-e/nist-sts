@@ -1,106 +1,96 @@
 use crate::nist_sts::{BitVec, Test, TestResult};
 use crate::test_args::*;
-use crate::{RunnerError, TestError};
+use crate::{RunnerError};
 use pyo3::prelude::*;
-use sts_lib::{test_runner, TestArgs};
+use sts_lib::{Error, test_runner, TestArgs};
 
-/// The test runner. Can be used to run multiple tests with one call.
-#[pyclass]
-#[derive(Default)]
-pub struct TestRunner(test_runner::TestRunner);
+/// Runs the tests.
+///
+/// ## Arguments
+///
+/// Main arguments:
+/// - data: `BitVec` - the test data to run the tests on.
+/// - tests: `[Test]` - the tests to run. If unspecified, runs all tests.
+///
+/// Test arguments: optionally, arguments for tests that need them can be specified. If
+/// left unspecified, default values will be used.
+/// - frequency_block_arg: `FrequencyBlockTestArg`
+/// - non_overlapping_template_args: `NonOverlappingTemplateTestArgs`
+/// - overlapping_template_args: `OverlappingTemplateTestArgs`
+/// - linear_complexity_arg: `LinearComplexityTestArg`
+/// - serial_arg: `SerialTestArg`
+/// - approximate_entropy_arg: `ApproximateEntropyTestArg`
+///
+/// ## Return value
+///
+/// A list of tuples. For each run test, either contains 1 TestResult, a list of TestResults, or a
+/// string with the description of the error that happened when the test ran.
+///
+/// ## Errors
+///
+/// RunnerError if a test is specified more than 1 time.
+#[allow(clippy::too_many_arguments)]
+#[pyfunction]
+#[pyo3(signature = (data, tests=None, frequency_block_arg=None, non_overlapping_template_args=None, overlapping_template_args=None, linear_complexity_arg=None, serial_arg=None, approximate_entropy_arg=None))]
+pub fn run_tests(
+    python: Python<'_>,
+    data: &BitVec,
+    tests: Option<Vec<Test>>,
+    frequency_block_arg: Option<FrequencyBlockTestArg>,
+    non_overlapping_template_args: Option<NonOverlappingTemplateTestArgs>,
+    overlapping_template_args: Option<OverlappingTemplateTestArgs>,
+    linear_complexity_arg: Option<LinearComplexityTestArg>,
+    serial_arg: Option<SerialTestArg>,
+    approximate_entropy_arg: Option<ApproximateEntropyTestArg>,
+) -> PyResult<Vec<(Test, PyObject)>> {
+    // assemble args (or use defaults if not there)
+    let args = TestArgs {
+        frequency_block: frequency_block_arg.unwrap_or_default().0,
+        non_overlapping_template: non_overlapping_template_args.unwrap_or_default().0,
+        overlapping_template: overlapping_template_args.unwrap_or_default().0,
+        linear_complexity: linear_complexity_arg.unwrap_or_default().0,
+        serial: serial_arg.unwrap_or_default().0,
+        approximate_entropy: approximate_entropy_arg.unwrap_or_default().0,
+    };
 
-#[pymethods]
-impl TestRunner {
-    /// Creates a new instance of the runner. No arguments.
-    #[new]
-    pub fn new() -> Self {
-        Self(Default::default())
-    }
+    match tests {
+        Some(tests) => {
+            let tests = tests.into_iter()
+                .map(|t| t.into());
 
-    /// Returns the test result for the given test. Because some tests return multiple results,
-    /// a list may be returned.
-    ///
-    /// ## Arguments
-    ///
-    /// - test: must be of type `Test`. May not be missing.
-    ///
-    /// ## Exceptions
-    ///
-    /// This function raises an exception if no test result is stored for this test.
-    pub fn get_test_result(&mut self, python: Python<'_>, test: Test) -> PyResult<PyObject> {
-        let test = test.into();
-        let results = self.0.get_test_result(test);
-
-        let results = match results {
-            Some(res) => res,
-            None => {
-                return Err(RunnerError::new_err(format!(
-                    "Test {test} was not run or result was already retrieved."
-                )))
-            }
-        };
-
-        let results: Vec<TestResult> = results.into_iter().map(TestResult).collect();
-
-        if results.len() == 1 {
-            Ok(results[0].into_py(python))
-        } else {
-            Ok(results.into_py(python))
+            let iter = test_runner::run_tests(tests, &data.0, args)
+                .map_err(|e| RunnerError::new_err(format!("Duplicate test: {}", e.0)))?;
+            Ok(handle_result_iter(python, iter))
+        }
+        None => {
+            let iter = test_runner::run_all_tests(&data.0, args)
+                .map_err(|e| RunnerError::new_err(format!("Duplicate test: {}", e.0)))?;
+            Ok(handle_result_iter(python, iter))
         }
     }
+}
 
-    /// Runs the tests.
-    ///
-    /// ## Arguments
-    ///
-    /// Main arguments:
-    /// - data: `BitVec` - the test data to run the tests on.
-    /// - tests: `[Test]` - the tests to run. If unspecified, runs all tests.
-    ///
-    /// Test arguments: optionally, arguments for tests that need them can be specified. If
-    /// left unspecified, default values will be used.
-    /// - frequency_block_arg: `FrequencyBlockTestArg`
-    /// - non_overlapping_template_args: `NonOverlappingTemplateTestArgs`
-    /// - overlapping_template_args: `OverlappingTemplateTestArgs`
-    /// - linear_complexity_arg: `LinearComplexityTestArg`
-    /// - serial_arg: `SerialTestArg`
-    /// - approximate_entropy_arg: `ApproximateEntropyTestArg`
-    #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (data, tests=None, frequency_block_arg=None, non_overlapping_template_args=None, overlapping_template_args=None, linear_complexity_arg=None, serial_arg=None, approximate_entropy_arg=None))]
-    pub fn run_tests(
-        &mut self,
-        data: &BitVec,
-        tests: Option<Vec<Test>>,
-        frequency_block_arg: Option<FrequencyBlockTestArg>,
-        non_overlapping_template_args: Option<NonOverlappingTemplateTestArgs>,
-        overlapping_template_args: Option<OverlappingTemplateTestArgs>,
-        linear_complexity_arg: Option<LinearComplexityTestArg>,
-        serial_arg: Option<SerialTestArg>,
-        approximate_entropy_arg: Option<ApproximateEntropyTestArg>,
-    ) -> PyResult<()> {
-        // assemble args (or use defaults if not there)
-        let args = TestArgs {
-            frequency_block: frequency_block_arg.unwrap_or_default().0,
-            non_overlapping_template: non_overlapping_template_args.unwrap_or_default().0,
-            overlapping_template: overlapping_template_args.unwrap_or_default().0,
-            linear_complexity: linear_complexity_arg.unwrap_or_default().0,
-            serial: serial_arg.unwrap_or_default().0,
-            approximate_entropy: approximate_entropy_arg.unwrap_or_default().0,
-        };
+/// Creates the python result iterator for [run_tests].
+fn handle_result_iter(python: Python<'_>, iter: impl Iterator<Item=(sts_lib::Test, Result<Vec<sts_lib::TestResult>, Error>)>) -> Vec<(Test, PyObject)> {
+    iter
+        .map(|(test, res)| {
+            let res = match res{
+                Ok(res) => {
+                    if res.len() == 1 {
+                        TestResult(res[0]).into_py(python)
+                    } else {
+                        res.into_iter()
+                            .map(TestResult)
+                            .collect::<Vec<_>>()
+                            .into_py(python)
+                    }
+                }
+                Err(e) => {
+                    e.to_string().into_py(python)
+                }
+            };
 
-        let res = match tests {
-            Some(tests) => {
-                let tests = tests.into_iter()
-                    .map(|t| t.into());
-                self.0.run_tests(tests, &data.0, args)
-            }
-            None => self.0.run_all_tests(&data.0, args)
-        };
-
-        match res {
-            Ok(()) => Ok(()),
-            Err(e @ test_runner::RunnerError::Test(_)) => Err(TestError::new_err(e.to_string())),
-            Err(e @ test_runner::RunnerError::Duplicate(_)) => Err(RunnerError::new_err(e.to_string())),
-        }
-    }
+            (test.into(), res)
+        })
+        .collect()
 }
