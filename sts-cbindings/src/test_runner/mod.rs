@@ -1,19 +1,67 @@
 //! The test runner, for running multiple tests in one call.
 
+use std::collections::HashMap;
 use crate::bitvec::BitVec;
 use crate::test_result::TestResult;
 use crate::test_runner::test::{RawTest, Test};
 use crate::test_runner::test_args::RunnerTestArgs;
-use crate::{set_last_from_runner_error, set_last_invalid_test};
+use crate::{set_last_from_runner_error, set_last_from_test_failed, set_last_invalid_test};
 use std::ffi::c_int;
 use std::slice;
 use sts_lib::test_runner;
+use sts_lib::test_runner::RunnerError;
 
 pub mod test;
 pub mod test_args;
 
 /// This test runner can be used to run several / all tests on a sequence in one call.
-pub struct TestRunner(test_runner::TestRunner);
+pub struct TestRunner(HashMap<sts_lib::Test, Box<[sts_lib::TestResult]>>);
+
+impl TestRunner {
+    /// Convenience function, handles the iterators returned by the test runner functions.
+    ///
+    /// Used by all `test_runner_run_*` functions.
+    fn handle_results(&mut self, results: Result<impl Iterator<Item=(sts_lib::Test, Result<Vec<sts_lib::TestResult>, sts_lib::Error>)>, RunnerError>) -> c_int {
+        match results {
+            Ok(iter) => {
+                let (results, errs): (Vec<_>, Vec<_>) = iter.map(|(test, res)| {
+                    match res {
+                        Ok(res) => ((test, Some(res)), (test, None)),
+                        Err(e) => ((test, None), (test, Some(e)))
+                    }
+                })
+                    .unzip();
+
+                let results = results
+                    .into_iter()
+                    .filter_map(|(test, res)| {
+                        res.map(|res| (test, res.into_boxed_slice()))
+                    })
+                    .collect::<HashMap<_, _>>();
+
+                let errs = errs
+                    .into_iter()
+                    .filter_map(|(test, err)| {
+                        err.map(|err| (test, err))
+                    })
+                    .collect::<Box<_>>();
+
+                self.0 = results;
+
+                if errs.is_empty() {
+                    0
+                } else {
+                    set_last_from_test_failed(errs);
+                    2
+                }
+            }
+            Err(e) => {
+                set_last_from_runner_error(e);
+                1
+            }
+        }
+    }
+}
 
 /// Creates a new test runner. This test runner can be used to run multiple tests on 1 sequence in
 /// 1 function call.
@@ -21,8 +69,7 @@ pub struct TestRunner(test_runner::TestRunner);
 /// The result pointer must be freed with [test_runner_destroy].
 #[no_mangle]
 pub extern "C" fn test_runner_new() -> &'static mut TestRunner {
-    let runner = test_runner::TestRunner::new();
-    let runner = Box::new(TestRunner(runner));
+    let runner = Box::new(TestRunner(HashMap::new()));
     Box::leak(runner)
 }
 
@@ -70,13 +117,13 @@ pub unsafe extern "C" fn test_runner_get_result(
 
     let test = test.into();
 
-    match runner.0.get_test_result(test) {
+    match runner.0.remove(&test) {
         None => {
             crate::set_last_test_was_not_run(test);
             std::ptr::null_mut()
         }
         Some(result) => {
-            let result: Box<[*mut TestResult]> = Box::into_iter(result.into_boxed_slice())
+            let result: Box<[*mut TestResult]> = Box::into_iter(result)
                 .map(|res| Box::into_raw(Box::new(TestResult(res))))
                 .collect();
             *length = result.len();
@@ -90,8 +137,9 @@ pub unsafe extern "C" fn test_runner_get_result(
 /// ## Return value
 ///
 /// * If all tests ran successfully, `0` is returned.
-/// * If an error occurred while running the tests, `1` is returned, and the error message and code
-///   can be found out with [get_last_error_str](crate::get_last_error_str).
+/// * If an error occurred when running one test, but without aborting the tests, `2` is returned.
+///   The good test results can be retrieved with [test_runner_get_result], the exact error can
+///   be retrieved with [get_last_error_str](crate::get_last_error_str).
 ///
 /// ## Safety
 ///
@@ -110,13 +158,7 @@ pub unsafe extern "C" fn test_runner_run_all_automatic(
     runner: &mut TestRunner,
     data: &BitVec,
 ) -> c_int {
-    match runner.0.run_all_tests_automatic(&data.0) {
-        Ok(()) => 0,
-        Err(e) => {
-            set_last_from_runner_error(e);
-            1
-        }
-    }
+    runner.handle_results(test_runner::run_all_tests_automatic(&data.0))
 }
 
 /// Runs all chosen tests on the given bit sequence with the default test arguments.
@@ -126,7 +168,9 @@ pub unsafe extern "C" fn test_runner_run_all_automatic(
 /// * If all tests ran successfully, `0` is returned.
 /// * If one of the tests specified was a duplicate of a previous test, `1` is returned.
 /// * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
-/// * If an error occurred while running the tests, `1` is returned.
+/// * If an error occurred while running the tests, `2` is returned. All other tests are still done.
+///   The good test results can be retrieved with [test_runner_get_result], the exact error can
+///   be retrieved.
 ///
 /// In each error case, the error message and code can be found out with
 /// [get_last_error_str](crate::get_last_error_str).
@@ -162,14 +206,7 @@ pub unsafe extern "C" fn test_runner_run_automatic(
         None => return 1,
     };
 
-    let result = runner.0.run_tests_automatic(tests.into_iter(), &data.0);
-    match result {
-        Ok(()) => 0,
-        Err(e) => {
-            set_last_from_runner_error(e);
-            1
-        }
-    }
+    runner.handle_results(test_runner::run_tests_automatic(tests.into_iter(), &data.0))
 }
 
 /// Runs all tests on the given bit sequence with the given test arguments.
@@ -177,8 +214,9 @@ pub unsafe extern "C" fn test_runner_run_automatic(
 /// ## Return value
 ///
 /// * If all tests ran successfully, `0` is returned.
-/// * If an error occurred while running the tests, `1` is returned, and the error message and code
-///   can be found out with [get_last_error_str](crate::get_last_error_str).
+/// * If an error occurred while running the tests, `2` is returned. All other tests are still done.
+///   The good test results can be retrieved with [test_runner_get_result], the exact error can
+///   be retrieved.
 ///
 /// ## Safety
 ///
@@ -202,13 +240,7 @@ pub unsafe extern "C" fn test_runner_run_all_tests(
 ) -> c_int {
     let args = test_args.0;
 
-    match runner.0.run_all_tests(&data.0, args) {
-        Ok(()) => 0,
-        Err(e) => {
-            set_last_from_runner_error(e);
-            1
-        }
-    }
+    runner.handle_results(test_runner::run_all_tests(&data.0, args))
 }
 
 /// Runs all chosen tests on the given bit sequence with the given test arguments.
@@ -218,7 +250,9 @@ pub unsafe extern "C" fn test_runner_run_all_tests(
 /// * If all tests ran successfully, `0` is returned.
 /// * If one of the tests specified was a duplicate of a previous test, `1` is returned.
 /// * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
-/// * If an error occurred while running the tests, `1` is returned.
+/// * If an error occurred while running the tests, `2` is returned. All other tests are still done.
+///   The good test results can be retrieved with [test_runner_get_result], the exact error can
+///   be retrieved.
 ///
 /// In each error case, the error message and code can be found out with
 /// [get_last_error_str](crate::get_last_error_str).
@@ -259,14 +293,7 @@ pub unsafe extern "C" fn test_runner_run_tests(
 
     let args = test_args.0;
 
-    let result = runner.0.run_tests(tests.into_iter(), &data.0, args);
-    match result {
-        Ok(()) => 0,
-        Err(e) => {
-            set_last_from_runner_error(e);
-            1
-        }
-    }
+    runner.handle_results(test_runner::run_tests(tests.into_iter(), &data.0, args))
 }
 
 

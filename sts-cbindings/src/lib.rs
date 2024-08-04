@@ -3,15 +3,14 @@
 pub mod bitvec;
 pub mod test_args;
 pub mod test_result;
-pub mod tests;
 pub mod test_runner;
+pub mod tests;
 
+use crate::test_runner::test::RawTest;
 use std::cell::RefCell;
 use std::ffi::{c_char, c_int};
 use std::ptr::slice_from_raw_parts_mut;
 use sts_lib::test_runner::RunnerError;
-use sts_lib::{Error, Test};
-use crate::test_runner::test::RawTest;
 
 thread_local! {
     /// This variable stores the Display impl of the last error.
@@ -107,8 +106,7 @@ pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
     match sts_lib::set_max_threads(max_threads) {
         Ok(()) => 0,
         Err(e) => {
-            LAST_ERROR
-                .with_borrow_mut(|err| *err = (ErrorCode::SetMaxThreads, e.to_string()));
+            LAST_ERROR.with_borrow_mut(|err| *err = (ErrorCode::SetMaxThreads, e.to_string()));
             1
         }
     }
@@ -167,14 +165,14 @@ pub extern "C" fn get_min_length_for_test(test: RawTest) -> usize {
     sts_lib::get_min_length_for_test(test.into()).get()
 }
 
-/// Sets the last error from the specified [Error].
-fn set_last_from_error(error: Error) {
+/// Sets the last error from the specified [sts_lib::Error].
+fn set_last_from_error(error: sts_lib::Error) {
     let (code, msg) = match error {
-        e @ Error::Overflow(_) => (ErrorCode::Overflow, e.to_string()),
-        e @ Error::NaN => (ErrorCode::NaN, e.to_string()),
-        e @ Error::Infinite => (ErrorCode::Infinite, e.to_string()),
-        e @ Error::GammaFunctionFailed(_) => (ErrorCode::GammaFunctionFailed, e.to_string()),
-        e @ Error::InvalidParameter(_) => (ErrorCode::InvalidParameter, e.to_string()),
+        e @ sts_lib::Error::Overflow(_) => (ErrorCode::Overflow, e.to_string()),
+        e @ sts_lib::Error::NaN => (ErrorCode::NaN, e.to_string()),
+        e @ sts_lib::Error::Infinite => (ErrorCode::Infinite, e.to_string()),
+        e @ sts_lib::Error::GammaFunctionFailed(_) => (ErrorCode::GammaFunctionFailed, e.to_string()),
+        e @ sts_lib::Error::InvalidParameter(_) => (ErrorCode::InvalidParameter, e.to_string()),
     };
 
     LAST_ERROR.with_borrow_mut(|e| *e = (code, msg));
@@ -182,12 +180,18 @@ fn set_last_from_error(error: Error) {
 
 /// Sets the last error from the specified [RunnerError].
 fn set_last_from_runner_error(error: RunnerError) {
-    let (code, msg) = match error {
-        e @ RunnerError::Duplicate(_) => (ErrorCode::DuplicateTest, e.to_string()),
-        e @ RunnerError::Test(_) => (ErrorCode::TestFailed, e.to_string()),
-    };
+    LAST_ERROR.with_borrow_mut(|e| *e = (ErrorCode::DuplicateTest, error.to_string()));
+}
 
-    LAST_ERROR.with_borrow_mut(|e| *e = (code, msg));
+/// Sets the last error from the specified errors that happened when running test
+/// with the test runner infrastructure.
+fn set_last_from_test_failed(error: Box<[(sts_lib::Test, sts_lib::Error)]>) {
+    LAST_ERROR.with_borrow_mut(|e| {
+        *e = (
+            ErrorCode::TestFailed,
+            format!("Test runner: one or multiple tests, failed, {error:?}"),
+        )
+    })
 }
 
 /// Sets the last error to be about an invalid test (the given value was passed from FFI).
@@ -197,7 +201,7 @@ fn set_last_invalid_test(test_no: c_int) {
 }
 
 /// Sets the last error to be about the fact that the specified test was not run.
-fn set_last_test_was_not_run(test: Test) {
+fn set_last_test_was_not_run(test: sts_lib::Test) {
     let msg = format!("The test {test} was not run!");
     LAST_ERROR.with_borrow_mut(|e| *e = (ErrorCode::TestWasNotRun, msg));
 }
