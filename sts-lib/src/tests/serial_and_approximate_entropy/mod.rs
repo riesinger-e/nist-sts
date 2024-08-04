@@ -142,7 +142,9 @@ fn access_bits(data: &BitVec, start_idx: usize, block_length: u8) -> Option<usiz
         }
 
         // special case: last byte
-        last_byte(&mut number, data.data[end_byte_idx], end_bit_idx);
+        if end_bit_idx != 0 {
+            last_byte(&mut number, data.data[end_byte_idx], end_bit_idx);
+        }
 
         Some(number)
     } else if end_byte_idx == data.data.len() {
@@ -186,7 +188,9 @@ fn access_bits(data: &BitVec, start_idx: usize, block_length: u8) -> Option<usiz
         }
 
         // special case: last byte
-        last_byte(&mut number, data.data[end_byte_idx], end_bit_idx);
+        if end_bit_idx != 0 {
+            last_byte(&mut number, data.data[end_byte_idx], end_bit_idx);
+        }
 
         Some(number)
     }

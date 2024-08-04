@@ -367,3 +367,9 @@ impl<'a> From<&'a [bool]> for BitVec {
         Self { data, remainder }
     }
 }
+
+impl AsRef<BitVec> for BitVec {
+    fn as_ref(&self) -> &BitVec {
+        &self
+    }
+}

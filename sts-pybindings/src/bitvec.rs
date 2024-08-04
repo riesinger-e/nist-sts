@@ -1,13 +1,14 @@
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use std::borrow::Cow;
+use std::sync::Arc;
 use sts_lib::bitvec;
 
 /// A list of bits, tightly packed - used as the data type for all tests.
 ///
 /// Note: `len(self)` returns the count of bits stored in the object.
 #[pyclass(frozen)]
-pub struct BitVec(pub(crate) bitvec::BitVec);
+pub struct BitVec(pub(crate) Arc<bitvec::BitVec>);
 
 #[pymethods]
 impl BitVec {
@@ -33,7 +34,7 @@ impl BitVec {
                 bit_vec.crop(max_length)
             }
 
-            Ok(Self(bit_vec))
+            Ok(Self(Arc::new(bit_vec)))
         } else if let Ok(bit_list) = data.extract::<Vec<bool>>() {
             // from bit list, lossy makes no sense in this context.
             let mut bit_vec = bitvec::BitVec::from(bit_list);
@@ -42,19 +43,21 @@ impl BitVec {
                 bit_vec.crop(max_length)
             }
 
-            Ok(Self(bit_vec))
+            Ok(Self(Arc::new(bit_vec)))
         } else if let Ok(ascii) = data.extract::<Cow<'_, str>>() {
             // from string
             if lossy {
                 // lossy: builtin option for max length
                 match max_length {
-                    Some(max_length) => {
-                        Ok(Self(bitvec::BitVec::from_ascii_str_lossy_with_max_length(
+                    Some(max_length) => Ok(Self(Arc::new(
+                        bitvec::BitVec::from_ascii_str_lossy_with_max_length(
                             ascii.as_ref(),
                             max_length,
-                        )))
-                    }
-                    None => Ok(Self(bitvec::BitVec::from_ascii_str_lossy(ascii.as_ref()))),
+                        ),
+                    ))),
+                    None => Ok(Self(Arc::new(bitvec::BitVec::from_ascii_str_lossy(
+                        ascii.as_ref(),
+                    )))),
                 }
             } else {
                 // not lossy: have to check the length manually
@@ -69,7 +72,7 @@ impl BitVec {
                     bit_vec.crop(max_length)
                 }
 
-                Ok(Self(bit_vec))
+                Ok(Self(Arc::new(bit_vec)))
             }
         } else {
             // unsupported
@@ -88,9 +91,9 @@ impl BitVec {
     /// If the given new length is greater than the old one, the data of the new object is
     /// unchanged.
     pub fn crop(&self, new_bit_len: usize) -> Self {
-        let mut this = self.0.clone();
+        let mut this = self.0.as_ref().clone();
         this.crop(new_bit_len);
-        Self(this)
+        Self(Arc::new(this))
     }
 
     // string representation.

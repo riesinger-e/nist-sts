@@ -4,6 +4,45 @@ use crate::{RunnerError};
 use pyo3::prelude::*;
 use sts_lib::{Error, test_runner, TestArgs};
 
+type TestResultIteratorItem = (sts_lib::Test, Result<Vec<sts_lib::TestResult>, Error>);
+
+/// Iterator for the result of the [run_tests] function.
+#[pyclass]
+pub struct TestResultIterator {
+    iter: Box<dyn Iterator<Item=TestResultIteratorItem> + Send + 'static>,
+}
+
+#[pymethods]
+impl TestResultIterator {
+    pub fn __iter__(this: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        this
+    }
+
+    pub fn __next__(mut this: PyRefMut<'_, Self>) -> Option<(Test, PyObject)> {
+        this.iter.next()
+            .map(|(test, res)| {
+                let res = match res{
+                    Ok(res) => {
+                        if res.len() == 1 {
+                            TestResult(res[0]).into_py(this.py())
+                        } else {
+                            res.into_iter()
+                                .map(TestResult)
+                                .collect::<Vec<_>>()
+                                .into_py(this.py())
+                        }
+                    }
+                    Err(e) => {
+                        e.to_string().into_py(this.py())
+                    }
+                };
+
+                (test.into(), res)
+            })
+    }
+}
+
+
 /// Runs the tests.
 ///
 /// ## Arguments
@@ -23,8 +62,11 @@ use sts_lib::{Error, test_runner, TestArgs};
 ///
 /// ## Return value
 ///
-/// A list of tuples. For each run test, either contains 1 TestResult, a list of TestResults, or a
-/// string with the description of the error that happened when the test ran.
+/// An iterator of tuples. Each tuple contains the `Test` that was run as the first element, and
+/// the second element is either of:
+/// * 1 TestResult
+/// * a list of TestResults
+/// * a string with the description of the error that happened when the test ran.
 ///
 /// ## Errors
 ///
@@ -33,7 +75,6 @@ use sts_lib::{Error, test_runner, TestArgs};
 #[pyfunction]
 #[pyo3(signature = (data, tests=None, frequency_block_arg=None, non_overlapping_template_args=None, overlapping_template_args=None, linear_complexity_arg=None, serial_arg=None, approximate_entropy_arg=None))]
 pub fn run_tests(
-    python: Python<'_>,
     data: &BitVec,
     tests: Option<Vec<Test>>,
     frequency_block_arg: Option<FrequencyBlockTestArg>,
@@ -42,7 +83,7 @@ pub fn run_tests(
     linear_complexity_arg: Option<LinearComplexityTestArg>,
     serial_arg: Option<SerialTestArg>,
     approximate_entropy_arg: Option<ApproximateEntropyTestArg>,
-) -> PyResult<Vec<(Test, PyObject)>> {
+) -> PyResult<TestResultIterator> {
     // assemble args (or use defaults if not there)
     let args = TestArgs {
         frequency_block: frequency_block_arg.unwrap_or_default().0,
@@ -58,39 +99,18 @@ pub fn run_tests(
             let tests = tests.into_iter()
                 .map(|t| t.into());
 
-            let iter = test_runner::run_tests(tests, &data.0, args)
+            let iter = test_runner::run_tests(tests, data.0.clone(), args)
                 .map_err(|e| RunnerError::new_err(format!("Duplicate test: {}", e.0)))?;
-            Ok(handle_result_iter(python, iter))
+            Ok(TestResultIterator {
+                iter: Box::new(iter),
+            })
         }
         None => {
-            let iter = test_runner::run_all_tests(&data.0, args)
+            let iter = test_runner::run_all_tests(data.0.clone(), args)
                 .map_err(|e| RunnerError::new_err(format!("Duplicate test: {}", e.0)))?;
-            Ok(handle_result_iter(python, iter))
+            Ok(TestResultIterator {
+                iter: Box::new(iter),
+            })
         }
     }
-}
-
-/// Creates the python result iterator for [run_tests].
-fn handle_result_iter(python: Python<'_>, iter: impl Iterator<Item=(sts_lib::Test, Result<Vec<sts_lib::TestResult>, Error>)>) -> Vec<(Test, PyObject)> {
-    iter
-        .map(|(test, res)| {
-            let res = match res{
-                Ok(res) => {
-                    if res.len() == 1 {
-                        TestResult(res[0]).into_py(python)
-                    } else {
-                        res.into_iter()
-                            .map(TestResult)
-                            .collect::<Vec<_>>()
-                            .into_py(python)
-                    }
-                }
-                Err(e) => {
-                    e.to_string().into_py(python)
-                }
-            };
-
-            (test.into(), res)
-        })
-        .collect()
 }

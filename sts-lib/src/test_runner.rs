@@ -18,7 +18,7 @@ pub struct RunnerError(pub Test);
 /// Runs all available tests automatically, with necessary arguments automatically chosen.
 ///
 /// Returns all test results.
-pub fn run_all_tests_automatic(data: &BitVec) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)> + '_, RunnerError> {
+pub fn run_all_tests_automatic(data: impl AsRef<BitVec>) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     run_tests_automatic(Test::iter(), data)
 }
 
@@ -29,15 +29,15 @@ pub fn run_all_tests_automatic(data: &BitVec) -> Result<impl Iterator<Item=(Test
 /// Returns all test results.
 pub fn run_tests_automatic(
     tests: impl Iterator<Item = Test>,
-    data: &BitVec,
-) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)> + '_, RunnerError> {
+    data: impl AsRef<BitVec>,
+) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     run_tests(tests, data, TestArgs::default())
 }
 
 /// Runs all available tests with the used arguments taken from the passed [args](TestArgs).
 ///
 /// Returns all test results.
-pub fn run_all_tests(data: &BitVec, args: TestArgs) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)> + '_, RunnerError> {
+pub fn run_all_tests(data: impl AsRef<BitVec>, args: TestArgs) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     run_tests(Test::iter(), data, args)
 }
 
@@ -48,9 +48,9 @@ pub fn run_all_tests(data: &BitVec, args: TestArgs) -> Result<impl Iterator<Item
 /// Returns all test results.
 pub fn run_tests(
     mut tests: impl Iterator<Item = Test>,
-    data: & BitVec,
+    data: impl AsRef<BitVec>,
     args: TestArgs,
-) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)> + '_, RunnerError> {
+) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     // check for duplicate tests.
     let mut unique_tests = HashSet::with_capacity(tests.size_hint().0);
 
@@ -62,8 +62,8 @@ pub fn run_tests(
         // unique_tests contains all tests
         let output = unique_tests
             .into_iter()
-            .map(move |test| run_test(test, data, args));
-        
+            .map(move |test| run_test(test, data.as_ref(), args));
+
         Ok(output)
     }
 }
