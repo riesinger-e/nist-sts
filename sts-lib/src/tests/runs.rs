@@ -4,14 +4,19 @@
 //! identical bits.
 //! Each tested [BitVec] should have at least 100 bits length.
 
-
+use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::{BYTE_SIZE, Error, TestResult};
 use rayon::prelude::*;
 use crate::internals::{check_f64, erfc};
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 100;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(100) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// Runs test - No. 3
 ///

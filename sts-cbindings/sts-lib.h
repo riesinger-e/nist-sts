@@ -92,63 +92,63 @@ typedef enum Test {
   /**
    * See [frequency_test](crate::tests::frequency_test).
    */
-  Frequency = 0,
+  Test_Frequency = 0,
   /**
    * See [frequency_block_test](crate::tests::frequency_block_test).
    */
-  FrequencyWithinABlock = 1,
+  Test_FrequencyWithinABlock = 1,
   /**
    * See [runs_test](crate::tests::runs_test).
    */
-  Runs = 2,
+  Test_Runs = 2,
   /**
    * See [longest_run_of_ones_test](crate::tests::longest_run_of_ones_test).
    */
-  LongestRunOfOnes = 3,
+  Test_LongestRunOfOnes = 3,
   /**
    * See [binary_matrix_rank_test](crate::tests::binary_matrix_rank_test).
    */
-  BinaryMatrixRank = 4,
+  Test_BinaryMatrixRank = 4,
   /**
    * See [spectral_dft_test](crate::tests::spectral_dft_test).
    */
-  SpectralDft = 5,
+  Test_SpectralDft = 5,
   /**
    * See [non_overlapping_template_matching_test](crate::tests::non_overlapping_template_matching_test).
    */
-  NonOverlappingTemplateMatching = 6,
+  Test_NonOverlappingTemplateMatching = 6,
   /**
    * See [overlapping_template_matching_test](crate::tests::overlapping_template_matching_test).
    */
-  OverlappingTemplateMatching = 7,
+  Test_OverlappingTemplateMatching = 7,
   /**
    * See [maurers_universal_statistical_test](crate::tests::maurers_universal_statistical_test).
    */
-  MaurersUniversalStatistical = 8,
+  Test_MaurersUniversalStatistical = 8,
   /**
    * See [linear_complexity_test](crate::tests::linear_complexity_test).
    */
-  LinearComplexity = 9,
+  Test_LinearComplexity = 9,
   /**
    * See [serial_test](crate::tests::serial_test).
    */
-  Serial = 10,
+  Test_Serial = 10,
   /**
    * See [approximate_entropy_test](crate::tests::approximate_entropy_test).
    */
-  ApproximateEntropy = 11,
+  Test_ApproximateEntropy = 11,
   /**
    * See [cumulative_sums_test](crate::tests::cumulative_sums_test).
    */
-  CumulativeSums = 12,
+  Test_CumulativeSums = 12,
   /**
    * See [random_excursions_test](crate::tests::random_excursions_test).
    */
-  RandomExcursions = 13,
+  Test_RandomExcursions = 13,
   /**
    * See [random_excursions_variant_test](crate::tests::random_excursions_variant_test).
    */
-  RandomExcursionsVariant = 14,
+  Test_RandomExcursionsVariant = 14,
 } Test;
 
 /**
@@ -303,10 +303,20 @@ int get_last_error_str(char *ptr,
  *
  * ## Return values
  *
- * - 0: the call worked.
- * - 1: an error happened
+ * * 0: the call worked.
+ * * 1: an error happened - use [get_last_error_str]
  */
 int set_max_threads(size_t max_threads);
+
+/**
+ * Returns the minimum input length, in bits, for the specified test.
+ *
+ * ## Return values
+ *
+ * * >0: the call worked. Returned is minimum input length
+ * * 0: an error happened - use [get_last_error_str]
+ */
+size_t get_min_length_for_test(Test test);
 
 /**
  * Creates a Bit Vector from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.

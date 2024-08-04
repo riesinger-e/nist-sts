@@ -7,6 +7,7 @@ use std::ffi::c_int;
 pub type RawTest = c_int;
 
 /// List of all tests, used for automatic running.
+/// cbindgen:prefix-with-name=true
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub enum Test {

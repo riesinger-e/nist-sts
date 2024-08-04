@@ -14,6 +14,7 @@
 //! value for [SerialTestArg] is used, a smaller input length will lead to an Error because
 //! of constraint no. 3!
 
+use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult};
@@ -24,8 +25,13 @@ use crate::tests::serial_and_approximate_entropy::{access_bits, validate_test_ar
 // Following relation must be true:
 // 2 < (log2(len_bit) as int) - 2
 // -> log2(2^5) - 2 = 3
-/// The minimum input length for this test.
-pub const MIN_INPUT_LENGTH: usize = 1 << 5;
+/// The minimum input length for this test, in bits.
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(1 << 5) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// The argument for the serial test: the block length in bits to check.
 ///

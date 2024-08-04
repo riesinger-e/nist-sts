@@ -11,7 +11,12 @@ use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 100;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(100) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// The argument for the Frequency test within a block: the block length.
 /// 

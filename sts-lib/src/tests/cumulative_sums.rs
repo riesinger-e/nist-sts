@@ -12,9 +12,15 @@ use crate::bitvec::BitVec;
 use crate::internals::{check_f64, erfc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use std::f64::consts::SQRT_2;
+use std::num::NonZero;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 100;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(100) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// Cumulative Sums Test - No. 13
 ///

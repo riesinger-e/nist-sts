@@ -16,13 +16,19 @@ use crate::tests::serial_and_approximate_entropy::{access_bits, validate_test_ar
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::f64::consts::LN_2;
+use std::num::NonZero;
 
 // calculation: minimum block length = 2
 // Following relation must be true:
 // 2 < (log2(len_bit) as int) - 5
 // -> log2(2^8) - 5 = 3
-/// The minimum input length for this test.
-pub const MIN_INPUT_LENGTH: usize = 1 << 8;
+/// The minimum input length for this test, in bits.
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(1 << 8) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// The argument for the approximate entropy test: the block length in bits to check.
 ///

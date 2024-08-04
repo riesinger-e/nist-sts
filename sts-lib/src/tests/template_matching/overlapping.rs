@@ -24,11 +24,17 @@ use bigdecimal::num_bigint::BigInt;
 use bigdecimal::num_traits::ToPrimitive;
 use bigdecimal::BigDecimal;
 use std::collections::HashMap;
+use std::num::NonZero;
 use std::sync::{LazyLock, Mutex};
 
 // calculation: min template length (2) * min block length (4)
 /// The minimum input length, in bits, for this test.
-pub const MIN_INPUT_LENGTH: usize = 2 * 4;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(2 * 4) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// The default length of each block M, in bits.
 pub const DEFAULT_BLOCK_LENGTH: usize = 1032;

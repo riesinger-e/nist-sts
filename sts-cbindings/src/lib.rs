@@ -11,6 +11,7 @@ use std::ffi::{c_char, c_int};
 use std::ptr::slice_from_raw_parts_mut;
 use sts_lib::test_runner::RunnerError;
 use sts_lib::{Error, Test};
+use crate::test_runner::test::RawTest;
 
 thread_local! {
     /// This variable stores the Display impl of the last error.
@@ -99,8 +100,8 @@ pub unsafe extern "C" fn get_last_error_str(ptr: *mut c_char, len: &mut usize) -
 ///
 /// ## Return values
 ///
-/// - 0: the call worked.
-/// - 1: an error happened
+/// * 0: the call worked.
+/// * 1: an error happened - use [get_last_error_str]
 #[no_mangle]
 pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
     match sts_lib::set_max_threads(max_threads) {
@@ -141,6 +142,29 @@ pub enum ErrorCode {
     TestFailed = 9,
     /// The test whose result was tried to be retrieved from the test runner was not run.
     TestWasNotRun = 10,
+}
+
+/// Returns the minimum input length, in bits, for the specified test.
+///
+/// ## Return values
+///
+/// * >0: the call worked. Returned is minimum input length
+/// * 0: an error happened - use [get_last_error_str]
+#[no_mangle]
+pub extern "C" fn get_min_length_for_test(test: RawTest) -> usize {
+    let raw_test = test;
+    let test = crate::test_runner::test::Test::try_from(raw_test);
+
+    let test = match test {
+        Ok(test) => test,
+        Err(()) => {
+            set_last_invalid_test(raw_test);
+            return 0;
+        }
+    };
+
+    // No test has a minimum length of 0 defined - NonZero<usize> guarantees that.
+    sts_lib::get_min_length_for_test(test.into()).get()
 }
 
 /// Sets the last error from the specified [Error].

@@ -5,15 +5,24 @@
 //!
 //! This test allows for parameters, see [NonOverlappingTemplateTestArgs].
 
-use super::{DEFAULT_TEMPLATE_LEN, TemplateArg};
+use std::num::NonZero;
+
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+use crate::{Error, TestResult};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
-use crate::{Error, TestResult};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+use super::TemplateArg;
 
 // calculation: min block count (1) * min template length (2)
 /// The minimum input length, in bits, for this test.
-pub const MIN_INPUT_LENGTH: usize = 2;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(2) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 
 /// The default block count. For use in [NonOverlappingTemplateTestArgs].

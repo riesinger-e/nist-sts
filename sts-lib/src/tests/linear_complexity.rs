@@ -14,7 +14,12 @@ use rayon::prelude::*;
 use crate::internals::{check_f64, igamc};
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 1_000_000;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(1_000_000) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// freedom degrees
 const FREEDOM_DEGREES: usize = 6;

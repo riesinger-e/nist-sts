@@ -8,13 +8,19 @@
 //!
 //! The data has to be at least 128 bits in length.
 
+use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 128;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(128) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 // Table sorting criteria for the three possible block lengths.
 const TABLE_SORTING_CRITERIA_8: [usize; 4] = [1, 2, 3, 4];

@@ -10,9 +10,15 @@ use crate::bitvec::BitVec;
 use crate::internals::{check_f64, erfc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use std::f64::consts::SQRT_2;
+use std::num::NonZero;
 
 /// The minimum input length, in bits, for this test.
-pub const MIN_INPUT_LENGTH: usize = 2020;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(2020) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// The expected statistic values µ. The index is the block length *L* - 1, i.e. the array is
 /// defined for 1 <= *L* <= 16.

@@ -13,9 +13,15 @@ use rustfft::FftPlanner;
 use std::sync::{Mutex, LazyLock};
 use crate::internals::{check_f64, erfc};
 use std::f64::consts::FRAC_1_SQRT_2;
+use std::num::NonZero;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 1000;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(1000) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 // Use a global planner to allow for caching if the test is run multiple times.
 static FFT_PLANNER: LazyLock<Mutex<FftPlanner<f32>>> = LazyLock::new(|| Mutex::new(FftPlanner::new()));

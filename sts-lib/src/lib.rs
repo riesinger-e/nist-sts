@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+use std::num::NonZero;
 use crate::tests::frequency_block::FrequencyBlockTestArg;
 use crate::tests::linear_complexity::LinearComplexityTestArg;
 use crate::tests::serial::SerialTestArg;
@@ -27,37 +28,38 @@ const BYTE_SIZE: usize = 8;
 
 /// List of all tests, used e.g. for automatic running.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter, Display)]
+#[repr(u8)]
 pub enum Test {
     /// See [tests::frequency].
-    Frequency,
+    Frequency = 0,
     /// See [tests::frequency_block].
-    FrequencyWithinABlock,
+    FrequencyWithinABlock = 1,
     /// See [tests::runs].
-    Runs,
+    Runs = 2,
     /// See [tests::longest_run_of_ones].
-    LongestRunOfOnes,
+    LongestRunOfOnes = 3,
     /// See [tests::binary_matrix_rank].
-    BinaryMatrixRank,
+    BinaryMatrixRank = 4,
     /// See [tests::spectral_dft].
-    SpectralDft,
+    SpectralDft = 5,
     /// See [tests::template_matching::non_overlapping].
-    NonOverlappingTemplateMatching,
+    NonOverlappingTemplateMatching = 6,
     /// See [tests::template_matching::overlapping].
-    OverlappingTemplateMatching,
+    OverlappingTemplateMatching = 7,
     /// See [tests::maurers_universal_statistical]
-    MaurersUniversalStatistical,
+    MaurersUniversalStatistical = 8,
     /// See [tests::linear_complexity]
-    LinearComplexity,
+    LinearComplexity = 9,
     /// See [tests::serial]
-    Serial,
+    Serial = 10,
     /// See [tests::approximate_entropy]
-    ApproximateEntropy,
+    ApproximateEntropy = 11,
     /// See [tests::cumulative_sums]
-    CumulativeSums,
+    CumulativeSums = 12,
     /// See [tests::random_excursions]
-    RandomExcursions,
+    RandomExcursions = 13,
     /// See [tests::random_excursions_variant]
-    RandomExcursionsVariant,
+    RandomExcursionsVariant = 14,
 }
 
 /// All test arguments for use in a [TestRunner](test_runner::TestRunner),
@@ -160,4 +162,30 @@ pub fn set_max_threads(max_threads: usize) -> Result<(), Box<impl std::error::Er
         .num_threads(max_threads)
         .build_global()
         .map_err(Box::new)
+}
+
+/// Returns the minimum input length, in bits, for the specified test.
+pub fn get_min_length_for_test(test: Test) -> NonZero<usize> {
+    use crate::tests;
+
+    const MIN_LENGTHS: [NonZero<usize>; 15] = [
+        tests::frequency::MIN_INPUT_LENGTH,
+        tests::frequency_block::MIN_INPUT_LENGTH,
+        tests::runs::MIN_INPUT_LENGTH,
+        tests::longest_run_of_ones::MIN_INPUT_LENGTH,
+        tests::binary_matrix_rank::MIN_INPUT_LENGTH,
+        tests::spectral_dft::MIN_INPUT_LENGTH,
+        tests::template_matching::non_overlapping::MIN_INPUT_LENGTH,
+        tests::template_matching::overlapping::MIN_INPUT_LENGTH,
+        tests::maurers_universal_statistical::MIN_INPUT_LENGTH,
+        tests::linear_complexity::MIN_INPUT_LENGTH,
+        tests::serial::MIN_INPUT_LENGTH,
+        tests::approximate_entropy::MIN_INPUT_LENGTH,
+        tests::cumulative_sums::MIN_INPUT_LENGTH,
+        tests::random_excursions::MIN_INPUT_LENGTH,
+        tests::random_excursions_variant::MIN_INPUT_LENGTH,
+    ];
+
+    // use the assigned test primitive value as an index
+    MIN_LENGTHS[(test as u8) as usize]
 }

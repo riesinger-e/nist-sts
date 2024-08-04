@@ -5,13 +5,19 @@
 //!
 //! The sequence must consist of at least 38 912 bits = 4864 bytes.
 
+use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 38_912;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(38_912) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// Rows and columns
 const M: usize = 32;

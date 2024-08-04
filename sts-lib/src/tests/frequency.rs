@@ -8,10 +8,16 @@ use crate::{BYTE_SIZE};
 use crate::{TestResult, Error};
 use rayon::prelude::*;
 use std::f64::consts::FRAC_1_SQRT_2;
+use std::num::NonZero;
 use crate::bitvec::BitVec;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: usize = 100;
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+    match NonZero::new(100) {
+        Some(v) => v,
+        None => panic!("Literal should be non-zero!"),
+    }
+};
 
 /// Frequency (mono bit) test - No. 1
 /// 

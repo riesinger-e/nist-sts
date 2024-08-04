@@ -85,6 +85,11 @@ pub mod nist_sts {
             .map_err(|e| PyResourceWarning::new_err(format!("Function was already used: {e}")))
     }
 
+    #[pyfunction]
+    pub fn get_min_length_for_test(test: Test) -> usize {
+        sts_lib::get_min_length_for_test(test.into()).get()
+    }
+
     /// List of all tests, used for the TestRunner to know which threads to run.
     #[pyclass(eq, eq_int)]
     #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
