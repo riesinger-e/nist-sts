@@ -1,0 +1,65 @@
+//! Everything necessary for command line arguments.
+
+use std::num::NonZero;
+use std::path::PathBuf;
+use clap::{Args, Parser};
+use crate::{ArgTest, InputFormat};
+
+/// The command line arguments.
+#[derive(Debug, Parser)]
+#[command(version, author, about, long_about = None)]
+pub struct CmdArgs {
+    // If an input file is specified, a config file is not needed, but allowed.
+    /// Path to an optional configuration file. Required if the input file is not specified.
+    ///
+    /// The configuration written in the config file can be supplemented by command line switches.
+    #[arg(short, long, required_unless_present = "input_file")]
+    pub config_file: Option<PathBuf>,
+    #[command(flatten)]
+    pub regular_args: RegularArgs,
+}
+
+/// The "regular" command line arguments (everything except for config file)
+#[derive(Debug, Clone, Args)]
+#[group(required = false, multiple = true)]
+pub struct RegularArgs {
+    /// Path to the input file. Mandatory.
+    #[arg(short, long, requires = "input_format")]
+    pub input_file: Option<PathBuf>,
+    /// The input file format. Required if a input file is specified.
+    #[arg(short = 'f', long)]
+    pub input_format: Option<InputFormat>,
+    /// The maximum length of the sequence to test, in bits.
+    #[arg(short = 'l', long)]
+    pub max_length: Option<NonZero<usize>>,
+    /// The tests to run: either include specific tests or exclude specific tests, if neither is
+    /// set: run all tests.
+    #[command(flatten)]
+    pub tests_to_run: TestsToRun,
+    /// Test argument overrides in TOML format.
+    /// 
+    /// Use the same format as the config file, key 'arguments' is implied. 
+    /// e.g. 'serial.block-length = 3'.
+    #[arg(short, long, value_delimiter = ',')]
+    pub overrides: Option<Vec<String>>,
+}
+
+
+/// Which tests are to be run. Allows only one of these options to be used.
+#[derive(Debug, Clone, Args)]
+#[group(required = false, multiple = false)]
+pub struct TestsToRun {
+    /// Run only the specified tests.
+    ///
+    /// If neither this option nor '--exclude-tests' is specified, all tests are run, except
+    /// for those whose input length requirements are not satisfied.
+    #[arg(short, long, value_delimiter = ',')]
+    pub tests: Option<Vec<ArgTest>>,
+    /// Run all available tests except for the excluded tests.
+    /// Tests whose input length requirements are not satisfied, are skipped.
+    ///
+    /// If neither this option nor '--tests' is specified, all tests are run, except
+    /// for those whose input length requirements are not satisfied.
+    #[arg(short, long, value_delimiter = ',')]
+    pub exclude_tests: Option<Vec<ArgTest>>,
+}

@@ -11,6 +11,9 @@ use thiserror::Error;
 use rayon::ThreadPoolBuilder;
 use crate::tests::approximate_entropy::ApproximateEntropyTestArg;
 
+// Trait must be public for enum iter to work.
+pub use strum::IntoEnumIterator;
+
 // internal usage only
 pub(crate) mod internals;
 #[cfg(test)]
@@ -25,6 +28,9 @@ pub mod tests;
 
 /// How many bits a byte has
 const BYTE_SIZE: usize = 8;
+
+/// The default threshold to determine if a test passed, use [TestResult::passed].
+pub const DEFAULT_THRESHOLD: f64 = 0.01;
 
 /// List of all tests, used e.g. for automatic running.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter, Display)]

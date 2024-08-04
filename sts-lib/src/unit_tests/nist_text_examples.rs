@@ -14,6 +14,7 @@ use crate::{BYTE_SIZE, Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
+use crate::DEFAULT_THRESHOLD;
 use crate::tests::approximate_entropy::{approximate_entropy_test, ApproximateEntropyTestArg};
 use crate::tests::cumulative_sums::{cumulative_sums_test, cusum_test_internal};
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
@@ -24,7 +25,6 @@ use crate::tests::serial::{serial_test, SerialTestArg};
 use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
 use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
 
-const LEVEL_VALUE: f64 = 0.01;
 // Path to the test directory
 const TEST_FILE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/test-files");
 
@@ -51,7 +51,7 @@ fn test_frequency_test_1() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.527089);
 }
@@ -66,7 +66,7 @@ fn test_frequency_test_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.109599);
 }
@@ -81,7 +81,7 @@ fn test_frequency_block_test_1() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.801252);
 }
@@ -97,7 +97,7 @@ fn test_frequency_block_test_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.706438);
 }
@@ -111,7 +111,7 @@ fn test_runs_test_1() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.147232);
 }
@@ -126,7 +126,7 @@ fn test_runs_test_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.500798);
 }
@@ -141,7 +141,7 @@ fn test_longest_run_of_ones() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     // the expected value differs slightly from the textbook values because some constants
     // were recalculated with higher precision.
@@ -170,7 +170,7 @@ fn test_binary_matrix_rank_test() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     // the expected value differs slightly from the values from the paper because
     // 1. some constants were recalculated with higher precision.
@@ -189,7 +189,7 @@ fn test_spectral_dft_1() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     // This result is not taken from the paper itself, instead, the original NIST STS was run.
     // The value in the paper is completely wrong!
@@ -207,7 +207,7 @@ fn test_spectral_dft_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     // Again: calculated with the original NIST STS, value in the paper is wrong!
     assert_f64_eq!(round(output.p_value, 6), 0.646355);
@@ -235,7 +235,7 @@ fn test_non_overlapping_template_matching_1() {
     result_checker(&output);
 
     let output = output.unwrap()[0];
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.344154);
 }
@@ -274,7 +274,7 @@ fn test_non_overlapping_template_matching_2() {
     result_checker(&output);
 
     let output = output.unwrap()[0];
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.015021);
 }
@@ -309,7 +309,7 @@ fn test_overlapping_template_matching_test() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     // This value is taken from the NIST reference implementation since the paper is (yet again) wrong.
     assert_f64_eq!(round(output.p_value, 6), 0.110434);
@@ -340,7 +340,7 @@ fn test_maurers_universal_statistical_test() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.282568);
 }
@@ -376,7 +376,7 @@ fn test_linear_complexity_test() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
 
     assert_f64_eq!(round(output.p_value, 6), 0.844738);
 }
@@ -398,9 +398,9 @@ fn test_serial_test_1() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output[0].passed(LEVEL_VALUE));
+    assert!(output[0].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[0].p_value, 6), 0.808792);
-    assert!(output[1].passed(LEVEL_VALUE));
+    assert!(output[1].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[1].p_value, 6), 0.670320);
 }
 
@@ -422,9 +422,9 @@ fn test_serial_test_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output[0].passed(LEVEL_VALUE));
+    assert!(output[0].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[0].p_value, 6), 0.843764);
-    assert!(output[1].passed(LEVEL_VALUE));
+    assert!(output[1].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[1].p_value, 6), 0.561915);
 }
 
@@ -441,7 +441,7 @@ fn test_approximate_entropy_test_1() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output.p_value, 6), 0.261961);
 }
 
@@ -461,7 +461,7 @@ fn test_approximate_entropy_test_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output.p_value, 6), 0.235301);
 }
 
@@ -476,7 +476,7 @@ fn test_cumulative_sums_test_1() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output.passed(LEVEL_VALUE));
+    assert!(output.passed(DEFAULT_THRESHOLD));
     // Expected value is slightly different from the paper because of a different method to
     // calculate the standard normal cumulative distribution function. Diff: 1e-6
     assert_f64_eq!(round(output.p_value, 6), 0.411659);
@@ -494,9 +494,9 @@ fn test_cumulative_sums_test_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    assert!(output[0].passed(LEVEL_VALUE));
+    assert!(output[0].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[0].p_value, 6), 0.219194);
-    assert!(output[1].passed(LEVEL_VALUE));
+    assert!(output[1].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[1].p_value, 6), 0.114866);
 }
 
@@ -519,7 +519,7 @@ fn test_random_excursions_test_1() {
 
     let output = output.unwrap();
 
-    assert!(output[4].passed(LEVEL_VALUE));
+    assert!(output[4].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[4].p_value, 6), 0.502488);
 }
 
@@ -563,7 +563,7 @@ fn test_random_excursions_variant_test_1() {
 
     let output = output.unwrap();
 
-    assert!(output[9].passed(LEVEL_VALUE));
+    assert!(output[9].passed(DEFAULT_THRESHOLD));
     assert_f64_eq!(round(output[9].p_value, 6), 0.683091);
 }
 

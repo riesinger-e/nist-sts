@@ -1,0 +1,16 @@
+[package]
+name = "sts-cmd"
+version = "0.1.0"
+edition = "2021"
+authors = ["Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>"]
+rust-version = "1.80"
+description = "An implementation of the NIST STS - command line application"
+readme = true
+repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.5.13", features = ["derive"] }
+serde = { version = "1.0.204", features = ["derive"] }
+sts-lib = { path = "../sts-lib" }
+toml = { version = "0.8.19", default-features = false, features = ["display", "parse"] }

@@ -1,0 +1,73 @@
+# In general: every option here can be overriden by command line switches.
+
+[input]
+# The path to the input file. If this is missing, it must be supplemented by the command line arguments.
+input-file = "./example-input.bin"
+# The format of the input file. If this is missing, it must be supplemented by the command line arguments.
+# Valid arguments: [binary, ascii, ascii-lossy]
+input-format = "binary"
+# The maximum length (bits) to read from the input file. If missing, the whole file will be read.
+max-length = 1000000
+
+# If test definitions are missing, all tests are run, except for tests whose input length requirements 
+# are not satisfied.
+[test]
+# Allowlist approach: only specified tests are run.
+# If this is specified, "exclude" is ignored.
+include = [
+    "frequency",
+    "spectral-dft",
+]
+# Blocklist approach: all tests except the specified and tests whose input length requirements 
+# are not satisfied are run.
+exclude = [
+    "overlapping-template-matching",
+    "serial",
+]
+
+# All argument overrides below may be missing.
+
+[arguments.frequency-block]
+# Block length in bits. Should be at least 20 bits, with the block length greater than 1% of the bit length 
+# of the input. Default: not set.
+block-length = 20
+# If set to true, block-length is ignored and a suitable one is chosen automatically at test runtime. 
+# Default: not set. If block length is also not set, this value is assumed to be true. 
+# If this value is set to false, but block length is not set, this value is set to true.
+choose-automatically = false
+
+[arguments.non-overlapping-template-matching]
+# Template length m in bits: 2 <= m <= 21. Default: 9
+template-length = 9
+# Block count N: 1 <= N < 100. Default: 8
+count-blocks = 8
+
+[arguments.overlapping-template-matching]
+# Template length m in bits: 2 <= m <= 21. Default: 9
+template-length = 9
+# Block length M in bits. Default: 1032.
+block-length = 1032
+# Freedom degrees K. Default: 6
+freedom = 6
+# If set to true, block-length and freedom are ignored and template-length may only be 9 or 10. Default: false.
+nist-behaviour = false
+
+[arguments.linear-complexity]
+# Block length in bits. 500 <= block_length <= 5000. input length / block_ength >= 200. Default: not set.
+block-length = 500
+# If set to true, block-length is ignored and a suitable one is chosen automatically at test runtime. 
+# Default: not set. If block length is also not set, this value is assumed to be true. 
+# If this value is set to false, but block length is not set, it is set to true.
+choose-automatically = false
+
+[arguments.serial]
+# Block length in bits. Must be >= 2. The largest value with the given block length must be representable 
+# as C-Type size_t.
+# block_length < (log2(input length) as int) - 2. Default: 16.
+block-length = 16
+
+[arguments.approximate-entropy]
+# Block length in bits. Must be >= 2. The largest value with the given block length must be representable 
+# as C-Type size_t.
+# block_length < (log2(input length) as int) - 5. Default: 10.
+block-length = 10

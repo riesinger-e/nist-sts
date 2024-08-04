@@ -12,6 +12,7 @@
       <sourceFolder url="file://$MODULE_DIR$/const-calculation-scripts/scripts/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/sts-cbindings/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/sts-pybindings/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/sts-cmd/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/const-calculation-scripts/venv" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/sts-pybindings/venv" />

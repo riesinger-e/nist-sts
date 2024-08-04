@@ -5,6 +5,7 @@ members = [
     "sts-lib",
     "sts-cbindings",
     "sts-pybindings",
+    "sts-cmd",
 ]
 default-members = [
     "libcerf",
