@@ -13,3 +13,14 @@ default-members = [
     "sts-cbindings",
 ]
 resolver = "2"
+
+# build options for better performance when building the release version
+[profile.release]
+# unwinding the stack into FFI code is undefined behaviour, better abort the program
+panic = "abort"
+# slower compilation, more optimizations possible
+codegen-units = 1
+# link time optimizations
+lto = "fat"
+# disable all debuginfo
+strip = "symbols"
