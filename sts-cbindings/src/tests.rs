@@ -33,18 +33,17 @@ macro_rules! test_wrapper {
         #[doc = " * `data` may not be mutated for the duration of this call."]
         #[doc = " * All responsibility for `data`, particularly for its destruction, remains with the caller."]
         #[no_mangle]
-        pub unsafe extern "C" fn $name(data: &BitVec) -> *mut TestResult {
+        pub unsafe extern "C" fn $name(data: &BitVec) -> Option<Box<TestResult>> {
             let result = $call(&data.0);
 
             match result {
                 Ok(res) => {
-                    let res = TestResult(res);
-                    Box::into_raw(Box::new(res))
+                    Some(Box::new(TestResult(res)))
                 },
                 Err(err) => {
                     // Set error for calling later
                     crate::set_last_from_error(err);
-                    std::ptr::null_mut()
+                    None
                 }
             }
         }
@@ -58,7 +57,7 @@ macro_rules! test_wrapper {
         #[doc = " ## Return value"]
         #[doc = ""]
         #[doc = " If the test ran without errors, a list of `TestResult` is returned. This result can be deallocated with `test_result_list_destroy`."]
-        #[doc = concat!("The returned array always has length ", stringify!($length), ".")]
+        #[doc = concat!(" The returned array always has length ", stringify!($length), ".")]
         #[doc = " If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`."]
         #[doc = ""]
         #[doc = " ## Safety"]
@@ -68,15 +67,16 @@ macro_rules! test_wrapper {
         #[doc = " * `data` may not be mutated for the duration of this call."]
         #[doc = " * All responsibility for `data`, particularly for its destruction, remains with the caller."]
         #[no_mangle]
-        pub unsafe extern "C" fn $name(data: &BitVec) -> *mut *mut TestResult {
+        pub unsafe extern "C" fn $name(data: &BitVec) -> *mut Box<TestResult> {
             let result = $call(&data.0);
 
             match result {
                 Ok(res) => {
-                    let vec: Box<[*mut TestResult]> = Box::into_iter(Vec::from(res).into_boxed_slice())
-                        .map(|res| Box::into_raw(Box::new(TestResult(res))) as *mut TestResult)
+                    let vec: Box<[Box<TestResult>]> = Box::into_iter(Vec::from(res).into_boxed_slice())
+                        .map(|res| Box::new(TestResult(res)))
                         .collect();
-                    Box::into_raw(vec) as *mut *mut TestResult
+                    // strip away the length information
+                    Box::into_raw(vec) as *mut Box<TestResult>
                 },
                 Err(err) => {
                     // Set error for calling later
@@ -107,18 +107,17 @@ macro_rules! test_wrapper {
         #[doc = " * `test_arg` may not be mutated for the duration of this call."]
         #[doc = " * All responsibility for `data` and `test_arg`, particularly for their destruction, remains with the caller."]
         #[no_mangle]
-        pub unsafe extern "C" fn $name(data: &BitVec, test_arg: &$argtype) -> *mut TestResult {
+        pub unsafe extern "C" fn $name(data: &BitVec, test_arg: &$argtype) -> Option<Box<TestResult>> {
             let result = $call(&data.0, test_arg.into());
 
             match result {
                 Ok(res) => {
-                    let res = TestResult(res);
-                    Box::into_raw(Box::new(res))
+                    Some(Box::new(TestResult(res)))
                 },
                 Err(err) => {
                     // Set error for calling later
                     crate::set_last_from_error(err);
-                    std::ptr::null_mut()
+                    None
                 }
             }
         }
@@ -147,16 +146,17 @@ macro_rules! test_wrapper {
         #[doc = " * `length` may not be mutated for the duration of this call."]
         #[doc = " * All responsibility for `data`, `test_arg` and `length`, particularly for their destruction, remains with the caller."]
         #[no_mangle]
-        pub unsafe extern "C" fn $name(data: &BitVec, test_arg: &$argtype, length: &mut usize) -> *mut *mut TestResult {
+        pub unsafe extern "C" fn $name(data: &BitVec, test_arg: &$argtype, length: &mut usize) -> *mut Box<TestResult> {
             let result = $call(&data.0, test_arg.into());
 
             match result {
                 Ok(res) => {
                     *length = res.len();
-                    let vec: Box<[*mut TestResult]> = Box::into_iter(res.into_boxed_slice())
-                        .map(|res| Box::into_raw(Box::new(TestResult(res))) as *mut TestResult)
+                    let vec: Box<[Box<TestResult>]> = Box::into_iter(res.into_boxed_slice())
+                        .map(|res| Box::new(TestResult(res)))
                         .collect();
-                    Box::into_raw(vec) as *mut *mut TestResult
+                    // strip away the length information
+                    Box::into_raw(vec) as *mut Box<TestResult>
                 },
                 Err(err) => {
                     // Set error for calling later
@@ -175,7 +175,7 @@ macro_rules! test_wrapper {
         #[doc = " ## Return value"]
         #[doc = ""]
         #[doc = " If the test ran without errors, a list of `TestResult` is returned. This list can be deallocated with `test_result_list_destroy`."]
-        #[doc = concat!("The returned array always has length ", stringify!($length), ".")]
+        #[doc = concat!(" The returned array always has length ", stringify!($length), ".")]
         #[doc = " If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`."]
         #[doc = ""]
         #[doc = " ## Safety"]
@@ -188,15 +188,15 @@ macro_rules! test_wrapper {
         #[doc = " * `test_arg` may not be mutated for the duration of this call."]
         #[doc = " * All responsibility for `data` and `test_arg`, particularly for their destruction, remains with the caller."]
         #[no_mangle]
-        pub unsafe extern "C" fn $name(data: &BitVec, test_arg: &$argtype) -> *mut *mut TestResult {
+        pub unsafe extern "C" fn $name(data: &BitVec, test_arg: &$argtype) -> *mut Box<TestResult> {
             let result = $call(&data.0, test_arg.into());
 
             match result {
                 Ok(res) => {
-                    let vec: Box<[*mut TestResult]> = Box::into_iter(Vec::from(res).into_boxed_slice())
-                        .map(|res| Box::into_raw(Box::new(TestResult(res))) as *mut TestResult)
+                    let vec: Box<[Box<TestResult>]> = Box::into_iter(Vec::from(res).into_boxed_slice())
+                        .map(|res| Box::new(TestResult(res)))
                         .collect();
-                    Box::into_raw(vec) as *mut *mut TestResult
+                    Box::into_raw(vec) as *mut Box<TestResult>
                 },
                 Err(err) => {
                     // Set error for calling later

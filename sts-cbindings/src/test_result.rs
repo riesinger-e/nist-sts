@@ -1,7 +1,6 @@
 //! Everything about test results.
 
 use std::ffi::{c_char, c_int};
-use std::ptr::{slice_from_raw_parts_mut};
 use std::slice;
 use sts_lib::TestResult as InternalTestResult;
 
@@ -22,9 +21,8 @@ pub struct TestResult(pub(crate) InternalTestResult);
 /// * `ptr` must not be mutated for the duration of this call.
 /// * `ptr` will be invalid after this call, access will lead to undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_destroy(ptr: *mut TestResult) {
-    // SAFETY: caller has to ensure that the pointer is valid
-    let _ = unsafe { Box::from_raw(ptr) };
+pub unsafe extern "C" fn test_result_destroy(ptr: Option<Box<TestResult>>) {
+    _ = ptr;
 }
 
 /// Destroys the given list of test results. If you want to destroy only a single test result,
@@ -38,16 +36,11 @@ pub unsafe extern "C" fn test_result_destroy(ptr: *mut TestResult) {
 /// * `ptr` must not be mutated for the duration of this call.
 /// * `ptr` will be invalid after this call, access will lead to undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_list_destroy(ptr: *mut *mut TestResult, count: usize) {
+pub unsafe extern "C" fn test_result_list_destroy(ptr: *mut Box<TestResult>, count: usize) {
     // SAFETY: caller has to ensure that the pointer is valid with count elements
-    let list = unsafe {
+    _ = unsafe {
         Box::from_raw(slice::from_raw_parts_mut(ptr, count))
     };
-
-    for ptr in list {
-        // SAFETY: caller has to ensure that the pointer is valid.
-        let _ = unsafe { Box::from_raw(ptr) };
-    }
 }
 
 /// Returns the p_value of the test result.
@@ -122,12 +115,10 @@ pub unsafe extern "C" fn test_result_get_comment(result: &TestResult, ptr: *mut 
             2
         } else {
             // length is OK, write the String
-
-            // convert the buffer into a suitable type
-            let buffer = slice_from_raw_parts_mut(ptr as *mut u8, *len);
+            
             // SAFETY: it is the responsibility of the caller to ensure that the pointer is valid for
             //  writes of up to len bytes.
-            let slice = unsafe { &mut *buffer };
+            let slice = unsafe { slice::from_raw_parts_mut(ptr as *mut u8, *len) };
             // set last NUL byte
             slice[*len - 1] = 0;
             // set message

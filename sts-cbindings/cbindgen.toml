@@ -4,6 +4,10 @@ language = "C"
 cpp_compat = true
 # usize is used as size_t
 usize_is_size_t = true
+# include guard: make sure this ehader file is only read once.
+include_guard = "STS_LIB_H"
+# use the typedef struct { ... } MyType style.
+style = "type"
 
 # always export these 2 enums
 [export]

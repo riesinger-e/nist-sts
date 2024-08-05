@@ -15,11 +15,9 @@ pub struct RunnerTestArgs(pub(super) sts_lib::TestArgs);
 ///
 /// The resulting pointer must be freed via [runner_test_args_destroy].
 #[no_mangle]
-pub extern "C" fn runner_test_args_new() -> &'static mut RunnerTestArgs {
+pub extern "C" fn runner_test_args_new() -> Box<RunnerTestArgs> {
     let args = sts_lib::TestArgs::default();
-    let args = Box::new(RunnerTestArgs(args));
-
-    Box::leak(args)
+    Box::new(RunnerTestArgs(args))
 }
 
 /// Destroy the given [RunnerTestArgs].
@@ -32,9 +30,8 @@ pub extern "C" fn runner_test_args_new() -> &'static mut RunnerTestArgs {
 /// * `args` will be an invalid pointer after this call, trying to access its memory will lead to
 ///   undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn runner_test_args_destroy(args: &'static mut RunnerTestArgs) {
-    // SAFETY: caller has to ensure that the pointer is valid.
-    let _ = unsafe { Box::from_raw(args) };
+pub unsafe extern "C" fn runner_test_args_destroy(args: Option<Box<RunnerTestArgs>>) {
+    _ = args;
 }
 
 macro_rules! setter {
@@ -46,17 +43,17 @@ macro_rules! setter {
         #[doc = ""]
         #[doc = " ## Safety"]
         #[doc = ""]
-        #[doc = " * `args` must have been created by [runner_test_args_new()]"]
-        #[doc = " * `args` must be valid for reads and writes and non-null."]
-        #[doc = " * `args` may not be mutated for the duration of this call."]
+        #[doc = " * `runner` must have been created by [runner_test_args_new()]"]
+        #[doc = " * `runner` must be valid for reads and writes and non-null."]
+        #[doc = " * `runner` may not be mutated for the duration of this call."]
         #[doc = " * `arg` must have been created by one of the construction methods provided by this library."]
         #[doc = " * `arg` must be valid for reads and non-null."]
         #[doc = " * `arg` may not be mutated for the duration of this call."]
-        #[doc = " * All responsibility for `arg`, particularly its deallocation, remains with the caller."]
+        #[doc = " * All responsibility for `arg`, particularly its de-allocation, remains with the caller."]
         #[doc = "   This function copies the content of `arg`."]
         #[no_mangle]
-        pub unsafe extern "C" fn $name(args: &mut RunnerTestArgs, arg: &$arg_type) {
-            args.0.$field_name = arg.0;
+        pub unsafe extern "C" fn $name(runner: &mut RunnerTestArgs, arg: &$arg_type) {
+            runner.0.$field_name = arg.0;
         }
     };
 }

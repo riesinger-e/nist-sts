@@ -24,13 +24,10 @@ pub struct BitVec(pub(crate) InternalBitVec);
 /// * `ptr`, particularly the de-allocation of it, remains in the responsibility of the caller.
 /// * The de-allocation of the returned [BitVec] must be done via [bitvec_destroy].
 #[no_mangle]
-pub unsafe extern "C" fn bitvec_from_str(ptr: *const c_char) -> &'static mut BitVec {
+pub unsafe extern "C" fn bitvec_from_str(ptr: *const c_char) -> Box<BitVec> {
     // SAFETY: it is the responsibility of the caller to ensure that the safety requirements are met.
     let bitvec = unsafe { InternalBitVec::from_c_str(ptr) };
-    let bitvec = Box::new(BitVec(bitvec));
-
-    // leak the box
-    Box::leak(bitvec)
+    Box::new(BitVec(bitvec))
 }
 
 /// Same as [bitvec_from_str], but allows to specify a maximum count of bits to read from the
@@ -43,13 +40,10 @@ pub unsafe extern "C" fn bitvec_from_str(ptr: *const c_char) -> &'static mut Bit
 pub unsafe extern "C" fn bitvec_from_str_with_max_length(
     ptr: *const c_char,
     max_length: usize,
-) -> &'static mut BitVec {
+) -> Box<BitVec> {
     // SAFETY: caller has to ensure that the requirements of the function are met.
     let bitvec = unsafe { InternalBitVec::from_c_str_with_max_length(ptr, max_length) };
-    let bitvec = Box::new(BitVec(bitvec));
-
-    // leak the box
-    Box::leak(bitvec)
+    Box::new(BitVec(bitvec))
 }
 
 /// Creates a BitVec from a byte array, where each byte is filled with 8 bits.
@@ -61,14 +55,12 @@ pub unsafe extern "C" fn bitvec_from_str_with_max_length(
 /// * `ptr`, particularly the de-allocation of it, remains in the responsibility of the caller.
 /// * The de-allocation of the returned [BitVec] must be done via [bitvec_destroy].
 #[no_mangle]
-pub unsafe extern "C" fn bitvec_from_bytes(ptr: *const u8, len: usize) -> &'static mut BitVec {
+pub unsafe extern "C" fn bitvec_from_bytes(ptr: *const u8, len: usize) -> Box<BitVec> {
     // SAFETY: caller has to ensure that ptr is valid for reads up to len bytes / elements.
     let slice = unsafe { &*slice_from_raw_parts(ptr, len) };
 
     let bitvec = InternalBitVec::from(slice);
-    let bitvec = Box::new(BitVec(bitvec));
-
-    Box::leak(bitvec)
+    Box::new(BitVec(bitvec))
 }
 
 /// Creates a BitVec from a bool array, with each bool representing one bit.
@@ -80,14 +72,12 @@ pub unsafe extern "C" fn bitvec_from_bytes(ptr: *const u8, len: usize) -> &'stat
 /// * `ptr`, particularly the de-allocation of it, remains in the responsibility of the caller.
 /// * The de-allocation of the returned [BitVec] must be done via [bitvec_destroy].
 #[no_mangle]
-pub unsafe extern "C" fn bitvec_from_bits(ptr: *const bool, len: usize) -> &'static mut BitVec {
+pub unsafe extern "C" fn bitvec_from_bits(ptr: *const bool, len: usize) -> Box<BitVec> {
     // SAFETY: caller has to ensure that ptr is valid for reads up to len bytes / elements.
     let slice = unsafe { &*slice_from_raw_parts(ptr, len) };
 
     let bitvec = InternalBitVec::from(slice);
-    let bitvec = Box::new(BitVec(bitvec));
-
-    Box::leak(bitvec)
+    Box::new(BitVec(bitvec))
 }
 
 /// Destroys a created BitVec.
@@ -99,10 +89,8 @@ pub unsafe extern "C" fn bitvec_from_bits(ptr: *const bool, len: usize) -> &'sta
 /// * `bitvec` must be a valid pointer.
 /// * `bitvec` may not be mutated for the duration of this call..
 #[no_mangle]
-pub unsafe extern "C" fn bitvec_clone(bitvec: &BitVec) -> &'static mut BitVec {
-    let bitvec = Box::new(bitvec.clone());
-    
-    Box::leak(bitvec)
+pub unsafe extern "C" fn bitvec_clone(bitvec: &BitVec) -> Box<BitVec> {
+    Box::new(bitvec.clone())
 }
 
 /// Destroys a created BitVec.
@@ -111,15 +99,14 @@ pub unsafe extern "C" fn bitvec_clone(bitvec: &BitVec) -> &'static mut BitVec {
 ///
 /// * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
 ///   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
-/// * `bitvec` must be a valid pointer.
+/// * `bitvec` may be null.
 /// * There must be no other references to `bitvec`.
 /// * After this call, the memory referenced by `bitvec` is freed. Trying to access this memory
 ///   will lead to undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn bitvec_destroy(bitvec: *mut BitVec) {
-    // drop the memory
-    // SAFETY: callera has to ensure that ptr is valid
-    let _ = unsafe { Box::from_raw(bitvec) };
+pub unsafe extern "C" fn bitvec_destroy(bitvec: Option<Box<BitVec>>) {
+    // this drops the BitVec
+    _ = bitvec;
 }
 
 /// Returns the count of bits in the BitVec.
@@ -128,10 +115,10 @@ pub unsafe extern "C" fn bitvec_destroy(bitvec: *mut BitVec) {
 ///
 /// * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
 ///   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
-/// * `bitvec` must be a valid pointer.
+/// * `bitvec` must be a valid, non-null pointer.
 /// * `bitvec` may not be mutated for the duration of this call.
 #[no_mangle]
-pub unsafe extern "C" fn bitvec_len_bit(bitvec: &'static BitVec) -> usize {
+pub unsafe extern "C" fn bitvec_len_bit(bitvec: &BitVec) -> usize {
     bitvec.0.len_bit()
 }
 
@@ -142,9 +129,9 @@ pub unsafe extern "C" fn bitvec_len_bit(bitvec: &'static BitVec) -> usize {
 ///
 /// * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
 ///   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
-/// * `bitvec` must be a valid pointer.
+/// * `bitvec` must be a valid, non-null pointer.
 /// * `bitvec` may not be mutated by other functions for the duration of this call.
 #[no_mangle]
-pub unsafe extern "C" fn bitvec_crop(bitvec: &'static mut BitVec, new_bit_len: usize) {
+pub unsafe extern "C" fn bitvec_crop(bitvec: &mut BitVec, new_bit_len: usize) {
     bitvec.0.crop(new_bit_len)
 }

@@ -9,7 +9,7 @@ pub mod tests;
 use crate::test_runner::test::RawTest;
 use std::cell::RefCell;
 use std::ffi::{c_char, c_int};
-use std::ptr::slice_from_raw_parts_mut;
+use std::slice;
 use sts_lib::test_runner::RunnerError;
 
 thread_local! {
@@ -67,10 +67,9 @@ pub unsafe extern "C" fn get_last_error_str(ptr: *mut c_char, len: &mut usize) -
             });
 
             // convert the buffer into a suitable type
-            let buffer = slice_from_raw_parts_mut(ptr as *mut u8, *len);
             // SAFETY: it is the responsibility of the caller to ensure that the pointer is valid for
             //  writes of up to len bytes.
-            let slice = unsafe { &mut *buffer };
+            let slice = unsafe { slice::from_raw_parts_mut(ptr as *mut u8, *len) };
             // set last NUL byte
             slice[*len - 1] = 0;
             // set message

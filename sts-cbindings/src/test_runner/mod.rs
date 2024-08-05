@@ -66,11 +66,11 @@ impl TestRunner {
 /// Creates a new test runner. This test runner can be used to run multiple tests on 1 sequence in
 /// 1 function call.
 ///
-/// The result pointer must be freed with [test_runner_destroy].
+/// The result pointer must be freed with [test_runner_destroy]. The resulting pointer will never
+/// be `NULL`.
 #[no_mangle]
-pub extern "C" fn test_runner_new() -> &'static mut TestRunner {
-    let runner = Box::new(TestRunner(HashMap::new()));
-    Box::leak(runner)
+pub extern "C" fn test_runner_new() -> Box<TestRunner> {
+    Box::new(TestRunner(HashMap::new()))
 }
 
 /// Destroys the given test runner.
@@ -83,9 +83,9 @@ pub extern "C" fn test_runner_new() -> &'static mut TestRunner {
 /// * `runner` will be an invalid pointer after this call, trying to access its memory will lead to
 ///   undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn test_runner_destroy(runner: &'static mut TestRunner) {
-    // SAFETY: caller has to ensure that runner is a valid reference from a box
-    let _ = unsafe { Box::from_raw(runner) };
+pub unsafe extern "C" fn test_runner_destroy(runner: Option<Box<TestRunner>>) {
+    // drop the box
+    _ = runner;
 }
 
 /// Returns the result of the given test, if it was run. Since some tests return multiple results,
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn test_runner_get_result(
     runner: &mut TestRunner,
     test: RawTest,
     length: &mut usize,
-) -> *mut *mut TestResult {
+) -> *mut Box<TestResult> {
     // parse the test
     let Ok(test) = Test::try_from(test) else {
         set_last_invalid_test(test);
@@ -123,11 +123,11 @@ pub unsafe extern "C" fn test_runner_get_result(
             std::ptr::null_mut()
         }
         Some(result) => {
-            let result: Box<[*mut TestResult]> = Box::into_iter(result)
-                .map(|res| Box::into_raw(Box::new(TestResult(res))))
+            let result: Box<[Box<TestResult>]> = Box::into_iter(result)
+                .map(|res| Box::new(TestResult(res)))
                 .collect();
             *length = result.len();
-            Box::into_raw(result) as *mut *mut TestResult
+            Box::into_raw(result) as *mut Box<TestResult>
         }
     }
 }

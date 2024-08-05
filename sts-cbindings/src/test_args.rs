@@ -2,11 +2,8 @@
 
 use std::num::NonZero;
 use sts_lib::tests::{
-    frequency_block,
-    template_matching::{overlapping, non_overlapping},
-    linear_complexity,
-    serial,
-    approximate_entropy,
+    approximate_entropy, frequency_block, linear_complexity, serial,
+    template_matching::{non_overlapping, overlapping},
 };
 
 /// Macro for automatically creating the necessary struct for a test argument.
@@ -28,10 +25,9 @@ macro_rules! test_arg {
         $(#[$default_comment])*
         #[doc = " This function never returns `NULL`."]
         #[no_mangle]
-        pub extern "C" fn $default_name() -> &'static mut $name {
+        pub extern "C" fn $default_name() -> Box<$name> {
             let arg: $inner = Default::default();
-            let arg = Box::new($name(arg));
-            Box::leak(arg)
+            Box::new($name(arg))
         }
 
         $(#[$destructor_comment])*
@@ -43,9 +39,9 @@ macro_rules! test_arg {
         #[doc = " * `ptr` will be invalid after this call, access will lead to undefined behaviour."]
         #[doc = " * `ptr` may not be mutated for the duration of this call."]
         #[no_mangle]
-        pub unsafe extern "C" fn $destructor_name(ptr: *mut $name) {
-            // SAFETY: caller has to ensure that the pointer is valid
-            let _ = unsafe { Box::from_raw(ptr) };
+        pub unsafe extern "C" fn $destructor_name(ptr: Box<$name>) {
+            // drop the pointer
+            _ = ptr;
         }
 
         impl From<&$name> for $inner {
@@ -55,7 +51,6 @@ macro_rules! test_arg {
         }
     }
 }
-
 
 // frequency test within a block
 test_arg! {
@@ -79,18 +74,14 @@ test_arg! {
 /// - if the given `block_length == 0`, `NULL` is returned.
 /// - if the given `block_length != 0`, a pointer to the argument is returned.
 #[no_mangle]
-pub extern "C" fn test_arg_frequency_block_new(block_length: usize) -> *mut TestArgFrequencyBlock {
-    let block_length = NonZero::new(block_length);
-    match block_length {
-        Some(block_length) => {
-            let arg = frequency_block::FrequencyBlockTestArg::new(block_length);
-            let arg = Box::new(TestArgFrequencyBlock(arg));
-            Box::into_raw(arg)
-        }
-        None => std::ptr::null_mut(),
-    }
+pub extern "C" fn test_arg_frequency_block_new(
+    block_length: usize,
+) -> Option<Box<TestArgFrequencyBlock>> {
+    NonZero::new(block_length).map(|block_length| {
+        let arg = frequency_block::FrequencyBlockTestArg::new(block_length);
+        Box::new(TestArgFrequencyBlock(arg))
+    })
 }
-
 
 // non-overlapping template matching
 test_arg! {
@@ -117,19 +108,17 @@ test_arg! {
 
 /// Creates a new non-overlapping template test argument with the specified template length and block
 /// count.
-/// 
+///
 /// ## Return values.
 /// * If both arguments are within the bounds specified in [TestArgNonOverlappingTemplate]: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_non_overlapping_template_new(template_len: usize, count_blocks: usize) -> *mut TestArgNonOverlappingTemplate {
-    match non_overlapping::NonOverlappingTemplateTestArgs::new(template_len, count_blocks) {
-        Some(arg) => {
-            let arg = Box::new(TestArgNonOverlappingTemplate(arg));
-            Box::into_raw(arg)
-        }
-        None => std::ptr::null_mut()
-    }
+pub extern "C" fn test_arg_non_overlapping_template_new(
+    template_len: usize,
+    count_blocks: usize,
+) -> Option<Box<TestArgNonOverlappingTemplate>> {
+    non_overlapping::NonOverlappingTemplateTestArgs::new(template_len, count_blocks)
+        .map(|arg| Box::new(TestArgNonOverlappingTemplate(arg)))
 }
 
 // Sadly, these constants need to be defined manually to appear in the header file
@@ -139,7 +128,6 @@ pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_COUNT: usize = 8;
 
 /// The default template length to use in the Non-overlapping Template Matching Test.
 pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LEN: usize = 9;
-
 
 // overlapping template matching
 test_arg! {
@@ -172,15 +160,13 @@ test_arg! {
 /// * If all arguments are within the bounds specified in [TestArgOverlappingTemplate]: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_overlapping_template_new(template_length: usize, block_length: usize, freedom: usize) -> *mut TestArgOverlappingTemplate {
-    let arg = overlapping::OverlappingTemplateTestArgs::new(template_length, block_length, freedom);
-    match arg {
-        Some(arg) => {
-            let arg = Box::new(TestArgOverlappingTemplate(arg));
-            Box::leak(arg)
-        }
-        None => std::ptr::null_mut()
-    }
+pub extern "C" fn test_arg_overlapping_template_new(
+    template_length: usize,
+    block_length: usize,
+    freedom: usize,
+) -> Option<Box<TestArgOverlappingTemplate>> {
+    overlapping::OverlappingTemplateTestArgs::new(template_length, block_length, freedom)
+        .map(|arg| Box::new(TestArgOverlappingTemplate(arg)))
 }
 
 /// Creates a new Overlapping Template Matching Test argument with the specified template length,
@@ -192,15 +178,11 @@ pub extern "C" fn test_arg_overlapping_template_new(template_length: usize, bloc
 /// * If the argument is within the specified bounds: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_overlapping_template_new_nist_behaviour(template_length: usize) -> *mut TestArgOverlappingTemplate {
-    let arg = overlapping::OverlappingTemplateTestArgs::new_nist_behaviour(template_length);
-    match arg {
-        Some(arg) => {
-            let arg = Box::new(TestArgOverlappingTemplate(arg));
-            Box::leak(arg)
-        }
-        None => std::ptr::null_mut()
-    }
+pub extern "C" fn test_arg_overlapping_template_new_nist_behaviour(
+    template_length: usize,
+) -> Option<Box<TestArgOverlappingTemplate>> {
+    overlapping::OverlappingTemplateTestArgs::new_nist_behaviour(template_length)
+        .map(|arg| Box::new(TestArgOverlappingTemplate(arg)))
 }
 
 /// The default length of each block M, in bits, for use in the Overlapping Template Matching Test.
@@ -211,7 +193,6 @@ pub const OVERLAPPING_TEMPLATE_DEFAULT_FREEDOM: usize = 6;
 
 /// The default template length use in the Overlapping Template Matching Test.
 pub const OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH: usize = 9;
-
 
 // linear complexity test
 test_arg! {
@@ -238,18 +219,18 @@ test_arg! {
 /// * If the block length is within 500 <= block_length <= 5000: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_linear_complexity_new(block_length: usize) -> *mut TestArgLinearComplexity {
+pub extern "C" fn test_arg_linear_complexity_new(
+    block_length: usize,
+) -> Option<Box<TestArgLinearComplexity>> {
     if (500..=5000).contains(&block_length) {
         // non-zero was just checked
         let arg = NonZero::new(block_length).unwrap();
         let arg = linear_complexity::LinearComplexityTestArg::ManualBlockLength(arg);
-        let arg = Box::new(TestArgLinearComplexity(arg));
-        Box::into_raw(arg)
+        Some(Box::new(TestArgLinearComplexity(arg)))
     } else {
-        std::ptr::null_mut()
+        None
     }
 }
-
 
 // serial test
 test_arg! {
@@ -286,18 +267,10 @@ test_arg! {
 /// * if the given block length satisfies the constraints: the new argument.
 /// * otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_serial_new(block_length: u8) -> *mut TestArgSerial {
-    let arg = serial::SerialTestArg::new(block_length);
-
-    match arg {
-        Some(arg) => {
-            let arg = Box::new(TestArgSerial(arg));
-            Box::into_raw(arg)
-        }
-        None => std::ptr::null_mut()
-    }
+pub extern "C" fn test_arg_serial_new(block_length: u8) -> Option<Box<TestArgSerial>> {
+    serial::SerialTestArg::new(block_length)
+        .map(|arg| Box::new(TestArgSerial(arg)))
 }
-
 
 // approximate entropy test
 test_arg! {
@@ -334,14 +307,9 @@ test_arg! {
 /// * if the given block length satisfies the constraints: the new argument.
 /// * otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_approximate_entropy_new(block_length: u8) -> *mut TestArgApproximateEntropy {
-    let arg = approximate_entropy::ApproximateEntropyTestArg::new(block_length);
-
-    match arg {
-        Some(arg) => {
-            let arg = Box::new(TestArgApproximateEntropy(arg));
-            Box::into_raw(arg)
-        }
-        None => std::ptr::null_mut()
-    }
+pub extern "C" fn test_arg_approximate_entropy_new(
+    block_length: u8,
+) -> Option<Box<TestArgApproximateEntropy>> {
+    approximate_entropy::ApproximateEntropyTestArg::new(block_length)
+        .map(|arg| Box::new(TestArgApproximateEntropy(arg)))
 }
