@@ -29,7 +29,7 @@ use std::sync::{LazyLock, Mutex};
 
 // calculation: min template length (2) * min block length (4)
 /// The minimum input length, in bits, for this test.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(2 * 4) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -214,23 +214,22 @@ pub fn overlapping_template_matching_test(
 /// If this function is chosen, the freedom degrees must be 6.
 ///
 /// Returns an array with 6 pi values
-#[allow(clippy::vec_init_then_push)]
 fn calculate_nist_pis(block_length: usize, template_length: usize) -> Vec<f64> {
     let lambda =
         ((block_length - template_length + 1) as f64) / f64::powi(2.0, template_length as i32);
     let eta = lambda / 2.0;
 
-    let mut pi = Vec::with_capacity(6);
-
     // implementation of the formula described in 3.8
-    pi.push(f64::exp(-eta));
-    pi.push(eta / 2.0 * pi[0]);
-    pi.push(eta / 8.0 * pi[0] * (eta + 2.0));
-    pi.push(eta / 8.0 * pi[0] * (eta * eta / 6.0 + eta + 1.0));
-    pi.push(
-        eta / 16.0 * pi[0] * (eta * eta * eta / 24.0 + eta * eta / 2.0 + 3.0 * eta / 2.0 + 1.0),
-    );
+    let pi_0 = f64::exp(-eta);
+    let mut pi = vec![
+        pi_0,
+        eta / 2.0 * pi_0,
+        eta / 8.0 * pi_0 * (eta + 2.0),
+        eta / 8.0 * pi_0 * (eta * eta / 6.0 + eta + 1.0),
+        eta / 16.0 * pi_0 * (eta * eta * eta / 24.0 + eta * eta / 2.0 + 3.0 * eta / 2.0 + 1.0),
+    ];
     pi.push(1.0 - pi.iter().sum::<f64>());
+
     pi
 }
 
@@ -265,8 +264,25 @@ pub(crate) fn calculate_hamano_kaneko_pis(
     // The type to use in the calculations - may be swapped out if e.g. f128 becomes stable in Rust.
     type Decimal = BigDecimal;
 
-    // static cache for already calculated values.
-    static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(|| Mutex::new(CacheHashMap::new()));
+    // static cache for already calculated values. Always contains the values for the default
+    // argument for better performance.
+    static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(|| {
+        Mutex::new(CacheHashMap::from([(
+            (
+                DEFAULT_BLOCK_LENGTH,
+                DEFAULT_TEMPLATE_LENGTH,
+                DEFAULT_FREEDOM,
+            ),
+            vec![
+                0.3640910532167278,
+                0.18565890010624034,
+                0.13938113045903266,
+                0.10057114399877809,
+                0.07043232634639843,
+                0.13986544587282246,
+            ],
+        )]))
+    });
 
     // check if already cached & return early if it is
     {
