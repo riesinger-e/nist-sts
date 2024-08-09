@@ -9,13 +9,14 @@
 //! [Error::InvalidParameter].
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc};
+use crate::internals::{check_f64};
 use crate::{Error, TestResult, BYTE_SIZE};
-use std::f64::consts::SQRT_2;
+use statrs::distribution;
+use statrs::distribution::ContinuousCDF;
 use std::num::NonZero;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(100) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -70,6 +71,8 @@ pub(crate) fn cusum_test_internal(data: &BitVec, mode: bool) -> Result<TestResul
     let n = data.len_bit() as i64;
     let sqrt_n = f64::sqrt(n as f64);
 
+    let normal_distribution = distribution::Normal::standard();
+
     let sum_upper_bound = (n / z - 1) / 4 + 1;
 
     let sum_1 = {
@@ -79,7 +82,8 @@ pub(crate) fn cusum_test_internal(data: &BitVec, mode: bool) -> Result<TestResul
         (lower_bound..sum_upper_bound)
             .map(|k| {
                 let k = k as f64;
-                norm(((4.0 * k + 1.0) * z) / sqrt_n) - norm(((4.0 * k - 1.0) * z) / sqrt_n)
+                normal_distribution.cdf(((4.0 * k + 1.0) * z) / sqrt_n)
+                    - normal_distribution.cdf(((4.0 * k - 1.0) * z) / sqrt_n)
             })
             .sum::<f64>()
     };
@@ -92,7 +96,8 @@ pub(crate) fn cusum_test_internal(data: &BitVec, mode: bool) -> Result<TestResul
         (lower_bound..sum_upper_bound)
             .map(|k| {
                 let k = k as f64;
-                norm(((4.0 * k + 3.0) * z) / sqrt_n) - norm(((4.0 * k + 1.0) * z) / sqrt_n)
+                normal_distribution.cdf(((4.0 * k + 3.0) * z) / sqrt_n)
+                    - normal_distribution.cdf(((4.0 * k + 1.0) * z) / sqrt_n)
             })
             .sum::<f64>()
     };
@@ -164,11 +169,4 @@ where
     }
 
     (max, prev)
-}
-
-/// The standard normal cumulative distribution function.
-#[inline]
-fn norm(x: f64) -> f64 {
-    // from https://en.wikipedia.org/wiki/Error_function#Cumulative_distribution_function
-    0.5 * erfc(-x / SQRT_2)
 }
