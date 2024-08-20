@@ -3,7 +3,9 @@ use std::fs;
 use std::io::{ErrorKind, Read, Seek};
 use std::process::ExitCode;
 use std::str::from_utf8;
+use std::time::Instant;
 use sts_cmd::cmd_args::CmdArgs;
+use sts_cmd::csv::CsvFile;
 use sts_cmd::toml_config::TomlConfig;
 use sts_cmd::valid_arg::{TestsToRun, ValidatedConfig};
 use sts_cmd::InputFormat;
@@ -154,21 +156,38 @@ fn main() -> ExitCode {
         }
     };
 
+    // Create CSV file, if necessary
+    let mut csv_file = match config.output_path {
+        Some(path) => Some(exit_on_error!(CsvFile::new(path))),
+        None => None
+    };
+    
     // Create runner and run tests
     println!("Running the selected tests: ");
     selected_tests
         .iter()
         .for_each(|test| print!("{test} "));
+    
+    // iterator is evaluated lazy - each test is only run, when .next() is called.
+    let mut iter = exit_on_error!(test_runner::run_tests(selected_tests.iter().copied(), &input, config.test_arguments));
 
-    let iter = exit_on_error!(test_runner::run_tests(selected_tests.iter().copied(), &input, config.test_arguments));
-
-    for (test, result) in iter {
+    // use a manual loop to be able to time the test.
+    loop {
+        let begin = Instant::now();
+        let Some((test, result)) = iter.next() else { break };
+        let time = begin.elapsed();
+        
+        // print as csv
+        if let Some(csv_file) = &mut csv_file {
+            exit_on_error!(csv_file.write_test(test, time, result.as_ref()));
+        }
+        
         match result {
             Ok(res) => {
                 if res.len() == 1 {
-                    print_test_result(format!("Test {test}"), res[0]);
+                    print_test_result(format!("Test {test} ({}ms)", time.as_millis()), res[0]);
                 } else {
-                    println!("Test: {test}: multiple Results");
+                    println!("Test: {test} ({}ms): multiple Results", time.as_millis());
                     for (i, res) in res.into_iter().enumerate() {
                         print_test_result(format!("- Result {i}"), res);
                     }

@@ -49,12 +49,20 @@ impl From<TomlTest> for TestsToRun {
 /// A validated config with a valid state that can be used to run tests.
 #[derive(Clone, Debug)]
 pub struct ValidatedConfig {
+    /// Path to the input file (random data)
     pub input_file: PathBuf,
+    /// Input format
     pub input_format: InputFormat,
+    /// Optional max length of input data
     pub max_length: Option<NonZero<usize>>,
+    /// The exact tests to be run.
     pub tests_to_run: TestsToRun,
+    /// Finished test arguments
     pub test_arguments: TestArgs,
+    /// An optional path to save the outputs to.
+    pub output_path: Option<PathBuf>,
 }
+
 impl ValidatedConfig {
     /// Creates a valid config from the command line arguments.
     ///
@@ -64,6 +72,7 @@ impl ValidatedConfig {
             input_file,
             input_format,
             max_length,
+            output_path,
             tests_to_run,
             overrides,
         } = args;
@@ -85,6 +94,7 @@ impl ValidatedConfig {
             max_length,
             tests_to_run: tests_to_run.into(),
             test_arguments,
+            output_path,
         })
     }
 
@@ -99,6 +109,7 @@ impl ValidatedConfig {
                     max_length,
                 },
             test,
+            output,
             arguments,
         } = toml;
 
@@ -108,6 +119,7 @@ impl ValidatedConfig {
             max_length: args_input_length,
             tests_to_run,
             overrides,
+            output_path: args_output_path,
         } = args;
 
         // cmd args overwrite everywhere
@@ -118,6 +130,8 @@ impl ValidatedConfig {
             .or(input_format)
             .ok_or("The input format is unspecified in the config file and the cmd args!")?;
         let max_length = max_length.or(args_input_length);
+        let output_path = args_output_path
+            .or(output.and_then(|o| o.path));
 
         let tests_to_run: TestsToRun = {
             let cmd_tests_to_run = tests_to_run.into();
@@ -130,7 +144,7 @@ impl ValidatedConfig {
             }
         };
 
-        let test_arguments = if let Some(mut args) = arguments {
+        let test_arguments = if let Some(mut toml_args) = arguments {
             // override if necessary
             if let Some(overrides) = parse_overrides(overrides) {
                 let TomlTestArguments {
@@ -143,14 +157,14 @@ impl ValidatedConfig {
                 } = overrides?;
 
                 if let Some(arg) = frequency_block {
-                    match args.frequency_block.as_mut() {
+                    match toml_args.frequency_block.as_mut() {
                         Some(outer) => override_frequency_linear(outer, arg),
-                        None => args.frequency_block = Some(arg),
+                        None => toml_args.frequency_block = Some(arg),
                     }
                 }
 
                 if let Some(arg) = non_overlapping_template_matching {
-                    match args.non_overlapping_template_matching.as_mut() {
+                    match toml_args.non_overlapping_template_matching.as_mut() {
                         Some(outer) => {
                             let TomlNonOverlapping {
                                 template_length,
@@ -165,12 +179,12 @@ impl ValidatedConfig {
                                 outer.count_blocks = count_blocks;
                             }
                         }
-                        None => args.non_overlapping_template_matching = Some(arg),
+                        None => toml_args.non_overlapping_template_matching = Some(arg),
                     }
                 }
 
                 if let Some(arg) = overlapping_template_matching {
-                    match args.overlapping_template_matching.as_mut() {
+                    match toml_args.overlapping_template_matching.as_mut() {
                         Some(outer) => {
                             let TomlOverlapping {
                                 template_length,
@@ -195,33 +209,33 @@ impl ValidatedConfig {
                                 outer.nist_behaviour = nist_behaviour;
                             }
                         }
-                        None => args.overlapping_template_matching = Some(arg),
+                        None => toml_args.overlapping_template_matching = Some(arg),
                     }
                 }
 
                 if let Some(arg) = linear_complexity {
-                    match args.linear_complexity.as_mut() {
+                    match toml_args.linear_complexity.as_mut() {
                         Some(outer) => override_frequency_linear(outer, arg),
-                        None => args.linear_complexity = Some(arg),
+                        None => toml_args.linear_complexity = Some(arg),
                     }
                 }
 
                 if let Some(arg) = serial {
-                    match args.serial.as_mut() {
+                    match toml_args.serial.as_mut() {
                         Some(outer) => override_serial_entropy(outer, arg),
-                        None => args.serial = Some(arg),
+                        None => toml_args.serial = Some(arg),
                     }
                 }
 
                 if let Some(arg) = approximate_entropy {
-                    match args.approximate_entropy.as_mut() {
+                    match toml_args.approximate_entropy.as_mut() {
                         Some(outer) => override_serial_entropy(outer, arg),
-                        None => args.approximate_entropy = Some(arg),
+                        None => toml_args.approximate_entropy = Some(arg),
                     }
                 }
             }
 
-            args.try_into()?
+            toml_args.try_into()?
         } else if let Some(overrides) = parse_overrides(overrides) {
             // only overrides
             overrides?.try_into()?
@@ -235,6 +249,7 @@ impl ValidatedConfig {
             max_length,
             tests_to_run,
             test_arguments,
+            output_path,
         })
     }
 }

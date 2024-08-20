@@ -24,7 +24,7 @@ pub struct CmdArgs {
 #[group(required = false, multiple = true)]
 pub struct RegularArgs {
     /// Path to the input file. Mandatory.
-    #[arg(short, long, requires = "input_format")]
+    #[arg(short, long = "input", requires = "input_format")]
     pub input_file: Option<PathBuf>,
     /// The input file format. Required if a input file is specified.
     #[arg(short = 'f', long)]
@@ -32,6 +32,16 @@ pub struct RegularArgs {
     /// The maximum length of the sequence to test, in bits.
     #[arg(short = 'l', long)]
     pub max_length: Option<NonZero<usize>>,
+    /// Optional path to save the results to. Optional.
+    ///
+    /// If given, the results will be saved in CSV format with ';' delimiter and the following columns:
+    /// test name; time in ms; result no.; PASS/FAIL; P-Value; comment
+    ///
+    /// If a test returns multiple results, test name and time in ms will be the same for all of them.
+    /// If a test returns an error, PASS/FAIL will read "ERROR", P-Value will be -1 and comment will
+    /// specify the exact error.
+    #[arg(short, long = "output")]
+    pub output_path: Option<PathBuf>,
     /// The tests to run: either include specific tests or exclude specific tests, if neither is
     /// set: run all tests.
     #[command(flatten)]
@@ -40,7 +50,7 @@ pub struct RegularArgs {
     /// 
     /// Use the same format as the config file, key 'arguments' is implied. 
     /// e.g. 'serial.block-length = 3'.
-    #[arg(short, long, value_delimiter = ',')]
+    #[arg(long, value_delimiter = ',')]
     pub overrides: Option<Vec<String>>,
 }
 

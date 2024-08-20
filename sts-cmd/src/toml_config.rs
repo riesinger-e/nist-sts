@@ -19,6 +19,8 @@ pub struct TomlConfig {
     // not really optional, must be supplemented from cmd args if missing.
     pub input: TomlInput,
     pub test: TomlTest,
+    // really optional
+    pub output: Option<TomlOutput>,
     // each argument is optional
     pub arguments: Option<TomlTestArguments>,
 }
@@ -30,6 +32,12 @@ pub struct TomlInput {
     pub input_file: Option<PathBuf>,
     pub input_format: Option<InputFormat>,
     pub max_length: Option<NonZero<usize>>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case", default)]
+pub struct TomlOutput {
+    pub path: Option<PathBuf>,
 }
 
 /// Tests to run: allowlist or blocklist

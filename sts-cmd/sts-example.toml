@@ -10,6 +10,18 @@ input-format = "binary"
 # The maximum length (bits) to read from the input file. If missing, the whole file will be read.
 max-length = 1000000
 
+# This section is optional.
+[output]
+# If this is specified, the test results will be saved to the specified file as CSV, with ';' delimiters.
+# The columns will be: test name; time in ms; result no.; PASS/FAIL; P-Value; comment
+#
+# If a test returns multiple results, test name and time in ms will be the same for all of them.
+# If a test returns an error, PASS/FAIL will read "ERROR", P-Value will be -1 and comment will
+# specify the exact error.
+#
+# If no path is specified, the results will still be printed to the console output.
+path = "./example-output.csv"
+
 # If test definitions are missing, all tests are run, except for tests whose input length requirements 
 # are not satisfied.
 # Valid tests are:
