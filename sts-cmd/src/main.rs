@@ -143,7 +143,7 @@ fn main() -> ExitCode {
             // all tests that are applicable based on the length
             let iter = Test::iter()
                 .filter(|test| {
-                    sts_lib::get_min_length_for_test(*test).get() >= input.len_bit()
+                    sts_lib::get_min_length_for_test(*test).get() <= input.len_bit()
                 });
 
             if let TestsToRun::BlockList(block_list) = t {
@@ -161,13 +161,15 @@ fn main() -> ExitCode {
         Some(path) => Some(exit_on_error!(CsvFile::new(path))),
         None => None
     };
-    
+
     // Create runner and run tests
     println!("Running the selected tests: ");
     selected_tests
         .iter()
         .for_each(|test| print!("{test} "));
-    
+    println!();
+    println!();
+
     // iterator is evaluated lazy - each test is only run, when .next() is called.
     let mut iter = exit_on_error!(test_runner::run_tests(selected_tests.iter().copied(), &input, config.test_arguments));
 
@@ -176,12 +178,12 @@ fn main() -> ExitCode {
         let begin = Instant::now();
         let Some((test, result)) = iter.next() else { break };
         let time = begin.elapsed();
-        
+
         // print as csv
         if let Some(csv_file) = &mut csv_file {
             exit_on_error!(csv_file.write_test(test, time, result.as_ref()));
         }
-        
+
         match result {
             Ok(res) => {
                 if res.len() == 1 {

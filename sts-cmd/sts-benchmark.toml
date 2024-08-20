@@ -1,0 +1,25 @@
+# Configuration file used for benchmarking and verifying
+
+# input is left to the cmd args
+# output file is left to the cmd args
+
+# These arguments are the exact same as specified in the NIST SP 800-22r1a Appendix B.
+# Because some constants were reculcated, the results will not be exactly the same! See the test implementations for more information.
+[arguments.frequency-block]
+block-length = 128
+
+[arguments.non-overlapping-template-matching]
+template-length = 9
+
+[arguments.overlapping-template-matching]
+template-length = 9
+nist-behaviour = true
+
+[arguments.linear-complexity]
+block-length = 500
+
+[arguments.serial]
+block-length = 16
+
+[arguments.approximate-entropy]
+block-length = 10

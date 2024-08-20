@@ -17,6 +17,7 @@ use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::f64::consts::LN_2;
 use std::num::NonZero;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 // calculation: minimum block length = 2
 // Following relation must be true:
@@ -90,46 +91,29 @@ pub fn approximate_entropy_test(
     // Step 2: determine the frequency of all possible overlapping m bit blocks.
     // Step 5.2: determine the frequency of all possible overlapping (m+1) bit blocks.
     // (m == block_length)
-    let frequencies = (0..data.len_bit())
+    let frequencies = create_frequency_slices(block_length);
+    (0..data.len_bit())
         .into_par_iter()
-        .try_fold(
-            || create_frequency_slices(block_length),
-            |mut frequencies, idx| {
-                frequencies
-                    .iter_mut()
-                    .enumerate()
-                    .try_for_each(|(i, freq)| {
-                        let idx =
-                            access_bits(data, idx, block_length + i as u8).unwrap_or_else(|| {
-                                panic!("serial_test: idx for (m + {i}) should be valid")
-                            });
+        .try_for_each(|idx| {
+            frequencies
+                .iter()
+                .enumerate()
+                .try_for_each(|(i, freq)| {
+                    let idx =
+                        access_bits(data, idx, block_length + i as u8).unwrap_or_else(|| {
+                            panic!("serial_test: idx for (m + {i}) should be valid")
+                        });
 
-                        freq[idx] = freq[idx].checked_add(1).ok_or(Error::Overflow(format!(
+                    let prev = freq[idx].fetch_add(1, Ordering::Relaxed);
+                    if prev == usize::MAX {
+                        return Err(Error::Overflow(format!(
                             "Adding 1 to frequency count {}",
-                            freq[idx]
-                        )))?;
-                        Ok::<(), Error>(())
-                    })?;
-
-                Ok(frequencies)
-            },
-        )
-        .try_reduce(
-            || create_frequency_slices(block_length),
-            |mut a, b| {
-                a.iter_mut()
-                    .zip(b)
-                    .flat_map(|(a, b)| a.iter_mut().zip(b))
-                    .try_for_each(|(el_a, el_b)| {
-                        *el_a = el_a.checked_add(el_b).ok_or(Error::Overflow(format!(
-                            "Adding frequency counts {el_a} and {el_b}"
-                        )))?;
-                        Ok::<_, Error>(())
-                    })?;
-
-                Ok::<_, Error>(a)
-            },
-        )?;
+                            prev
+                        )));
+                    }
+                    Ok(())
+                })
+        })?;
 
     // Step 3 / Step 5.3: for each frequency i, calculate i / len_bit
     // Step 4 / Step 5.4: calculate the sum of (i * ln(i)), where i denotes an entry in the frequency
@@ -160,11 +144,13 @@ pub fn approximate_entropy_test(
 /// \[0] is for patterns with bit length `block_length`, \[1] for `block_length + 1`.
 /// The pattern is used as the index for each boxed slice, the value itself stores the frequency.
 #[inline]
-fn create_frequency_slices(block_length: u8) -> [Box<[usize]>; 2] {
+fn create_frequency_slices(block_length: u8) -> [Box<[AtomicUsize]>; 2] {
     #[inline]
-    fn create_frequency_slice(block_length: u8) -> Box<[usize]> {
+    fn create_frequency_slice(block_length: u8) -> Box<[AtomicUsize]> {
         let len = 1 << block_length;
-        vec![0; len].into_boxed_slice()
+        let mut vec = Vec::with_capacity(len);
+        vec.resize_with(len, || AtomicUsize::new(0));
+        vec.into_boxed_slice()
     }
 
     [
@@ -179,12 +165,13 @@ fn create_frequency_slices(block_length: u8) -> [Box<[usize]>; 2] {
 ///
 /// Since resulting values are checked to be valid normal f64s, an error may be returned.
 #[inline]
-fn execute_step_3_and_4(frequency: Box<[usize]>, len_bit: usize) -> Result<f64, Error> {
+fn execute_step_3_and_4(frequency: Box<[AtomicUsize]>, len_bit: usize) -> Result<f64, Error> {
     let phi = frequency
         .into_vec()
         .into_par_iter()
         .map(|el| {
             // step 3
+            let el = el.into_inner();
             let pi = (el as f64) / (len_bit as f64);
 
             // step 4

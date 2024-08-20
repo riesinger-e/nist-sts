@@ -4,14 +4,15 @@
 //! It is recommended that each block  has a length of at least 100 bits.
 //! This test needs an argument, see [FrequencyBlockTestArg].
 
-use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
+use std::num::NonZero;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(100) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -19,7 +20,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 };
 
 /// The argument for the Frequency test within a block: the block length.
-/// 
+///
 /// The block length should be at least 20 bits, with the block length greater than 1% of the
 /// total bit length and fewer than 100 total blocks.
 #[derive(Copy, Clone, Default, Debug)]
@@ -28,7 +29,7 @@ pub enum FrequencyBlockTestArg {
     Bytewise(NonZero<usize>),
     /// Bitwise block length
     Bitwise(NonZero<usize>),
-    /// A suitable block length will be chosen automatically, based on the criteria outlined in 
+    /// A suitable block length will be chosen automatically, based on the criteria outlined in
     /// [FrequencyBlockTestArg].
     #[default]
     ChooseAutomatically,
@@ -43,8 +44,7 @@ impl FrequencyBlockTestArg {
             // For this value to be 0, block_length has to be 0, so it can't be, so unwrapping is
             // no problem.
             // Because: 0 % 8 == 0 - 8 % 8 == 0 but 1 % 8 == 1
-            let value = NonZero::new(block_length.get() / BYTE_SIZE)
-                .unwrap();
+            let value = NonZero::new(block_length.get() / BYTE_SIZE).unwrap();
             Self::Bytewise(value)
         } else {
             Self::Bitwise(block_length)
@@ -57,7 +57,10 @@ impl FrequencyBlockTestArg {
 /// See the [module docs](crate::tests::frequency_block_test).
 /// If test_arg is [FrequencyBlockTestArg::ChooseAutomatically], a reasonable default, based on 2.2.7, is chosen.
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
-pub fn frequency_block_test(data: &BitVec, test_arg: FrequencyBlockTestArg) -> Result<TestResult, Error> {
+pub fn frequency_block_test(
+    data: &BitVec,
+    test_arg: FrequencyBlockTestArg,
+) -> Result<TestResult, Error> {
     // Step 0 - get the block length or calculate one
     match test_arg {
         FrequencyBlockTestArg::Bytewise(block_length) => {
@@ -76,7 +79,10 @@ pub fn frequency_block_test(data: &BitVec, test_arg: FrequencyBlockTestArg) -> R
 /// Frequency test within a block, optimization for block sizes that are whole bytes.
 ///
 /// The passed block_length has to in bytes.
-fn frequency_block_test_bytes(data: &BitVec, block_length_bytes: usize) -> Result<TestResult, Error> {
+fn frequency_block_test_bytes(
+    data: &BitVec,
+    block_length_bytes: usize,
+) -> Result<TestResult, Error> {
     // Step 1 - calculate the amount of blocks
     let block_count = data.data.len() / block_length_bytes;
     let block_length_bits = block_length_bytes * BYTE_SIZE;
@@ -124,7 +130,7 @@ fn frequency_block_test_bytes(data: &BitVec, block_length_bytes: usize) -> Resul
     let p_value = igamc(block_count as f64 / 2.0, half_chi)?;
 
     check_f64(p_value)?;
-    
+
     Ok(TestResult::new(p_value))
 }
 
@@ -169,131 +175,125 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
         (bytes_needed, false)
     };
 
-    let mut count_ones_per_block = data.data[0..bytes_needed]
+    let count_ones_per_block = {
+        let mut vec = Vec::with_capacity(block_count);
+        vec.resize_with(block_count, || AtomicUsize::new(0));
+        vec.into_boxed_slice()
+    };
+
+    data.data[0..bytes_needed]
         .into_par_iter()
         .enumerate()
-        .try_fold(
-            || vec![0_usize; block_count].into_boxed_slice(),
-            |mut sum, (idx, value)| {
-                // Calculate, based on the index, the index of the current block
-                let current_block_idx = idx * BYTE_SIZE / block_length_bits;
+        .try_for_each(|(idx, value)| {
+            // Calculate, based on the index, the index of the current block
+            let current_block_idx = idx * BYTE_SIZE / block_length_bits;
 
-                // Calculate, based on the index, how many bits of this block need to go where.
-                // This formula is best explained by an example:
-                //
-                // Block size: 9 bits
-                // Data:
-                // 0 0 0 0 0 0 0 0 || 0|0 0 0 0 0 0 0 || 0 0|0 0 0 0 0 0 || 0 0 0|0 0 0 0 0 || 0 0 0 0| ...
-                // 1 | means a block border, 2 || mean a byte border
-                // Here we have 5 bytes with 4 blocks.
-                //
-                // The formula for calculation is
-                // (idx + 1) * BYTE_SIZE % block_length_bits >= BYTE_SIZE
-                // with BYTE_SIZE = 8
-                //
-                // For byte 0: (0 + 1) * 8 % 9 = 8 --> take the full byte for the current block
-                // For byte 1: 2 * 8 % 9 = 7 --> take 8 - 7 = 1 bits for the current block, 7 bits for the next
-                // For byte 2: 3 * 8 % 9 = 6 --> take 8 - 6 = 2 bits for the current block, 6 bits for the next
-                // For byte 3: 4 * 8 % 9 = 5 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
-                // For byte 4: 5 * 8 % 9 = 4 --> take 8 - 4 = 4 bits for the current block, 4 bits for the next
-                //
-                // Other examples:
-                // Block size: 7 bits
-                // 0 0 0 0 0 0 0|0 || 0 0 0 0 0 0|0 0 || 0 0 0 0 0|0 0 0 || 0 0 0 0|0 0 0 0 || 0 0 0| ...
-                //
-                // For byte 0: 1 * 8 % 7 = 1 --> take 8 - 1 = 7 bits for the current block, 1 bit for the next
-                // For byte 1: 2 * 8 % 7 = 2 --> take 8 - 2 = 6 bits for the current block, 2 bits for the next
-                // For byte 2: 3 * 8 % 7 = 3 --> take 8 - 3 = 5 bits for the current block, 3 bits for the next
-                // For byte 3: 4 * 8 % 7 = 4 --> take 8 - 4 = 4 bits for the current block, 4 bits for the next
-                // For byte 4: 5 * 8 % 7 = 4 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
-                //
-                // Block size: 11 bits
-                // 0 0 0 0 0 0 0 0 || 0 0 0|0 0 0 0 0 || 0 0 0 0 0 0|0 0 || 0 0 0 0 0 0 0 0 || 0| ...
-                // For byte 0: 1 * 8 % 11 = 8 --> take the full byte for the current block
-                // For byte 1: 2 * 8 % 11 = 5 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
-                // For byte 2: 3 * 8 % 11 = 2 --> take 8 - 2 = 6 bits for the current block, 2 bits for the next
-                // For byte 3: 4 * 8 % 11 = 10 >= 8 --> take the full byte for the current block
-                // For byte 4: 5 * 8 % 11 = 7 --> take 8 - 7 = 1 bits for the current block, 7 bits for the next
-                let remainder = (idx + 1) * BYTE_SIZE % block_length_bits;
-                if remainder >= BYTE_SIZE {
-                    // take the whole block
-                    sum[current_block_idx] = sum[current_block_idx]
-                        .checked_add(value.count_ones() as usize)
-                        .ok_or(Error::Overflow(format!(
-                            "adding ones to the sum: {}",
-                            sum[current_block_idx]
-                        )))?;
-                } else {
-                    // see this example:
-                    // Block size: 3 bits
-                    // 0 0 0|0 0 0|0 0 || 0|0 0 0|0 0 0| ...
-                    // 1 Byte can consist of more than 1 block!
-                    // This can be solved by taking each bit, calculating the block offset for it
-                    // (0 means current block) and adding the value to the right block.
-
-                    // how many bits are left to be added to the current block_offset
-                    let mut bits_left = remainder;
-                    // the block offset from the current block
-                    let mut block_offset =
-                        ((BYTE_SIZE - remainder) / block_length_bits).clamp(1, usize::MAX);
-                    for shift in 0..BYTE_SIZE {
-                        if bits_left == 0 {
-                            bits_left = block_length_bits;
-                            block_offset -= 1;
-                        }
-
-                        // check if the block even exists
-                        if current_block_idx + block_offset < block_count {
-                            let value = (*value >> shift) & 0x01;
-                            sum[current_block_idx + block_offset] = sum
-                                [current_block_idx + block_offset]
-                                .checked_add(value as usize)
-                                .ok_or(Error::Overflow(format!(
-                                    "adding {value} to the sum {}",
-                                    sum[current_block_idx + block_offset]
-                                )))?;
-                        }
-
-                        bits_left -= 1;
-                    }
+            // Calculate, based on the index, how many bits of this block need to go where.
+            // This formula is best explained by an example:
+            //
+            // Block size: 9 bits
+            // Data:
+            // 0 0 0 0 0 0 0 0 || 0|0 0 0 0 0 0 0 || 0 0|0 0 0 0 0 0 || 0 0 0|0 0 0 0 0 || 0 0 0 0| ...
+            // 1 | means a block border, 2 || mean a byte border
+            // Here we have 5 bytes with 4 blocks.
+            //
+            // The formula for calculation is
+            // (idx + 1) * BYTE_SIZE % block_length_bits >= BYTE_SIZE
+            // with BYTE_SIZE = 8
+            //
+            // For byte 0: (0 + 1) * 8 % 9 = 8 --> take the full byte for the current block
+            // For byte 1: 2 * 8 % 9 = 7 --> take 8 - 7 = 1 bits for the current block, 7 bits for the next
+            // For byte 2: 3 * 8 % 9 = 6 --> take 8 - 6 = 2 bits for the current block, 6 bits for the next
+            // For byte 3: 4 * 8 % 9 = 5 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
+            // For byte 4: 5 * 8 % 9 = 4 --> take 8 - 4 = 4 bits for the current block, 4 bits for the next
+            //
+            // Other examples:
+            // Block size: 7 bits
+            // 0 0 0 0 0 0 0|0 || 0 0 0 0 0 0|0 0 || 0 0 0 0 0|0 0 0 || 0 0 0 0|0 0 0 0 || 0 0 0| ...
+            //
+            // For byte 0: 1 * 8 % 7 = 1 --> take 8 - 1 = 7 bits for the current block, 1 bit for the next
+            // For byte 1: 2 * 8 % 7 = 2 --> take 8 - 2 = 6 bits for the current block, 2 bits for the next
+            // For byte 2: 3 * 8 % 7 = 3 --> take 8 - 3 = 5 bits for the current block, 3 bits for the next
+            // For byte 3: 4 * 8 % 7 = 4 --> take 8 - 4 = 4 bits for the current block, 4 bits for the next
+            // For byte 4: 5 * 8 % 7 = 4 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
+            //
+            // Block size: 11 bits
+            // 0 0 0 0 0 0 0 0 || 0 0 0|0 0 0 0 0 || 0 0 0 0 0 0|0 0 || 0 0 0 0 0 0 0 0 || 0| ...
+            // For byte 0: 1 * 8 % 11 = 8 --> take the full byte for the current block
+            // For byte 1: 2 * 8 % 11 = 5 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
+            // For byte 2: 3 * 8 % 11 = 2 --> take 8 - 2 = 6 bits for the current block, 2 bits for the next
+            // For byte 3: 4 * 8 % 11 = 10 >= 8 --> take the full byte for the current block
+            // For byte 4: 5 * 8 % 11 = 7 --> take 8 - 7 = 1 bits for the current block, 7 bits for the next
+            let remainder = (idx + 1) * BYTE_SIZE % block_length_bits;
+            if remainder >= BYTE_SIZE {
+                // take the whole block
+                let prev = count_ones_per_block[current_block_idx]
+                    .fetch_add(value.count_ones() as usize, Ordering::Relaxed);
+                if prev == usize::MAX {
+                    return Err(Error::Overflow(format!("adding ones to the sum: {}", prev)));
                 }
-                Ok::<_, Error>(sum)
-            },
-        )
-        .try_reduce(
-            || vec![0_usize; block_count].into_boxed_slice(),
-            |a, b| {
-                Box::into_iter(a)
-                    .zip(Box::into_iter(b))
-                    .map(|(a, b)| {
-                        a.checked_add(b).ok_or(Error::Overflow(format!(
-                            "Adding two parts of the sum: {a} + {b}"
-                        )))
-                    })
-                    .collect::<Result<Box<_>, Error>>()
-            },
-        )?;
+            } else {
+                // see this example:
+                // Block size: 3 bits
+                // 0 0 0|0 0 0|0 0 || 0|0 0 0|0 0 0| ...
+                // 1 Byte can consist of more than 1 block!
+                // This can be solved by taking each bit, calculating the block offset for it
+                // (0 means current block) and adding the value to the right block.
+
+                // how many bits are left to be added to the current block_offset
+                let mut bits_left = remainder;
+                // the block offset from the current block
+                let mut block_offset =
+                    ((BYTE_SIZE - remainder) / block_length_bits).clamp(1, usize::MAX);
+                for shift in 0..BYTE_SIZE {
+                    if bits_left == 0 {
+                        bits_left = block_length_bits;
+                        block_offset -= 1;
+                    }
+
+                    // check if the block even exists
+                    if current_block_idx + block_offset < block_count {
+                        let value = (*value >> shift) & 0x01;
+                        let prev = count_ones_per_block[current_block_idx + block_offset]
+                            .fetch_add(value as usize, Ordering::Relaxed);
+                        if prev == usize::MAX {
+                            return Err(Error::Overflow(format!(
+                                "adding {value} to the sum {}",
+                                prev
+                            )));
+                        }
+                    }
+
+                    bits_left -= 1;
+                }
+            }
+
+            Ok(())
+        })?;
 
     if add_remainder {
         // add the necessary part of the remainder to the last block
         let needed_bits = (BYTE_SIZE - ((data.data.len() + 1) * BYTE_SIZE % block_length_bits))
             % block_length_bits;
 
-        count_ones_per_block[block_count - 1] = count_ones_per_block[block_count - 1]
-            .checked_add(
-                data.remainder[0..needed_bits]
-                    .iter()
-                    .map(|&bit| bit as usize)
-                    .sum(),
-            )
-            .ok_or(Error::Overflow(format!(
+        let value = data.remainder[0..needed_bits]
+            .iter()
+            .map(|&bit| bit as usize)
+            .sum();
+        let prev = count_ones_per_block[block_count - 1].fetch_add(value, Ordering::Relaxed);
+        if prev == usize::MAX {
+            return Err(Error::Overflow(format!(
                 "Adding the remainder to the sum: {}",
-                count_ones_per_block[block_count - 1]
-            )))?;
+                prev
+            )));
+        }
     }
 
     let pis = Box::into_iter(count_ones_per_block)
-        .map(|count_ones| (count_ones as f64) / (block_length_bits as f64));
+        .map(|count_ones| {
+            let count_ones = count_ones.into_inner();
+            (count_ones as f64) / (block_length_bits as f64)
+        });
 
     // Step 3 - compute the chi^2 statistics - calculate the values for each element in the sum
     let chi_parts = pis.map(|pi| (pi - 0.5).powi(2));
@@ -308,6 +308,6 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
     let p_value = igamc(block_count as f64 / 2.0, half_chi)?;
 
     check_f64(p_value)?;
-    
+
     Ok(TestResult::new(p_value))
 }

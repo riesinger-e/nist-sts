@@ -15,6 +15,7 @@
 //! of constraint no. 3!
 
 use std::num::NonZero;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult};
@@ -90,47 +91,30 @@ pub fn serial_test(data: &BitVec, SerialTestArg(block_length): SerialTestArg) ->
     // Step 1 is skipped: we just read from the start again, see access_bits()
     // Step 2: determine the frequency of all possible overlapping m, (m-1) and (m-2) bit blocks.
     // (m == block_length)
-    let frequencies = (0..data.len_bit())
+    let frequencies = create_frequency_slices(block_length);
+    (0..data.len_bit())
         .into_par_iter()
-        .try_fold(
-            || create_frequency_slices(block_length),
-            |mut frequencies, idx| {
-                for i in 0..3 {
-                    // this can happen when block_length = 2
-                    if block_length - i == 0 {
-                        continue;
-                    }
-
-                    let idx = access_bits(data, idx, block_length - i).unwrap_or_else(|| {
-                        panic!("serial_test: idx for (m - {i}) should be valid")
-                    });
-                    frequencies[i as usize][idx] = frequencies[i as usize][idx]
-                        .checked_add(1)
-                        .ok_or(Error::Overflow(format!(
-                            "Adding 1 to frequency count {}",
-                            frequencies[i as usize][idx]
-                        )))?;
+        .try_for_each(|idx| {
+            for i in 0..3 {
+                // this can happen when block_length = 2
+                if block_length - i == 0 {
+                    continue;
                 }
 
-                Ok(frequencies)
-            },
-        )
-        .try_reduce(
-            || create_frequency_slices(block_length),
-            |mut a, b| {
-                a.iter_mut()
-                    .zip(b)
-                    .flat_map(|(a, b)| a.iter_mut().zip(b))
-                    .try_for_each(|(el_a, el_b)| {
-                        *el_a = el_a.checked_add(el_b).ok_or(Error::Overflow(format!(
-                            "Adding frequency counts {el_a} and {el_b}"
-                        )))?;
-                        Ok::<_, Error>(())
-                    })?;
+                let idx = access_bits(data, idx, block_length - i).unwrap_or_else(|| {
+                    panic!("serial_test: idx for (m - {i}) should be valid")
+                });
+                let prev = frequencies[i as usize][idx].fetch_add(1, Ordering::Relaxed);
+                if prev == usize::MAX {
+                    return Err(Error::Overflow(format!(
+                        "Adding 1 to frequency count {}",
+                        prev
+                    )));
+                }
+            }
 
-                Ok::<_, Error>(a)
-            },
-        )?;
+            Ok(())
+        })?;
     
     // Step 3: for each tested block length m (3 in total), compute
     // psi^2(m) = (2^m) / n * sum(v_mi^2) - n
@@ -150,7 +134,10 @@ pub fn serial_test(data: &BitVec, SerialTestArg(block_length): SerialTestArg) ->
             let sum = frequency
                 .into_vec()
                 .into_par_iter()
-                .map(|v| (v * v) as f64)
+                .map(|v| {
+                    let v = v.into_inner();
+                    (v * v) as f64
+                })
                 .sum::<f64>();
 
             check_f64(sum)?;
@@ -180,11 +167,13 @@ pub fn serial_test(data: &BitVec, SerialTestArg(block_length): SerialTestArg) ->
 /// \[2] for `block_length - 2`.
 /// The pattern is used as the index for each boxed slice, the value itself stores the frequency.
 #[inline]
-fn create_frequency_slices(block_length: u8) -> [Box<[usize]>; 3] {
+fn create_frequency_slices(block_length: u8) -> [Box<[AtomicUsize]>; 3] {
     #[inline]
-    fn create_frequency_slice(block_length: u8) -> Box<[usize]> {
+    fn create_frequency_slice(block_length: u8) -> Box<[AtomicUsize]> {
         let len = 1 << block_length;
-        vec![0; len].into_boxed_slice()
+        let mut vec = Vec::with_capacity(len);
+        vec.resize_with(len, || AtomicUsize::new(0));
+        vec.into_boxed_slice()
     }
 
     [
