@@ -5,6 +5,11 @@
 //!
 //! This test needs a parameter, [LinearComplexityTestArg]. Additionally, the input sequence
 //! must have a minimum length of 10^6 bits.
+//!
+//! The probability constants are used as fractions in this implementation. This, and the fact that
+//! NIST uses wrong probability constants (there is a typo in pi\[0] - 0.01047 is given instead of
+//! 0.010417) means that results may deviate significantly from the NIST reference implementation.
+//! This is expected behaviour.
 
 use crate::{BYTE_SIZE, Error, TestResult};
 use std::cmp::Ordering;

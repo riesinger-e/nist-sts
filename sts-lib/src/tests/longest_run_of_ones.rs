@@ -7,6 +7,9 @@
 //! of the longest runs of zeroes, meaning that only this test is necessary. See the NIST publication.
 //!
 //! The data has to be at least 128 bits in length.
+//! 
+//! The probability constants were recalculated, so you might see a deviation when comparing the 
+//! output with the reference implementation. In testing, the deviations were not too big.
 
 use std::num::NonZero;
 use crate::bitvec::BitVec;

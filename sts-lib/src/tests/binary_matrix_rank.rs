@@ -4,6 +4,10 @@
 //! These substrings are interpreted as matrices of size 32x32.
 //!
 //! The sequence must consist of at least 38 912 bits = 4864 bytes.
+//! 
+//! The probability constants were recalculated, using the generic formula for p_r given in 3.5.
+//! Because of this higher precision, results may deviate significantly when compared to the 
+//! reference implementation, i.e. when testing with e.1e6.bin, the deviation is a whole 0.2.
 
 use std::num::NonZero;
 use crate::bitvec::BitVec;

@@ -321,7 +321,7 @@ fn test_overlapping_template_matching_test() {
 ///
 /// # Problems with the examples from the paper
 ///
-/// 1. The values form 2.9.4 cannot be used here, because the parameters used in the example
+/// 1. The values from 2.9.4 cannot be used here, because the parameters used in the example
 ///    are not valid for real tests.
 /// 2. Because the parameters for the G-SHA-1 generator used in 2.9.8 are unknown, the exact sequence
 ///    used in the example is unknown and the values from 2.9.8 can also not be used.

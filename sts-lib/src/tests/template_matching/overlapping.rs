@@ -13,6 +13,9 @@
 //! * Even though the pi values should be revised according to the paper, both the example and
 //!   the implementation still use the old, inaccurate calculation.
 //! * The (not working) fixed values according to Hamano and Kaneko only work for very specific cases.
+//! 
+//! The PI values from NIST can still be used for testing purposes by using 
+//! [OverlappingTemplateTestArgs::new_nist_behaviour].
 //!
 //! This test needs arguments, see [OverlappingTemplateTestArgs].
 

@@ -13,6 +13,10 @@
 //! the order is: `[-4, -3, -2, -1, +1, +2, +3, +4]`.
 //!
 //! The input length must be at least 10^6 bits, otherwise, an error is returned.
+//!
+//! Because the constants in this test are given as fractions for more precision, the results may
+//! deviate from the NIST reference implementation. In testing, the observed deviation was not too
+//! big.
 
 use std::num::NonZero;
 use crate::bitvec::BitVec;
