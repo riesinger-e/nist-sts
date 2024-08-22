@@ -7,20 +7,95 @@ This is a Rust implementation of the statistical test suite described in
 Note that on x86_64 architectures (Windows, Linux, and macOS), x86-64-v3 is targeted, meaning your computer's CPU
 needs to be Intel Haswell or newer / AMD Excavator or newer. Any x86_64 CPU from 2015 onwards should work.
 
-To build for non-supported CPUs, simply remove the corresponding line in `.cargo/config.toml`.
+To build for unsupported x86_64 CPUs, simply remove the corresponding line in `.cargo/config.toml`.
+
+This code is under *MIT license*.
 
 ## Crates
 
-TODO
+This repository contains several crates:
 
-## Building the C API
+1. `sts-lib` - the library that implements the statistical tests. See `sts-lib/README.md`.
+2. `sts-cmd` - a command line application as a frontend for `sts-lib`. See `sts-cmd/README.md`.
+3. `sts-cbindings` - a C API frontend for `sts-lib`. See `sts-cbindings/README.md`.
+4. `sts-pybindings` - a Python API frontend for `sts-lib`. See `sts-pybindings/README.md`.
+5. `libcerf` - a Rust FFI wrapper for [libcerf](https://jugit.fz-juelich.de/mlz/libcerf). See `libcerf/README.md`.
+    Not relevant for usage.
+6. `scripts` - several scripts used to calculate constants / do conversion operations. The results of these scripts
+    are used in `sts-lib`. This crate is contained in the folder `const-calculation-scripts`, which also contains
+    additional python scripts with the same purpose.
 
-TODO: reference appropriate README.md, short TLDR
+### Build all libraries and the command line application
 
-## Building the Python API
+You need the Rust tooling, i.e. [rustup](https://rustup.rs/) with a stable Rust toolchain.
 
-TODO: reference appropriate README.md, short TLDR
+Execute the following command:
+
+```
+cargo build --workspace --release
+```
+
+To build the python package in a way that it is usable for python, see the instructions in `sts-pybindings/README.md`.
+
+## Using the Rust API
+
+See `sts-lib/README.md`.
+
+*TLDR:*
+
+```rust
+use std::fs;
+use std::path::Path;
+use sts_lib::bitvec::BitVec;
+use sts_lib::tests::random_excursions::random_excursions_variant_test;
+
+fn main() {
+    let file_path = Path::new("e.1e6.bin");
+    let data = fs::read(file_path).unwrap();
+    let data = BitVec::from(data);
+
+    let result = random_excursions_variant_test(&data).unwrap();
+    println!("P-Value: {}", result.p_value());
+}
+```
+
+## Using the C API
+
+See `sts-cbindings/README.md`.
+
+*TLDR:*
+
+```c++
+BitVec *data = bitvec_from_str("01000100010");
+// error handling...
+
+TestResult *result = frequency_test(data);
+// do error handling...
+
+printf("P-Value: %lf", test_result_get_p_value(result));
+test_result_destroy(result);
+bitvec_destroy(data);
+```
+
+## Using the Python API
+
+See `sts-pybindings/README.md`.
+
+*TLDR:*
+
+```python
+import nist_sts
+with open("e.1e6.bin", "rb") as f:
+   data = nist_sts.BitVec(f.read())
+result = nist_sts.tests.longest_runs_of_ones_test(data)
+```
 
 ## Using the command line application
 
-TODO: reference appropriate README.md, short TLDR
+See `sts-cmd/README.md`.
+
+*TLDR:*
+
+```sh
+sts-cmd --input e.1e6.bin --input-format binary --output result.csv
+```

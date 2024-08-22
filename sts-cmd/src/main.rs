@@ -171,7 +171,7 @@ fn main() -> ExitCode {
     println!();
 
     // iterator is evaluated lazy - each test is only run, when .next() is called.
-    let mut iter = exit_on_error!(test_runner::run_tests(selected_tests.iter().copied(), &input, config.test_arguments));
+    let mut iter = exit_on_error!(test_runner::run_tests(&input, selected_tests.iter().copied(), config.test_arguments));
 
     // use a manual loop to be able to time the test.
     loop {

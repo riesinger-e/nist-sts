@@ -9,8 +9,6 @@ use tests::template_matching::overlapping;
 use tests::*;
 
 /// Error type when using the test runner: In the iterator with the tests to run, one test is contained more than 1 time.
-/// 1.
-/// 2. One or more of the tests themselves returned an error.
 #[derive(Debug, Error)]
 #[error("Test {0} is a duplicate!")]
 pub struct RunnerError(pub Test);
@@ -19,7 +17,7 @@ pub struct RunnerError(pub Test);
 ///
 /// Returns all test results.
 pub fn run_all_tests_automatic(data: impl AsRef<BitVec>) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
-    run_tests_automatic(Test::iter(), data)
+    run_tests_automatic(data, Test::iter())
 }
 
 /// Runs all given tests automatically, with necessary arguments automatically chosen.
@@ -28,17 +26,17 @@ pub fn run_all_tests_automatic(data: impl AsRef<BitVec>) -> Result<impl Iterator
 ///
 /// Returns all test results.
 pub fn run_tests_automatic(
-    tests: impl Iterator<Item = Test>,
     data: impl AsRef<BitVec>,
+    tests: impl Iterator<Item = Test>,
 ) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
-    run_tests(tests, data, TestArgs::default())
+    run_tests(data, tests, TestArgs::default())
 }
 
 /// Runs all available tests with the used arguments taken from the passed [args](TestArgs).
 ///
 /// Returns all test results.
 pub fn run_all_tests(data: impl AsRef<BitVec>, args: TestArgs) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
-    run_tests(Test::iter(), data, args)
+    run_tests(data, Test::iter(), args)
 }
 
 /// Runs all given tests with the used arguments taken from the passed [args](TestArgs).
@@ -47,8 +45,8 @@ pub fn run_all_tests(data: impl AsRef<BitVec>, args: TestArgs) -> Result<impl It
 ///
 /// Returns all test results.
 pub fn run_tests(
-    mut tests: impl Iterator<Item = Test>,
     data: impl AsRef<BitVec>,
+    mut tests: impl Iterator<Item = Test>,
     args: TestArgs,
 ) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     // check for duplicate tests.

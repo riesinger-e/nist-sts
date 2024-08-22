@@ -1,6 +1,6 @@
 use crate::nist_sts::{BitVec, Test, TestResult};
 use crate::test_args::*;
-use crate::{RunnerError};
+use crate::{RunnerError, TestError};
 use pyo3::prelude::*;
 use sts_lib::{Error, test_runner, TestArgs};
 
@@ -18,27 +18,28 @@ impl TestResultIterator {
         this
     }
 
-    pub fn __next__(mut this: PyRefMut<'_, Self>) -> Option<(Test, PyObject)> {
-        this.iter.next()
-            .map(|(test, res)| {
-                let res = match res{
-                    Ok(res) => {
-                        if res.len() == 1 {
-                            TestResult(res[0]).into_py(this.py())
-                        } else {
-                            res.into_iter()
-                                .map(TestResult)
-                                .collect::<Vec<_>>()
-                                .into_py(this.py())
-                        }
+    pub fn __next__(mut this: PyRefMut<'_, Self>) -> PyResult<Option<(Test, PyObject)>> {
+        if let Some((test, res)) = this.iter.next() {
+            let res = match res{
+                Ok(res) => {
+                    if res.len() == 1 {
+                        TestResult(res[0]).into_py(this.py())
+                    } else {
+                        res.into_iter()
+                            .map(TestResult)
+                            .collect::<Vec<_>>()
+                            .into_py(this.py())
                     }
-                    Err(e) => {
-                        e.to_string().into_py(this.py())
-                    }
-                };
+                }
+                Err(e) => {
+                    return Err(TestError::new_err(e.to_string()))
+                }
+            };
 
-                (test.into(), res)
-            })
+            Ok(Some((test.into(), res)))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -66,11 +67,12 @@ impl TestResultIterator {
 /// the second element is either of:
 /// * 1 TestResult
 /// * a list of TestResults
-/// * a string with the description of the error that happened when the test ran.
 ///
 /// ## Errors
 ///
 /// RunnerError if a test is specified more than 1 time.
+///
+/// If an error occurs while evaluating a test, TestError is thrown.
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (data, tests=None, frequency_block_arg=None, non_overlapping_template_args=None, overlapping_template_args=None, linear_complexity_arg=None, serial_arg=None, approximate_entropy_arg=None))]
@@ -99,7 +101,7 @@ pub fn run_tests(
             let tests = tests.into_iter()
                 .map(|t| t.into());
 
-            let iter = test_runner::run_tests(tests, data.0.clone(), args)
+            let iter = test_runner::run_tests(data.0.clone(), tests, args)
                 .map_err(|e| RunnerError::new_err(format!("Duplicate test: {}", e.0)))?;
             Ok(TestResultIterator {
                 iter: Box::new(iter),

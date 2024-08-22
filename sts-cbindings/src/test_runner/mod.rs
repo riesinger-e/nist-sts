@@ -206,7 +206,7 @@ pub unsafe extern "C" fn test_runner_run_automatic(
         None => return 1,
     };
 
-    runner.handle_results(test_runner::run_tests_automatic(tests.into_iter(), &data.0))
+    runner.handle_results(test_runner::run_tests_automatic(&data.0, tests.into_iter()))
 }
 
 /// Runs all tests on the given bit sequence with the given test arguments.
@@ -293,7 +293,7 @@ pub unsafe extern "C" fn test_runner_run_tests(
 
     let args = test_args.0;
 
-    runner.handle_results(test_runner::run_tests(tests.into_iter(), &data.0, args))
+    runner.handle_results(test_runner::run_tests(&data.0, tests.into_iter(), args))
 }
 
 
