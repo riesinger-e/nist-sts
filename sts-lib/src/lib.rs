@@ -92,7 +92,7 @@ pub struct TestArgs {
 }
 
 /// The common test result type, as used by all tests.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TestResult {
     p_value: f64,
     comment: Option<&'static str>,

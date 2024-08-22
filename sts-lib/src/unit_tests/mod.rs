@@ -2,10 +2,15 @@
 
 use crate::bitvec::BitVec;
 use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
+use crate::tests::linear_complexity::berlekamp_massey;
 use crate::tests::template_matching::overlapping::calculate_hamano_kaneko_pis;
 use std::num::NonZero;
 
+mod full_examples;
 mod nist_text_examples;
+
+// Path to the test directory
+const TEST_FILE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/test-files");
 
 /// Macro to compare f64 values - == is not a good option because of floating point shenanigans.
 macro_rules! assert_f64_eq {
@@ -19,7 +24,12 @@ macro_rules! assert_f64_eq {
 }
 
 use assert_f64_eq;
-use crate::tests::linear_complexity::berlekamp_massey;
+
+/// The book only gives the value with reduces precision - rounding is nearly always necessary
+fn round(value: f64, digits: u8) -> f64 {
+    let t = f64::powi(10.0, digits as i32);
+    (value * t).round() / t
+}
 
 /// Test the creation of a BitVec from a bool vec
 #[test]
@@ -258,8 +268,11 @@ fn test_berlekamp_massey() {
     let bit_len = 13;
     let start_bit = 0;
 
-    assert_eq!(berlekamp_massey(&sequence, Some(additional_bit), bit_len, start_bit), 4);
-    
+    assert_eq!(
+        berlekamp_massey(&sequence, Some(additional_bit), bit_len, start_bit),
+        4
+    );
+
     // start bit is != 0
     let sequence = [0b0110_1011, 0b1100_0100];
     let bit_len = 13;

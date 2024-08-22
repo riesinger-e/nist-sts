@@ -1,38 +1,33 @@
 //! Checks that a test work using the example inputs shown in the description of the tests
 //! by NIST:
 
-use super::assert_f64_eq;
+use super::{assert_f64_eq, round, TEST_FILE_PATH};
 use crate::bitvec::BitVec;
+use crate::tests::approximate_entropy::{approximate_entropy_test, ApproximateEntropyTestArg};
 use crate::tests::binary_matrix_rank::binary_matrix_rank_test;
+use crate::tests::cumulative_sums::{cumulative_sums_test, cusum_test_internal};
 use crate::tests::frequency::frequency_test;
 use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
-use crate::tests::longest_run_of_ones::longest_run_of_ones_test;
-use crate::tests::template_matching::TemplateArg;
-use crate::tests::runs::runs_test;
-use crate::tests::spectral_dft::spectral_dft_test;
-use crate::{BYTE_SIZE, Error};
-use std::fs;
-use std::num::NonZero;
-use std::path::Path;
-use crate::DEFAULT_THRESHOLD;
-use crate::tests::approximate_entropy::{approximate_entropy_test, ApproximateEntropyTestArg};
-use crate::tests::cumulative_sums::{cumulative_sums_test, cusum_test_internal};
 use crate::tests::linear_complexity::{linear_complexity_test, LinearComplexityTestArg};
+use crate::tests::longest_run_of_ones::longest_run_of_ones_test;
 use crate::tests::maurers_universal_statistical::maurers_universal_statistical_test;
 use crate::tests::random_excursions::random_excursions_test;
 use crate::tests::random_excursions_variant::random_excursions_variant_test;
+use crate::tests::runs::runs_test;
 use crate::tests::serial::{serial_test, SerialTestArg};
-use crate::tests::template_matching::non_overlapping::{DEFAULT_BLOCK_COUNT, non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs};
-use crate::tests::template_matching::overlapping::{overlapping_template_matching_test, OverlappingTemplateTestArgs};
-
-// Path to the test directory
-const TEST_FILE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/test-files");
-
-/// The book only gives the value with reduces precision - rounding is nearly always necessary
-fn round(value: f64, digits: u8) -> f64 {
-    let t = f64::powi(10.0, digits as i32);
-    (value * t).round() / t
-}
+use crate::tests::spectral_dft::spectral_dft_test;
+use crate::tests::template_matching::non_overlapping::{
+    non_overlapping_template_matching_test, NonOverlappingTemplateTestArgs, DEFAULT_BLOCK_COUNT,
+};
+use crate::tests::template_matching::overlapping::{
+    overlapping_template_matching_test, OverlappingTemplateTestArgs,
+};
+use crate::tests::template_matching::TemplateArg;
+use crate::DEFAULT_THRESHOLD;
+use crate::{Error, BYTE_SIZE};
+use std::fs;
+use std::num::NonZero;
+use std::path::Path;
 
 /// Check the test result: Assert that it is OK and print the error if it is not.
 fn result_checker<T>(output: &Result<T, Error>) {
@@ -222,13 +217,11 @@ fn test_non_overlapping_template_matching_1() {
     let templates = [template.as_slice()];
     let template_len = 3;
     let count_blocks = 2;
-    let template_arg = TemplateArg::new_with_custom_templates(
-        templates.as_slice(),
-        template_len,
-    )
-    .unwrap();
-    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_template(template_arg, count_blocks)
-        .unwrap();
+    let template_arg =
+        TemplateArg::new_with_custom_templates(templates.as_slice(), template_len).unwrap();
+    let test_arg =
+        NonOverlappingTemplateTestArgs::new_with_custom_template(template_arg, count_blocks)
+            .unwrap();
 
     let output = non_overlapping_template_matching_test(&input, test_arg);
 
@@ -253,7 +246,7 @@ fn test_non_overlapping_template_matching_1() {
 fn test_non_overlapping_template_matching_2() {
     // This test depends on a test file: the first 2^20 bits of the G-SHA-1 generator
     let file_path = Path::new(TEST_FILE_PATH).join("sha1.1Mi.bin");
-    let length = 1<<20;
+    let length = 1 << 20;
     let data = fs::read(file_path).unwrap();
     let input = BitVec::from(data);
     assert_eq!(input.len_bit(), length);
@@ -261,14 +254,12 @@ fn test_non_overlapping_template_matching_2() {
     let template: [u8; 2] = [0b0010_1111, 0b1000_0000];
     let templates = [template.as_slice()];
     let template_len = 9;
-    let template_arg = TemplateArg::new_with_custom_templates(
-        templates.as_slice(),
-        template_len,
-    )
-        .unwrap();
-    let test_arg = NonOverlappingTemplateTestArgs::new_with_custom_template(template_arg, DEFAULT_BLOCK_COUNT)
-        .unwrap();
-    
+    let template_arg =
+        TemplateArg::new_with_custom_templates(templates.as_slice(), template_len).unwrap();
+    let test_arg =
+        NonOverlappingTemplateTestArgs::new_with_custom_template(template_arg, DEFAULT_BLOCK_COUNT)
+            .unwrap();
+
     let output = non_overlapping_template_matching_test(&input, test_arg);
 
     result_checker(&output);
@@ -286,7 +277,7 @@ fn test_non_overlapping_template_matching_2() {
 /// # Problems with this test
 ///
 /// The results shown in the paper use inaccurate values for the pis. This is mitigated by using
-/// the pi values from the reference implementation, which is entirely inaccurate for most 
+/// the pi values from the reference implementation, which is entirely inaccurate for most
 /// bigger sequences (> 1e6).
 #[test]
 fn test_overlapping_template_matching_test() {
@@ -301,8 +292,7 @@ fn test_overlapping_template_matching_test() {
     assert!(bitvec.remainder.is_empty());
 
     // create the custom template
-    let arg = OverlappingTemplateTestArgs::new_nist_behaviour(9)
-        .unwrap();
+    let arg = OverlappingTemplateTestArgs::new_nist_behaviour(9).unwrap();
 
     // run the test
     let output = overlapping_template_matching_test(&bitvec, arg);
@@ -344,7 +334,6 @@ fn test_maurers_universal_statistical_test() {
 
     assert_f64_eq!(round(output.p_value, 6), 0.282568);
 }
-
 
 /// Test the linear complexity test (no. 10).
 /// Input an output values are taken from 2.10.8. 2.10.4. has no complete example given.
@@ -433,8 +422,7 @@ fn test_serial_test_2() {
 fn test_approximate_entropy_test_1() {
     let data = BitVec::from_ascii_str("0100110101").unwrap();
 
-    let test_arg = ApproximateEntropyTestArg::new(3)
-        .unwrap();
+    let test_arg = ApproximateEntropyTestArg::new(3).unwrap();
 
     let output = approximate_entropy_test(&data, test_arg);
 
@@ -453,8 +441,7 @@ fn test_approximate_entropy_test_2() {
     ).unwrap();
     assert_eq!(data.len_bit(), 100);
 
-    let test_arg = ApproximateEntropyTestArg::new(2)
-        .unwrap();
+    let test_arg = ApproximateEntropyTestArg::new(2).unwrap();
 
     let output = approximate_entropy_test(&data, test_arg);
 
@@ -468,8 +455,7 @@ fn test_approximate_entropy_test_2() {
 /// Test the cumulative sum test (no. 13) - input and output taken from 2.13.4
 #[test]
 fn test_cumulative_sums_test_1() {
-    let data = BitVec::from_ascii_str("1011010111")
-        .unwrap();
+    let data = BitVec::from_ascii_str("1011010111").unwrap();
 
     let output = cusum_test_internal(&data, false);
 
@@ -510,8 +496,7 @@ fn test_cumulative_sums_test_2() {
 /// manually recalculated with the new constants.
 #[test]
 fn test_random_excursions_test_1() {
-    let data = BitVec::from_ascii_str("0110110101")
-        .unwrap();
+    let data = BitVec::from_ascii_str("0110110101").unwrap();
 
     let output = random_excursions_test(&data);
 
@@ -544,7 +529,9 @@ fn test_random_excursions_test_2() {
     result_checker(&output);
 
     let output = output.unwrap();
-    let expected_values = [0.573306, 0.197996, 0.164011, 0.007779, 0.786868, 0.440912, 0.797854, 0.778186];
+    let expected_values = [
+        0.573306, 0.197996, 0.164011, 0.007779, 0.786868, 0.440912, 0.797854, 0.778186,
+    ];
 
     for (result, expected) in output.into_iter().zip(expected_values) {
         assert_f64_eq!(round(result.p_value, 6), expected);
@@ -554,8 +541,7 @@ fn test_random_excursions_test_2() {
 /// Test the random excursions variant test (no. 15) - input and output taken from 2.15.4.
 #[test]
 fn test_random_excursions_variant_test_1() {
-    let data = BitVec::from_ascii_str("0110110101")
-        .unwrap();
+    let data = BitVec::from_ascii_str("0110110101").unwrap();
 
     let output = random_excursions_variant_test(&data);
 

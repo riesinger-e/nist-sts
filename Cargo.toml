@@ -11,6 +11,8 @@ default-members = [
     "libcerf",
     "sts-lib",
     "sts-cbindings",
+    "sts-cmd",
+    "sts-pybindings",
 ]
 resolver = "2"
 
