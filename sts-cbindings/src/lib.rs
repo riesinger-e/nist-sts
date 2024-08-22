@@ -37,7 +37,7 @@ thread_local! {
 /// * `ptr` may not be mutated for the duration of this call.
 /// * All responsibility for `ptr` and `len`, especially for its de-allocation, remains with the caller.
 #[no_mangle]
-pub unsafe extern "C" fn get_last_error_str(ptr: *mut c_char, len: &mut usize) -> c_int {
+pub unsafe extern "C" fn get_last_error(ptr: *mut c_char, len: &mut usize) -> c_int {
     // check if there is an error
     if LAST_ERROR.with_borrow(|(e, _)| matches!(e, ErrorCode::NoError)) {
         return 0;
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn get_last_error_str(ptr: *mut c_char, len: &mut usize) -
 /// ## Return values
 ///
 /// * 0: the call worked.
-/// * 1: an error happened - use [get_last_error_str]
+/// * 1: an error happened - use [get_last_error]
 #[no_mangle]
 pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
     match sts_lib::set_max_threads(max_threads) {
@@ -112,7 +112,7 @@ pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
 }
 
 /// The error codes that are returned by some fallible functions.
-/// A human-readable error message can be retrieved with [get_last_error_str].
+/// A human-readable error message can be retrieved with [get_last_error].
 /// cbindgen:prefix-with-name=true
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -146,7 +146,7 @@ pub enum ErrorCode {
 /// ## Return values
 ///
 /// * >0: the call worked. Returned is minimum input length
-/// * 0: an error happened - use [get_last_error_str]
+/// * 0: an error happened - use [get_last_error]
 #[no_mangle]
 pub extern "C" fn get_min_length_for_test(test: RawTest) -> usize {
     let raw_test = test;

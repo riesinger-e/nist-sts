@@ -139,7 +139,7 @@ pub unsafe extern "C" fn test_runner_get_result(
 /// * If all tests ran successfully, `0` is returned.
 /// * If an error occurred when running one test, but without aborting the tests, `2` is returned.
 ///   The good test results can be retrieved with [test_runner_get_result], the exact error can
-///   be retrieved with [get_last_error_str](crate::get_last_error_str).
+///   be retrieved with [get_last_error](crate::get_last_error).
 ///
 /// ## Safety
 ///
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn test_runner_run_all_automatic(
 ///   be retrieved.
 ///
 /// In each error case, the error message and code can be found out with
-/// [get_last_error_str](crate::get_last_error_str).
+/// [get_last_error](crate::get_last_error).
 ///
 /// ## Safety
 ///
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn test_runner_run_all_tests(
 ///   be retrieved.
 ///
 /// In each error case, the error message and code can be found out with
-/// [get_last_error_str](crate::get_last_error_str).
+/// [get_last_error](crate::get_last_error).
 ///
 /// ## Safety
 ///

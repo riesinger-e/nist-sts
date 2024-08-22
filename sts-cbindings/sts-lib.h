@@ -39,7 +39,7 @@
 
 /**
  * The error codes that are returned by some fallible functions.
- * A human-readable error message can be retrieved with [get_last_error_str].
+ * A human-readable error message can be retrieved with [get_last_error].
  */
 typedef enum {
   /**
@@ -289,8 +289,8 @@ extern "C" {
  * * `ptr` may not be mutated for the duration of this call.
  * * All responsibility for `ptr` and `len`, especially for its de-allocation, remains with the caller.
  */
-int get_last_error_str(char *ptr,
-                       size_t *len);
+int get_last_error(char *ptr,
+                   size_t *len);
 
 /**
  * Sets the maximum of threads to be used by the tests. These method can only be called ONCE and only
@@ -307,7 +307,7 @@ int get_last_error_str(char *ptr,
  * ## Return values
  *
  * * 0: the call worked.
- * * 1: an error happened - use [get_last_error_str]
+ * * 1: an error happened - use [get_last_error]
  */
 int set_max_threads(size_t max_threads);
 
@@ -317,7 +317,7 @@ int set_max_threads(size_t max_threads);
  * ## Return values
  *
  * * >0: the call worked. Returned is minimum input length
- * * 0: an error happened - use [get_last_error_str]
+ * * 0: an error happened - use [get_last_error]
  */
 size_t get_min_length_for_test(Test test);
 
@@ -741,7 +741,7 @@ TestResult **test_runner_get_result(TestRunner *runner, Test test, size_t *lengt
  * * If all tests ran successfully, `0` is returned.
  * * If an error occurred when running one test, but without aborting the tests, `2` is returned.
  *   The good test results can be retrieved with [test_runner_get_result], the exact error can
- *   be retrieved with [get_last_error_str](crate::get_last_error_str).
+ *   be retrieved with [get_last_error](crate::get_last_error).
  *
  * ## Safety
  *
@@ -771,7 +771,7 @@ int test_runner_run_all_automatic(TestRunner *runner, const BitVec *data);
  *   be retrieved.
  *
  * In each error case, the error message and code can be found out with
- * [get_last_error_str](crate::get_last_error_str).
+ * [get_last_error](crate::get_last_error).
  *
  * ## Safety
  *
@@ -835,7 +835,7 @@ int test_runner_run_all_tests(TestRunner *runner,
  *   be retrieved.
  *
  * In each error case, the error message and code can be found out with
- * [get_last_error_str](crate::get_last_error_str).
+ * [get_last_error](crate::get_last_error).
  *
  * ## Safety
  *
@@ -991,7 +991,7 @@ void runner_test_args_set_approximate_entropy(RunnerTestArgs *runner,
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1011,7 +1011,7 @@ TestResult *frequency_test(const BitVec *data);
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1036,7 +1036,7 @@ TestResult *frequency_block_test(const BitVec *data,
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1061,7 +1061,7 @@ TestResult *runs_test(const BitVec *data);
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1083,7 +1083,7 @@ TestResult *longest_run_of_ones_test(const BitVec *data);
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1105,7 +1105,7 @@ TestResult *binary_matrix_rank_test(const BitVec *data);
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1128,7 +1128,7 @@ TestResult *spectral_dft_test(const BitVec *data);
  *
  * If the test ran without errors, a list of `TestResult` is returned. This list can be deallocated with `test_result_list_destroy`.
  * The length of the returned list will be stored into `length`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1179,7 +1179,7 @@ TestResult **non_overlapping_template_matching_test(const BitVec *data,
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1206,7 +1206,7 @@ TestResult *overlapping_template_matching_test(const BitVec *data,
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1229,7 +1229,7 @@ TestResult *maurers_universal_statistical_test(const BitVec *data);
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1268,7 +1268,7 @@ TestResult *linear_complexity_test(const BitVec *data,
  *
  * If the test ran without errors, a list of `TestResult` is returned. This list can be deallocated with `test_result_list_destroy`.
  * The returned array always has length 2.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1302,7 +1302,7 @@ TestResult **serial_test(const BitVec *data,
  * ## Return value
  *
  * If the test ran without errors, a single `TestResult` is returned. This result can be deallocated with `test_result_destroy`.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1332,7 +1332,7 @@ TestResult *approximate_entropy_test(const BitVec *data,
  *
  * If the test ran without errors, a list of `TestResult` is returned. This result can be deallocated with `test_result_list_destroy`.
  * The returned array always has length 2.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1364,7 +1364,7 @@ TestResult **cumulative_sums_test(const BitVec *data);
  *
  * If the test ran without errors, a list of `TestResult` is returned. This result can be deallocated with `test_result_list_destroy`.
  * The returned array always has length 8.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
@@ -1394,7 +1394,7 @@ TestResult **random_excursions_test(const BitVec *data);
  *
  * If the test ran without errors, a list of `TestResult` is returned. This result can be deallocated with `test_result_list_destroy`.
  * The returned array always has length 18.
- * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error_str`.
+ * If an error occurred, `NULL` is returned, and the error code and message can be retrieved with `get_last_error`.
  *
  * ## Safety
  *
