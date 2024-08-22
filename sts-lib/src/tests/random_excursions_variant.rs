@@ -79,6 +79,16 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
         }
     }
 
+    #[cfg(not(test))]
+    {
+        // check the number of cycles based on the last paragraph of 3-22. Although the need for this
+        // check is not mentioned in 2.15, it is mentioned in 3.15.
+        let min_cycles = f64::max(0.005 * f64::sqrt(data.len_bit() as f64), 500.0);
+        if (num_cycles as f64) < min_cycles {
+            return Ok([TestResult::new_with_comment(0.0, "Too few cycles"); 18]);
+        }
+    }
+
     // Step 5: calculate p_values
     let mut p_values = [
         TestResult::new_with_comment(0.0, "x = -9"),

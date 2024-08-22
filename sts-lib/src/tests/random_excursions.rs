@@ -104,7 +104,10 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
     // only check this property when not running unit tests.
     #[cfg(not(test))]
     {
-        if num_cycles < 500 {
+        // check the condition based on the last paragraph of 3-22, somehow, this information
+        // is missing in 2.14?
+        let min_cycles = f64::max(0.005 * f64::sqrt(data.len_bit() as f64), 500.0);
+        if (num_cycles as f64) < min_cycles {
             return Ok([TestResult::new_with_comment(0.0, "Too few cycles"); 8]);
         }
     }

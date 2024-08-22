@@ -1,3 +1,4 @@
 /target
 /const-calculation-scripts/venv/
 /sts-pybindings/venv/
+/.idea/editor.xml
