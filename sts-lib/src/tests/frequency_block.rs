@@ -86,41 +86,43 @@ fn frequency_block_test_bytes(
     // Step 1 - calculate the amount of blocks
     let block_count = data.data.len() / block_length_bytes;
     let block_length_bits = block_length_bytes * BYTE_SIZE;
+    let required_bytes = block_length_bytes * block_count;
 
-    let half_chi: f64 = data
-        .data
-        .chunks_exact(block_length_bytes)
-        .map(|chunk| {
-            // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
+    // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
+    let mut current_block_idx = 0;
+    let mut current_count_of_ones: usize = 0;
+    let mut half_chi = 0.0;
 
-            // count of ones in the block
-            let count_ones = chunk
-                .par_iter()
-                .try_fold(
-                    || 0_usize,
-                    |sum, value| {
-                        sum.checked_add(value.count_ones() as usize)
-                            .ok_or(Error::Overflow(format!("adding ones to the sum: {sum}")))
-                    },
-                )
-                .try_reduce(
-                    || 0_usize,
-                    |a, b| {
-                        a.checked_add(b).ok_or(Error::Overflow(format!(
-                            "Adding two parts of the sum: {a} + {b}"
-                        )))
-                    },
-                )? as f64;
+    // Result of benchmarking: parallelization is not worth it
+    data
+        .data[0..required_bytes]
+        .iter()
+        .enumerate()
+        .try_for_each(|(byte_idx, byte)| {
+            let block_idx = byte_idx / block_length_bytes;
 
-            let pi = count_ones / (block_length_bits as f64);
+            if current_block_idx != block_idx {
+                // remove old results
+                let count_ones = current_count_of_ones as f64;
+                let pi = count_ones / (block_length_bits as f64);
+                // Step 3 - compute the chi^2 statistics - calculate the current part
+                half_chi += (pi - 0.5).powi(2);
 
-            // Step 3 - compute the chi^2 statistics - calculate the current part
-            let chi_part = (pi - 0.5).powi(2);
-            Ok::<_, Error>(chi_part)
-        })
-        // Step 3 - build sum and multiply with 4 * block_length
-        // In Step 4, chi is again halved - do this now (replace 4 with 2)
-        .sum::<Result<f64, _>>()?
+                current_block_idx = block_idx;
+                current_count_of_ones = 0;
+            }
+
+            current_count_of_ones = current_count_of_ones.checked_add(byte.count_ones() as usize)
+                .ok_or(Error::Overflow("adding ones to a block count".to_owned()))?;
+            Ok::<_, Error>(())
+        })?;
+
+    let count_ones = current_count_of_ones as f64;
+    let pi = count_ones / (block_length_bits as f64);
+    half_chi += (pi - 0.5).powi(2);
+
+    // Calculate the half_chi (multiplication with 4.0 replaced by 2.0)
+    let half_chi = half_chi
         * 2.0
         * (block_length_bits as f64);
 
