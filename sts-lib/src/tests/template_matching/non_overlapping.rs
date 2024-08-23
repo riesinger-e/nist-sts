@@ -7,13 +7,12 @@
 
 use std::num::NonZero;
 
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::prelude::*;
 
-use crate::{Error, TestResult};
+use crate::{Error, TestResult, BYTE_SIZE};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
-
-use super::TemplateArg;
+use super::{create_mask, get_byte, right_shift_byte_vec, TemplateArg};
 
 // calculation: min block count (1) * min template length (2)
 /// The minimum input length, in bits, for this test.
@@ -117,12 +116,11 @@ pub fn non_overlapping_template_matching_test(
     }
 
     // Step 2: for each template B, calculate the number of times the template matches
-    let count_matches_per_chunk_per_template = super::count_matches_per_chunk_per_template(
+    let count_matches_per_chunk_per_template = count_matches_per_chunk_per_template(
         count_blocks,
         block_length_bit,
         data,
         templates,
-        template_len,
     )
     .collect::<Result<Box<_>, Error>>()?;
 
@@ -157,4 +155,134 @@ pub fn non_overlapping_template_matching_test(
         .collect::<Result<Vec<_>, Error>>()?;
 
     Ok(p_values)
+}
+
+/// Count the matches per chunk and template.
+fn count_matches_per_chunk_per_template<'a>(
+    block_count: usize,
+    block_length_bit: usize,
+    data: &'a BitVec,
+    templates: TemplateArg<'a>,
+) -> impl Iterator<Item = Result<Box<[usize]>, Error>> + 'a {
+    let TemplateArg {
+        templates,
+        template_len,
+    } = templates;
+
+    // Create the last byte from the bit list
+    let last_byte = data.get_last_byte();
+
+    // For each block, calculate the times each template matches.
+    (0..block_count).map(move |block_idx| {
+        // calculate the start byte and the bit position in the start byte for this block
+        let total_start_bit = block_idx
+            .checked_mul(block_length_bit)
+            .ok_or(Error::Overflow(format!(
+                "multiplying {block_idx} by {block_length_bit}"
+            )))?;
+
+        let start_byte = total_start_bit / BYTE_SIZE;
+        let start_bit = total_start_bit % BYTE_SIZE;
+
+        // calculate the max shifts
+        let max_shifts = block_length_bit - (template_len - 1);
+
+        // create the basic bitwise mask (allows only the bits that are the template)
+        let (base_mask, base_mask_last_bit_index) =
+            (create_mask(template_len), template_len % BYTE_SIZE);
+
+        // create the base template stats
+        let (base_templates, base_template_last_bit_index) = (templates, template_len % BYTE_SIZE);
+
+        // for each template, try to match
+        let matches_per_template = base_templates
+            .par_iter()
+            .map(|&base_template| {
+                // initialize the working bitwise mask - from the start bit position.
+                // This mask is bitwise shifted to the right position in the current stream.
+                let (mut mask, mut mask_last_bit_index) = {
+                    let mut mask = base_mask.clone();
+                    let last_bit_index =
+                        right_shift_byte_vec(&mut mask, base_mask_last_bit_index, start_bit)
+                            .unwrap();
+                    (mask, last_bit_index)
+                };
+
+                // initialize the working template - from the start bit position.
+                // This template is bitwise shifted to the right position in the current stream.
+                let (mut template, mut template_last_bit_index) = {
+                    let mut template = Vec::from(base_template);
+                    let last_bit_index = right_shift_byte_vec(
+                        &mut template,
+                        base_template_last_bit_index,
+                        start_bit,
+                    )
+                        .unwrap();
+                    (template, last_bit_index)
+                };
+
+                // go over the current chunk
+                let mut count_matches: usize = 0;
+
+                let mut i = 0;
+                while i < max_shifts {
+                    // a match is:
+                    // for every bit, apply bitwise AND with the current mask (which is shifted bitwise
+                    // for new position) - now only the bits the template tries to match, are there.
+                    let current_byte = (start_byte * BYTE_SIZE + i) / BYTE_SIZE;
+
+                    let matched = (0..mask.len()).all(|idx| {
+                        let byte = get_byte(&data.data, &last_byte, current_byte + idx);
+                        byte & mask[idx] == template[idx]
+                    });
+
+                    // set the next shift necessary (if the template matched, the shift is for
+                    // the template length), increment the counter if matched.
+                    let shift = if matched {
+                        // There are not enough matches possible to warrant checked arithmetic
+                        count_matches += 1;
+                        template_len
+                    } else {
+                        1
+                    };
+
+                    // Calculate the next mask and template.
+                    // Use the current bit position to decide if the mask and template should be restarted
+                    // from their base position.
+                    if (i % BYTE_SIZE + shift + start_bit) / BYTE_SIZE == 0 {
+                        // don't need to restart from base_*
+                        mask_last_bit_index =
+                            right_shift_byte_vec(&mut mask, mask_last_bit_index, shift).unwrap();
+                        template_last_bit_index =
+                            right_shift_byte_vec(&mut template, template_last_bit_index, shift)
+                                .unwrap();
+                    } else {
+                        // We crossed a byte boundary - to avoid 0 bytes in the front, we restart
+                        // with the base mask and template and shift only the difference (never
+                        // a full byte).
+                        let shift = (i + shift + start_bit) % BYTE_SIZE;
+
+                        mask.clone_from(&base_mask);
+                        mask_last_bit_index =
+                            right_shift_byte_vec(&mut mask, base_mask_last_bit_index, shift)
+                                .unwrap();
+
+                        template = Vec::from(base_template);
+                        template_last_bit_index = right_shift_byte_vec(
+                            &mut template,
+                            base_template_last_bit_index,
+                            shift,
+                        )
+                            .unwrap();
+                    }
+
+                    // increment i - max_shifts cannot be big enough to warrant checked i
+                    i += shift;
+                }
+
+                count_matches
+            })
+            .collect::<Box<_>>();
+        Ok(matches_per_template)
+    })
 }
