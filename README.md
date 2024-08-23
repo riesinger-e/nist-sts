@@ -102,6 +102,12 @@ See `sts-cmd/README.md`.
 sts-cmd --input e.1e6.bin --input-format binary --output result.csv
 ```
 
-## Benchmarking
+## Benchmarking / Performance
 
-See `benchmarking/README.md`.
+This implementation should generally be faster than the reference implementation if the input sequence is large enough.
+For small input sequences, the reference implementation might catch up. 
+
+For input sequences with 10^6 bits, run times from ~0.6% to ~55% of the reference implementation were observed 
+(measured for each test separately). A full benchmark output can be found in `benchmarking/benchmark_result.txt`.
+
+See also `benchmarking/README.md`.

@@ -30,3 +30,10 @@ repository, from the repository root: `sts-lib/test-files`.
 You absolutely MUST use the release flag when using `cargo run`, otherwise the results will not be accurate.
 
 The application will print the average execution time per implementation and test and the difference in percent.
+
+## Output
+
+The output contains per-file per-test comparisons, and a per-test comparison over all used files. 
+
+`benchmark.txt` contains the result of the benchmark, executed on the developers machine. As can be seen, this implementation is faster 
+in every tested case.
