@@ -184,12 +184,14 @@ fn main() -> ExitCode {
             exit_on_error!(csv_file.write_test(test, time, result.as_ref()));
         }
 
+        let time_as_ms = (time.as_micros() as f64) / 1000.0;
+        
         match result {
             Ok(res) => {
                 if res.len() == 1 {
-                    print_test_result(format!("Test {test} ({}ms)", time.as_millis()), res[0]);
+                    print_test_result(format!("Test {test} ({}ms)", time_as_ms), res[0]);
                 } else {
-                    println!("Test: {test} ({}ms): multiple Results", time.as_millis());
+                    println!("Test: {test} ({}ms): multiple Results", time_as_ms);
                     for (i, res) in res.into_iter().enumerate() {
                         print_test_result(format!("- Result {i}"), res);
                     }

@@ -73,7 +73,7 @@ impl CsvFile {
     ) -> Result<(), CsvFileError> {
         // CSV format: test name; time in ms; result no.; PASS/FAIL; P-Value; comment
         let test = test.to_string();
-        let time = time.as_millis();
+        let time = (time.as_micros() as f64) / 1000.0;
 
         // struct to use for CSV
         #[derive(Serialize)]
@@ -81,7 +81,7 @@ impl CsvFile {
             #[serde(rename = "test name")]
             test: &'a str,
             #[serde(rename = "time in ms")]
-            time: u128,
+            time: f64,
             #[serde(rename = "result no")]
             result_no: usize,
             #[serde(rename = "PASS/FAIL")]
