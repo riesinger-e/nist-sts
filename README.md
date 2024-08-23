@@ -24,6 +24,8 @@ This repository contains several crates:
 6. `scripts` - several scripts used to calculate constants / do conversion operations. The results of these scripts
     are used in `sts-lib`. This crate is contained in the folder `const-calculation-scripts`, which also contains
     additional python scripts with the same purpose.
+7. `benchmarking` - contains a README on how to benchmark against the NIST reference implementation, and a command line
+    executable to do that.
 
 ### Build all libraries and the command line application
 
@@ -99,3 +101,7 @@ See `sts-cmd/README.md`.
 ```sh
 sts-cmd --input e.1e6.bin --input-format binary --output result.csv
 ```
+
+## Benchmarking
+
+See `benchmarking/README.md`.

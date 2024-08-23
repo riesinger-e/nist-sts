@@ -1,0 +1,16 @@
+[package]
+name = "benchmarking"
+version = "0.1.0"
+edition = "2021"
+authors = ["Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>"]
+rust-version = "1.80"
+description = "An implementation of the NIST STS - benchmarking application"
+readme = true
+repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.5.16", features = ["derive"] }
+serde = { version = "1.0.208", features = ["derive"] }
+serde_json = "1.0.125"
+sts-lib = { path = "../sts-lib" }
