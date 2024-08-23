@@ -24,7 +24,7 @@ use sts_lib::{Test, TestArgs};
 // Count of test files
 const COUNT_TEST_FILES: usize = 5;
 // The amount of runs to do for each test file
-const COUNT_RUNS_PER_FILE: usize = 10;
+const COUNT_RUNS_PER_FILE: usize = 100;
 
 type StatisticStorage = HashMap<Test, (Vec<f64>, Vec<f64>)>;
 
@@ -104,7 +104,7 @@ fn test_c_imp(test_file: &Path, executable: &Path, statistics: &mut StatisticSto
         .unwrap();
     if !output.status.success() {
         let msg = String::from_utf8_lossy(&output.stderr);
-        panic!("Error when executing the reference implementation: {msg}");
+        panic!("Error when executing the reference implementation: {}", msg);
     }
 
     // each json entry is 1 line
