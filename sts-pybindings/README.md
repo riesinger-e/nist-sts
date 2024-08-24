@@ -43,10 +43,13 @@ for test, result in nist_sts.run_tests(data):
 
 ## How to build
 
-1. Setup a python virtual env and enter it.'
+1. Setup a python virtual env and enter it.
    ```sh
    python -m venv ./venv
+   # most linux shells
    source ./venv/bin/activate
+   # PowerShell on Windows
+   .\venv\Scripts\Activate.ps1
    ```
 2. Install [maturin](https://github.com/PyO3/maturin): `pip install maturin`
 3. For development / debugging:
