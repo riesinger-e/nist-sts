@@ -8,9 +8,43 @@ fn main() {
         .uses_cxx11()
         .build_target("cerf-wrapper")
         .build();
+
     // Link the library
-    println!("cargo:rustc-link-search={}", libcerf_dst.join("build").display());
-    println!("cargo:rustc-link-search={}", libcerf_dst.join("build").join("libcerf").join("lib").display());
+    let target_triple = env::var("TARGET").unwrap();
+
+    if target_triple.ends_with("msvc") {
+        // MSVC saves the build outputs to a different path
+
+        // Path differs based on debug/release
+        let profile = env::var("PROFILE").unwrap();
+        println!(
+            "cargo:rustc-link-search={}",
+            libcerf_dst.join("build").join(&profile).display()
+        );
+        println!(
+            "cargo:rustc-link-search={}",
+            libcerf_dst
+                .join("build")
+                .join("libcerf")
+                .join("lib")
+                .join(profile)
+                .display()
+        );
+    } else {
+        println!(
+            "cargo:rustc-link-search={}",
+            libcerf_dst.join("build").display()
+        );
+        println!(
+            "cargo:rustc-link-search={}",
+            libcerf_dst
+                .join("build")
+                .join("libcerf")
+                .join("lib")
+                .display()
+        );
+    }
+
     println!("cargo:rustc-link-lib=static=cerf-wrapper");
     println!("cargo:rustc-link-lib=static=cerfcpp");
 

@@ -9,6 +9,11 @@ needs to be Intel Haswell or newer / AMD Excavator or newer. Any x86_64 CPU from
 
 To build for unsupported x86_64 CPUs, simply remove the corresponding line in `.cargo/config.toml`.
 
+In addition to the Rust tooling ([rustup](https://rustup.rs)), you need [cmake](https://cmake.org), 
+[clang](https://clang.llvm.org) (on windows, you must also set the environment variable `LIBCLANG_PATH`
+to the directory where the LLVM executables reside) and a C/C++ compiler (MSVC on Windows) to build 
+the library.
+
 This code is under *MIT license*.
 
 ## Crates

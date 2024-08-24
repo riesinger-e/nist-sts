@@ -8,12 +8,11 @@ members = [
     "sts-cmd",
     "benchmarking",
 ]
+# by default, only build the rust library and command-line application - c and python bindings may need additional dependencies
 default-members = [
     "libcerf",
     "sts-lib",
-    "sts-cbindings",
     "sts-cmd",
-    "sts-pybindings",
 ]
 resolver = "2"
 
