@@ -3,23 +3,27 @@ use std::path::PathBuf;
 
 /// Build script for the C libcerf dependency
 fn main() {
-    // Build the library
-    let libcerf_dst = cmake::Config::new("cerf-wrapper")
-        .uses_cxx11()
-        .build_target("cerf-wrapper")
-        .build();
-
-    // Link the library
     let target_triple = env::var("TARGET").unwrap();
 
-    if target_triple.ends_with("msvc") {
-        // MSVC saves the build outputs to a different path
+    // Build the library - common parts
+    let mut cmake = cmake::Config::new("cerf-wrapper");
+    cmake
+        .uses_cxx11()
+        .build_target("cerf-wrapper");
 
+    // Build and link the library
+    if target_triple.ends_with("msvc") {
+        let libcerf_dst = cmake
+            // have to force static libraries
+            .static_crt(true)
+            // have to force release build - Rust on MSVC always uses release runtime
+            .profile("Release")
+            .build();
+        // MSVC saves the build outputs to a different path
         // Path differs based on debug/release
-        let profile = env::var("PROFILE").unwrap();
         println!(
             "cargo:rustc-link-search={}",
-            libcerf_dst.join("build").join(&profile).display()
+            libcerf_dst.join("build").join("Release").display()
         );
         println!(
             "cargo:rustc-link-search={}",
@@ -27,10 +31,12 @@ fn main() {
                 .join("build")
                 .join("libcerf")
                 .join("lib")
-                .join(profile)
+                .join("Release")
                 .display()
         );
     } else {
+        let libcerf_dst = cmake.build();
+
         println!(
             "cargo:rustc-link-search={}",
             libcerf_dst.join("build").display()
