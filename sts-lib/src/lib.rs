@@ -13,6 +13,7 @@ use crate::tests::approximate_entropy::ApproximateEntropyTestArg;
 
 // Trait must be public for enum iter to work.
 pub use strum::IntoEnumIterator;
+pub use strum::EnumCount;
 
 // internal usage only
 pub(crate) mod internals;
@@ -33,7 +34,7 @@ const BYTE_SIZE: usize = 8;
 pub const DEFAULT_THRESHOLD: f64 = 0.01;
 
 /// List of all tests, used e.g. for automatic running.
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter, Display)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, EnumIter, Display, EnumCount)]
 #[repr(u8)]
 pub enum Test {
     /// See [tests::frequency].

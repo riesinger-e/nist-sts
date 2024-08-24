@@ -861,6 +861,12 @@ int test_runner_run_tests(TestRunner *runner,
                           const RunnerTestArgs *test_args);
 
 /**
+ * Return the count of tests. The first test has a numerical value of 0 and the last test of
+ * test_count - 1
+ */
+size_t test_count(void);
+
+/**
  * Create new [RunnerTestArgs], prefilled with sane defaults.
  *
  * To set an argument, use the appropriate `runner_test_args_set_...` function.

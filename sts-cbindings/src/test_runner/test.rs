@@ -1,6 +1,7 @@
 //! The test type itself.
 
 use std::ffi::c_int;
+use sts_lib::EnumCount;
 
 // Type of a raw test, used for the FFI boundary (rust doesn't like it if a value is passed for an
 // enum that is not in the enum).
@@ -41,6 +42,13 @@ pub enum Test {
     RandomExcursions = 13,
     /// See [random_excursions_variant_test](crate::tests::random_excursions_variant_test).
     RandomExcursionsVariant = 14,
+}
+
+/// Return the count of tests. The first test has a numerical value of 0 and the last test of
+/// test_count - 1
+#[no_mangle]
+pub extern "C" fn test_count() -> usize {
+    sts_lib::Test::COUNT
 }
 
 // If any of these fails, you also need to adjust the TryFrom-Implementation
