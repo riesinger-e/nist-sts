@@ -85,17 +85,38 @@ fn frequency_block_test_bytes(
 ) -> Result<TestResult, Error> {
     // Step 1 - calculate the amount of blocks
     let block_count = data.data.len() / block_length_bytes;
-    let block_length_bits = block_length_bytes * BYTE_SIZE;
     let required_bytes = block_length_bytes * block_count;
 
+    // "magic" length where parallel runtime may be faster than serial.
+    // Just tried different input lengths on the developers machine.
+    let half_chi = if required_bytes >= 1_600_000 {
+        frequency_block_test_bytes_par(&data.data[0..required_bytes], block_length_bytes, block_count)
+    } else {
+        frequency_block_test_bytes_serial(&data.data[0..required_bytes], block_length_bytes)
+    }?;
+
+    // Step 4: compute p-value = igamc(block_count / 2, chi / 2)
+    let p_value = igamc(block_count as f64 / 2.0, half_chi)?;
+
+    check_f64(p_value)?;
+
+    Ok(TestResult::new(p_value))
+}
+
+/// Calculate half_chi for a block length that is a multiple of whole bytes, without parallelization.
+/// This is faster with smaller sequences, but slower with longer sequences.
+/// See also [frequency_block_test_bytes_par].
+fn frequency_block_test_bytes_serial(data: &[u8], block_length_bytes: usize) -> Result<f64, Error> {
+    let block_length_bits = block_length_bytes * BYTE_SIZE;
+
     // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
+    // Step 3 - calculate half_chi
     let mut current_block_idx = 0;
     let mut current_count_of_ones: usize = 0;
     let mut half_chi = 0.0;
 
     // Result of benchmarking: parallelization is not worth it
     data
-        .data[0..required_bytes]
         .iter()
         .enumerate()
         .try_for_each(|(byte_idx, byte)| {
@@ -117,6 +138,7 @@ fn frequency_block_test_bytes(
             Ok::<_, Error>(())
         })?;
 
+    // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
     let count_ones = current_count_of_ones as f64;
     let pi = count_ones / (block_length_bits as f64);
     half_chi += (pi - 0.5).powi(2);
@@ -128,12 +150,50 @@ fn frequency_block_test_bytes(
 
     check_f64(half_chi)?;
 
-    // Step 4: compute p-value = igamc(block_count / 2, chi / 2)
-    let p_value = igamc(block_count as f64 / 2.0, half_chi)?;
+    Ok(half_chi)
+}
 
-    check_f64(p_value)?;
+/// Calculate half_chi for a block length that is a multiple of whole bytes, with parallelization.
+/// This is faster with longer sequences, but slower with smaller sequences.
+/// See also [frequency_block_test_bytes_serial].
+fn frequency_block_test_bytes_par(data: &[u8], block_length_bytes: usize, block_count: usize) -> Result<f64, Error> {
+    let block_length_bits = block_length_bytes * BYTE_SIZE;
 
-    Ok(TestResult::new(p_value))
+    // Step 2 - calculate the count of ones in the block for each block
+    let count_of_ones = {
+        let mut vec = Vec::with_capacity(block_count);
+        vec.resize_with(block_count, || AtomicUsize::new(0));
+        vec.into_boxed_slice()
+    };
+
+    data.par_iter()
+        .enumerate()
+        .try_for_each(|(byte_idx, byte)| {
+            let block_idx = byte_idx / block_length_bytes;
+
+            let prev = count_of_ones[block_idx].fetch_add(byte.count_ones() as usize, Ordering::Relaxed);
+            if prev == usize::MAX {
+                Err(Error::Overflow("adding ones to a block count".to_owned()))
+            } else {
+                Ok(())
+            }
+        })?;
+
+    // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
+    // Step 3 - calculate half_chi
+    let half_chi = Box::into_iter(count_of_ones)
+        .map(|count_of_ones| {
+            let count_ones = count_of_ones.into_inner() as f64;
+            let pi = count_ones / (block_length_bits as f64);
+            (pi - 0.5).powi(2)
+        })
+        .sum::<f64>()
+        * 2.0
+        * (block_length_bits as f64);
+
+    check_f64(half_chi)?;
+
+    Ok(half_chi)
 }
 
 /// Choose a block length based on 2.2.7. Needs the amount of bytes (each byte contains 8 values)
