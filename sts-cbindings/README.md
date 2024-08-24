@@ -111,3 +111,6 @@ the script `generate-header.sh`. To use this script, you need a *nightly* Rust t
 ## How to use
 
 Once you have the library file, you can use it, along with the header file, just like a normal C library.
+
+If suing the static library, you may need to link `libm` (e.g. `gcc -lm`) on operating systems that
+split the maths library from the standard C library.
