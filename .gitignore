@@ -2,3 +2,5 @@
 /const-calculation-scripts/venv/
 /sts-pybindings/venv/
 /.idea/editor.xml
+/sts-cbindings/example/lib/
+/sts-cbindings/example/build/
