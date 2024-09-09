@@ -12,7 +12,7 @@ void print_last_error(void) {
     }
 
     char* buffer = malloc(sizeof(char) * length);
-    error_code = get_last_error(NULL, &length);
+    error_code = get_last_error(buffer, &length);
 
     printf("Error (Code %d): %s\n", error_code, buffer);
     free(buffer);
@@ -20,49 +20,37 @@ void print_last_error(void) {
 
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        printf("Usage: ./%s <filename>\n", argv[0]);
+    if (argc != 3) {
+        printf("Usage: %s <filename> <bit_count>\n", argv[0]);
         return 1;
     }
 
     // read the file
-    FILE* input = fopen(argv[1], "r");
+    FILE* input = fopen(argv[1], "rb");
 
     if (input == NULL) {
         printf("Error opening input file\n");
         return 1;
     }
 
-    // allocate 1024 bytes to begin with
-    size_t allocated_size = 1024;
-    uint8_t *input_data = malloc(sizeof(uint8_t) * allocated_size);
+    size_t bit_size = atoi(argv[2]);
+    // byte_size: if bytes are left over, 1 additional byte needs to be read
+    size_t byte_size = bit_size / 8 + (bit_size % 8 == 0 ? 0 : 1);
+    uint8_t *input_data = malloc(sizeof(uint8_t) * byte_size);
     if (input_data == NULL) {
         printf("Not enough memory\n");
         return 1;
     }
 
-    // read the file (bytewise, because thats easy, but not very efficient), expand the backing buffer if necessary.
-    size_t input_size = 0;
-
-    while (fread(&input_data[input_size], sizeof(uint8_t), 1, input)) {
-        input_size++;
-
-        if (input_size == allocated_size) {
-            allocated_size *= 2;
-            uint8_t *data = realloc(input_data, sizeof(uint8_t) * allocated_size);
-
-            if (data == NULL) {
-                printf("Not enough memory\n");
-                free(input_data);
-                return 1;
-            }
-
-            input_data = data;
-        }
+    size_t read_bytes = fread(input_data, sizeof(uint8_t), byte_size, input);
+    if (read_bytes != byte_size) {
+      printf("Failed to read input file, read only %zu bytes\n", read_bytes);
+      return 1;
     }
 
     // create a BitVec from the buffer
-    BitVec *data = bitvec_from_bytes(input_data, input_size);
+    BitVec *data = bitvec_from_bytes(input_data, byte_size);
+    bitvec_crop(data, bit_size);
     free(input_data);
     fclose(input);
 

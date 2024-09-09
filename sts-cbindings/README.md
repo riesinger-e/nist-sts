@@ -99,10 +99,10 @@ Afterward, you will have a dynamic and a static library in `<REPO_PATH>/target/r
 
 These are named as follows:
 
-|            | Linux       | macOS           | Windows (MinGW)  | Windows (MSVC)  |
-|------------|-------------|-----------------|------------------|-----------------|
-| dylib      | `libsts.so` | `libsts.dylib`  | `libsts.dll`     | `libsts.dll`    |
-| staticlib  | `libsts.a`  | `libsts.a`      | `libsts.a`       | `libsts.lib`    |
+|           | Linux       | macOS          | Windows (MinGW) | Windows (MSVC)            |
+|-----------|-------------|----------------|-----------------|---------------------------|
+| dylib     | `libsts.so` | `libsts.dylib` | `libsts.dll`    | `sts.dll` + `sts.dll.lib` |
+| staticlib | `libsts.a`  | `libsts.a`     | `libsts.a`      | `sts.lib`                 |
 
 If the public interface changed and you need to re-generate the header file, use
 the script `generate-header.sh`. To use this script, you need a *nightly* Rust toolchain and
@@ -114,3 +114,7 @@ Once you have the library file, you can use it, along with the header file, just
 
 If suing the static library, you may need to link `libm` (e.g. `gcc -lm`) on operating systems that
 split the maths library from the standard C library.
+
+When using *MSVC* on *Windows*, your application always needs to use the release run-time library (flags `/MD` or `/MT`)
+because Rust links to it. For more information on how to do that, see the 
+[Microsoft Docs](https://learn.microsoft.com/en-us/cpp/build/reference/md-mt-ld-use-run-time-library?view=msvc-170).

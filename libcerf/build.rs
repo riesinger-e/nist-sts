@@ -14,8 +14,6 @@ fn main() {
     // Build and link the library
     if target_triple.ends_with("msvc") {
         let libcerf_dst = cmake
-            // have to force static libraries
-            .static_crt(true)
             // have to force release build - Rust on MSVC always uses release runtime
             .profile("Release")
             .build();
