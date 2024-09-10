@@ -17,6 +17,7 @@
       <excludeFolder url="file://$MODULE_DIR$/const-calculation-scripts/venv" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/sts-pybindings/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/sts-cbindings/example/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

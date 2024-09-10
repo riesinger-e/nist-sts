@@ -4,9 +4,6 @@ use std::ffi::{c_char, c_int};
 use std::slice;
 use sts_lib::TestResult as InternalTestResult;
 
-/// The default threshold for determining if a test passes its criteria.
-pub const DEFAULT_THRESHOLD: f64 = 0.01;
-
 /// The result of a statistical test.
 #[derive(Copy, Clone)]
 pub struct TestResult(pub(crate) InternalTestResult);

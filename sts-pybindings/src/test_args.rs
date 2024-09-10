@@ -101,7 +101,7 @@ impl NonOverlappingTemplateTestArgs {
             }
             // use default value for missing argument
             (template_len, count_blocks) => {
-                let template_len = template_len.or(Some(template_matching::DEFAULT_TEMPLATE_LEN));
+                let template_len = template_len.or(Some(template_matching::DEFAULT_TEMPLATE_LENGTH));
                 let count_blocks = count_blocks.or(Some(
                     template_matching::non_overlapping::DEFAULT_BLOCK_COUNT,
                 ));

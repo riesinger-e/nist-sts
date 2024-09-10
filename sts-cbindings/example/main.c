@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     }
 
     // Print the test results for each test.
-    for (int i = 0; i < test_count(); i++) {
+    for (int i = 0; i < TEST_COUNT; i++) {
         size_t length = 0;
         TestResult **results = test_runner_get_result(runner, i, &length);
 

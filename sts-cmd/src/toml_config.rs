@@ -86,12 +86,12 @@ impl TryFrom<TomlTestArguments> for TestArgs {
         let non_overlapping_template = {
             if let Some(arg) = non_overlapping_template_matching {
                 use sts_lib::tests::template_matching::non_overlapping::DEFAULT_BLOCK_COUNT;
-                use sts_lib::tests::template_matching::DEFAULT_TEMPLATE_LEN;
+                use sts_lib::tests::template_matching::DEFAULT_TEMPLATE_LENGTH;
 
                 let template_length = arg
                     .template_length
                     .map(NonZero::get)
-                    .unwrap_or(DEFAULT_TEMPLATE_LEN);
+                    .unwrap_or(DEFAULT_TEMPLATE_LENGTH);
                 let count_blocks = arg
                     .count_blocks
                     .map(NonZero::get)

@@ -16,3 +16,6 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 sts-lib = { path = "../sts-lib" }
+
+[build-dependencies]
+sts-lib = { path = "../sts-lib" }

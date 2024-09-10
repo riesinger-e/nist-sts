@@ -5,6 +5,7 @@ pub mod test_args;
 pub mod test_result;
 pub mod test_runner;
 pub mod tests;
+pub mod constants;
 
 use crate::test_runner::test::RawTest;
 use std::cell::RefCell;

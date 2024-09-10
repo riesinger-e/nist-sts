@@ -89,7 +89,7 @@ impl<'a> NonOverlappingTemplateTestArgs<'a> {
 impl Default for NonOverlappingTemplateTestArgs<'static> {
     /// The default parameters are the ones recommended by NIST.
     fn default() -> Self {
-        Self::new_const::<{ super::DEFAULT_TEMPLATE_LEN }, DEFAULT_BLOCK_COUNT>()
+        Self::new_const::<{ super::DEFAULT_TEMPLATE_LENGTH }, DEFAULT_BLOCK_COUNT>()
     }
 }
 

@@ -121,14 +121,6 @@ pub extern "C" fn test_arg_non_overlapping_template_new(
         .map(|arg| Box::new(TestArgNonOverlappingTemplate(arg)))
 }
 
-// Sadly, these constants need to be defined manually to appear in the header file
-
-/// The default block count to use in the Non-overlapping Template Matching Test.
-pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_COUNT: usize = 8;
-
-/// The default template length to use in the Non-overlapping Template Matching Test.
-pub const NON_OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LEN: usize = 9;
-
 // overlapping template matching
 test_arg! {
     /// The arguments for the Overlapping Template Matching Test.
@@ -185,15 +177,6 @@ pub extern "C" fn test_arg_overlapping_template_new_nist_behaviour(
         .map(|arg| Box::new(TestArgOverlappingTemplate(arg)))
 }
 
-/// The default length of each block M, in bits, for use in the Overlapping Template Matching Test.
-pub const OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_LENGTH: usize = 1032;
-
-/// The default degree of freedom K for use in the Overlapping Template Matching Test.
-pub const OVERLAPPING_TEMPLATE_DEFAULT_FREEDOM: usize = 6;
-
-/// The default template length use in the Overlapping Template Matching Test.
-pub const OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH: usize = 9;
-
 // linear complexity test
 test_arg! {
     /// The argument for the Linear Complexity Test.
@@ -224,7 +207,7 @@ pub extern "C" fn test_arg_linear_complexity_new(
 ) -> Option<Box<TestArgLinearComplexity>> {
     if (500..=5000).contains(&block_length) {
         // non-zero was just checked
-        let arg = NonZero::new(block_length).unwrap();
+        let arg = NonZero::new(block_length)?;
         let arg = linear_complexity::LinearComplexityTestArg::ManualBlockLength(arg);
         Some(Box::new(TestArgLinearComplexity(arg)))
     } else {

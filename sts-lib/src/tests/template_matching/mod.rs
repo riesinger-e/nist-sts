@@ -12,7 +12,7 @@ use std::io::BufReader;
 use std::sync::LazyLock;
 
 /// The default template length. For use in [TemplateArg].
-pub const DEFAULT_TEMPLATE_LEN: usize = 9;
+pub const DEFAULT_TEMPLATE_LENGTH: usize = 9;
 
 /// This argument contains the template to use.
 ///
@@ -170,7 +170,7 @@ impl<'a> TemplateArg<'a> {
 impl Default for TemplateArg<'static> {
     /// The default parameters are the ones recommended by NIST.
     fn default() -> Self {
-        Self::new_const::<DEFAULT_TEMPLATE_LEN>()
+        Self::new_const::<DEFAULT_TEMPLATE_LENGTH>()
     }
 }
 

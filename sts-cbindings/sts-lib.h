@@ -8,16 +8,6 @@
 #include <stdlib.h>
 
 /**
- * The default block count to use in the Non-overlapping Template Matching Test.
- */
-#define NON_OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_COUNT 8
-
-/**
- * The default template length to use in the Non-overlapping Template Matching Test.
- */
-#define NON_OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LEN 9
-
-/**
  * The default length of each block M, in bits, for use in the Overlapping Template Matching Test.
  */
 #define OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_LENGTH 1032
@@ -33,9 +23,24 @@
 #define OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH 9
 
 /**
+ * The default block count to use in the Non-overlapping Template Matching Test.
+ */
+#define NON_OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_COUNT 8
+
+/**
+ * The default template length to use in the Non-overlapping Template Matching Test.
+ */
+#define NON_OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH 9
+
+/**
  * The default threshold for determining if a test passes its criteria.
  */
 #define DEFAULT_THRESHOLD 0.01
+
+/**
+ * The count of tests. The first test has a numerical value of 0 and the last test of test_count - 1
+ */
+#define TEST_COUNT 15
 
 /**
  * The error codes that are returned by some fallible functions.
@@ -351,6 +356,11 @@ BitVec *bitvec_from_str_with_max_length(const char *ptr, size_t max_length);
 /**
  * Creates a BitVec from a byte array, where each byte is filled with 8 bits.
  *
+ * ## Parameters
+ *
+ * * `ptr`: pointer to the byte buffer
+ * * `len`: count of bytes (elements)
+ *
  * ## Safety
  *
  * * The memory pointed to by `ptr` must be valid for reads of up to `len` bytes.
@@ -362,6 +372,11 @@ BitVec *bitvec_from_bytes(const uint8_t *ptr, size_t len);
 
 /**
  * Creates a BitVec from a bool array, with each bool representing one bit.
+ *
+ * ## Parameters
+ *
+ * * `ptr`: pointer to the bit buffer
+ * * `len`: count of bits (elements)
  *
  * ## Safety
  *
@@ -859,12 +874,6 @@ int test_runner_run_tests(TestRunner *runner,
                           const Test *tests,
                           size_t tests_len,
                           const RunnerTestArgs *test_args);
-
-/**
- * Return the count of tests. The first test has a numerical value of 0 and the last test of
- * test_count - 1
- */
-size_t test_count(void);
 
 /**
  * Create new [RunnerTestArgs], prefilled with sane defaults.
