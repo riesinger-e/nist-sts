@@ -11,6 +11,7 @@ use crate::internals::{check_f64, erfc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use std::f64::consts::SQRT_2;
 use std::num::NonZero;
+use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test.
 pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
@@ -41,6 +42,7 @@ const VARIANCES: [f64; 16] = [
 /// Maurers "Universal Statistical" Test  - No. 9
 ///
 /// See also the [module docs](crate::tests::maurers_universal_statistical).
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 0: calculate which block length L is fitting and the other inputs based on that
     let data_len = data.len_bit();

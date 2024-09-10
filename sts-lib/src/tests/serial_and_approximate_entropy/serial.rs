@@ -20,6 +20,7 @@ use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
+use sts_lib_derive::use_thread_pool;
 use crate::tests::serial_and_approximate_entropy::{access_bits, validate_test_arg};
 
 // calculation: minimum block length = 2
@@ -74,6 +75,7 @@ impl Default for SerialTestArg {
 /// If the combination of the given data ([BitVec]) and [SerialTestArg] is invalid,
 /// [Error::InvalidParameter] is raised. For the exact constraints, see [SerialTestArg].
 //noinspection DuplicatedCode
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn serial_test(data: &BitVec, SerialTestArg(block_length): SerialTestArg) -> Result<[TestResult; 2], Error> {
     // only check the argument when not testing
     #[cfg(not(test))]

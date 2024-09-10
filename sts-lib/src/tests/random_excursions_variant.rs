@@ -13,6 +13,7 @@
 //! The input length must be at least 10^6 bits, otherwise, an error is returned.
 
 use std::num::NonZero;
+use sts_lib_derive::use_thread_pool;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, erfc};
 use crate::{Error, TestResult, BYTE_SIZE};
@@ -29,6 +30,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 ///
 /// See the [module docs](crate::tests::random_excursions_variant).
 /// If the given [BitVec] contains fewer than 10^6 bits, [Error::InvalidParameter] is returned.
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18], Error> {
     #[cfg(not(test))]
     {

@@ -3,6 +3,7 @@ members = [
     "const-calculation-scripts/scripts",
     "libcerf",
     "sts-lib",
+    "sts-lib/sts-lib-derive",
     "sts-cbindings",
     "sts-pybindings",
     "sts-cmd",

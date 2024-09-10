@@ -16,6 +16,7 @@ use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
+use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
 pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
@@ -54,6 +55,7 @@ const PROBABILITIES_10_4: [f64; 7] = [
 /// Test for the longest run of ones in a block - No. 4
 ///
 /// See the [module docs](crate::tests::longest_run_of_ones)
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 0: determine the block length and the block count, based on 2.4.2.
     // Also determine the values bucket_count (= K + 1) and n, as given 2.4.4

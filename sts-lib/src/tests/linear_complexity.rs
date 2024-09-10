@@ -16,6 +16,7 @@ use std::cmp::Ordering;
 use std::num::NonZero;
 use crate::bitvec::BitVec;
 use rayon::prelude::*;
+use sts_lib_derive::use_thread_pool;
 use crate::internals::{check_f64, igamc};
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
@@ -60,6 +61,7 @@ pub enum LinearComplexityTestArg {
 /// The linear complexity test - No. 10
 ///
 /// See also the [module docs](crate::tests::linear_complexity).
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn linear_complexity_test(data: &BitVec, arg: LinearComplexityTestArg) -> Result<TestResult, Error> {
     // Step 0: validate input arguments
     if data.len_bit() < 1_000_000 {

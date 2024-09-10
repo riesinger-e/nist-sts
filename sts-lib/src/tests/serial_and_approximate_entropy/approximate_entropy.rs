@@ -18,6 +18,7 @@ use rayon::prelude::*;
 use std::f64::consts::LN_2;
 use std::num::NonZero;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use sts_lib_derive::use_thread_pool;
 
 // calculation: minimum block length = 2
 // Following relation must be true:
@@ -70,6 +71,7 @@ impl Default for ApproximateEntropyTestArg {
 /// If the combination of the given data ([BitVec]) and [ApproximateEntropyTestArg] is invalid,
 /// [Error::InvalidParameter] is raised. For the exact constraints, see [ApproximateEntropyTestArg].
 //noinspection DuplicatedCode
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn approximate_entropy_test(
     data: &BitVec,
     ApproximateEntropyTestArg(block_length): ApproximateEntropyTestArg,

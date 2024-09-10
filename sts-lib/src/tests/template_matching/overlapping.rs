@@ -31,6 +31,7 @@ use std::collections::HashMap;
 use std::num::NonZero;
 use std::sync::{LazyLock, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use sts_lib_derive::use_thread_pool;
 
 // calculation: min template length (2) * min block length (4)
 /// The minimum input length, in bits, for this test.
@@ -126,6 +127,7 @@ impl Default for OverlappingTemplateTestArgs {
 /// This test is quite slow in debug mode when using the more precise pi values, taking several
 /// seconds - it runs good when using release mode.
 /// For better performance, values that are calculated once are cached.
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn overlapping_template_matching_test(
     data: &BitVec,
     arg: OverlappingTemplateTestArgs,

@@ -39,7 +39,7 @@ pub(crate) static RAYON_THREAD_COUNT: OnceLock<usize> = OnceLock::new();
 pub(crate) static THREAD_POOL: LazyLock<ThreadPool> = LazyLock::new(|| {
     let num_threads = *RAYON_THREAD_COUNT
         .get_or_init(num_cpus::get_physical);
-    
+
     ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .thread_name(|idx| format!("sts-{idx}"))

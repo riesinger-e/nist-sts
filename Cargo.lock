@@ -973,7 +973,16 @@ dependencies = [
  "rustfft",
  "statrs",
  "strum",
+ "sts-lib-derive",
  "thiserror",
+]
+
+[[package]]
+name = "sts-lib-derive"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]

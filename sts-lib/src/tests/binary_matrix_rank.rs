@@ -14,6 +14,7 @@ use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult, BYTE_SIZE};
 use rayon::prelude::*;
+use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
 pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
@@ -35,6 +36,7 @@ const PROBABILITIES: [f64; 3] = [0.2887880951538411, 0.5775761901732046, 0.12835
 /// Binary matrix rank test - No. 5.
 ///
 /// See also the [module docs](crate::tests::binary_matrix_rank).
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
     if data.len_bit() < 38_912 {
         return Ok(TestResult::new_with_comment(

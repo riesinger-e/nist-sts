@@ -14,6 +14,7 @@ use std::sync::{Mutex, LazyLock};
 use crate::internals::{check_f64, erfc};
 use std::f64::consts::FRAC_1_SQRT_2;
 use std::num::NonZero;
+use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
 pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
@@ -30,6 +31,7 @@ static FFT_PLANNER: LazyLock<Mutex<FftPlanner<f32>>> = LazyLock::new(|| Mutex::n
 ///
 /// See the [module docs](crate::tests::spectral_dft).
 /// If an error happens, it means either arithmetic underflow or overflow.
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: convert the input bit sequence to a sequence of -1 and +1 (x)
     // This is done in parallel. f32 is used for better performance with such large lists.

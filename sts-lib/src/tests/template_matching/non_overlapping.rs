@@ -8,7 +8,7 @@
 use std::num::NonZero;
 
 use rayon::prelude::*;
-
+use sts_lib_derive::use_thread_pool;
 use crate::{Error, TestResult, BYTE_SIZE};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
@@ -96,6 +96,7 @@ impl Default for NonOverlappingTemplateTestArgs<'static> {
 /// Non-overlapping template match test - No. 7
 ///
 /// See the [module docs](crate::tests::template_matching::non_overlapping)
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn non_overlapping_template_matching_test(
     data: &BitVec,
     test_arg: NonOverlappingTemplateTestArgs,

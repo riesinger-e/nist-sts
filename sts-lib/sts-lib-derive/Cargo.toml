@@ -1,0 +1,17 @@
+[package]
+name = "sts-lib-derive"
+version = "0.1.0"
+edition = "2021"
+authors = ["Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>"]
+rust-version = "1.81"
+description = "Helper proc macros for sts-lib"
+readme = false
+repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
+license = "MIT"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"

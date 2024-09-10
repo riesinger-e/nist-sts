@@ -8,6 +8,7 @@ use std::num::NonZero;
 use crate::bitvec::BitVec;
 use crate::{BYTE_SIZE, Error, TestResult};
 use rayon::prelude::*;
+use sts_lib_derive::use_thread_pool;
 use crate::internals::{check_f64, erfc};
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
@@ -22,6 +23,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 ///
 /// See the [module docs](crate::tests::runs).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: calculate pi = count of ones / length of data
     let count_ones = data.data.par_iter()

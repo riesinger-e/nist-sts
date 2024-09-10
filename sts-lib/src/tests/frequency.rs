@@ -9,6 +9,7 @@ use crate::{TestResult, Error};
 use rayon::prelude::*;
 use std::f64::consts::FRAC_1_SQRT_2;
 use std::num::NonZero;
+use sts_lib_derive::use_thread_pool;
 use crate::bitvec::BitVec;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
@@ -23,6 +24,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 /// 
 /// See the [module docs](crate::tests::frequency).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
+#[use_thread_pool(crate::internals::THREAD_POOL)]
 pub fn frequency_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: convert 0 values to -1 and calculate the sum of all bits.
     // This operation is done in parallel.

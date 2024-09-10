@@ -3,7 +3,7 @@ name = "sts-lib"
 version = "0.1.0"
 edition = "2021"
 authors = ["Elias Riesinger <elias.riesinger@students.fh-hagenberg.at>"]
-rust-version = "1.80"
+rust-version = "1.81"
 description = "An implementation of the NIST STS - rust library"
 readme = true
 repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
@@ -19,3 +19,4 @@ rustfft = "6.2.0"
 statrs = "0.17.1"
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.61"
+sts-lib-derive = { path = "./sts-lib-derive" }
