@@ -1,5 +1,7 @@
 //! Internal functions that are used by tests - can be changed anytime
 
+use std::sync::{LazyLock, OnceLock};
+use rayon::{ThreadPool, ThreadPoolBuilder};
 use libcerf::erfcx;
 
 use crate::Error;
@@ -28,3 +30,19 @@ pub(crate) fn check_f64(value: f64) -> Result<(), Error> {
         Ok(())
     }
 }
+
+/// The number of threads to use in multithreading. Defaults to the number of physical CPUs, which
+/// is better for CPU-bound tasks. Note: use [crate::set_max_threads] to set this variable.
+pub(crate) static RAYON_THREAD_COUNT: OnceLock<usize> = OnceLock::new();
+
+/// The threadpool itself, lazily initialized on first use.
+pub(crate) static THREAD_POOL: LazyLock<ThreadPool> = LazyLock::new(|| {
+    let num_threads = *RAYON_THREAD_COUNT
+        .get_or_init(num_cpus::get_physical);
+    
+    ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .thread_name(|idx| format!("sts-{idx}"))
+        .build()
+        .expect("Could not build STS library thread pool. This should never happen!")
+});

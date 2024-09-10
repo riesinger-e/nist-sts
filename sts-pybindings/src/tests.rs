@@ -356,7 +356,6 @@ pub fn cumulative_sums_test(data: &BitVec) -> PyResult<(TestResult, TestResult)>
 ///
 /// Exceptions of type `TestError` may happen.
 #[pyfunction]
-#[allow(clippy::type_complexity)]
 pub fn random_excursions_test(
     data: &BitVec,
 ) -> PyResult<TestResultLen8> {
@@ -389,7 +388,6 @@ pub fn random_excursions_test(
 ///
 /// Exceptions of type `TestError` may happen.
 #[pyfunction]
-#[allow(clippy::type_complexity)]
 pub fn random_excursions_variant_test(
     data: &BitVec,
 ) -> PyResult<TestResultLen18> {

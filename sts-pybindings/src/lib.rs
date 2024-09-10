@@ -5,19 +5,35 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 
 pub mod bitvec;
-pub mod tests;
 pub mod test_args;
 pub mod test_runner;
+pub mod tests;
 
-create_exception!(nist_sts, TestError, PyException, "A statistical test failed.");
-create_exception!(nist_sts, RunnerError, PyException, "A problem with the runner itself, and not with the tests it runs.");
+create_exception!(
+    nist_sts,
+    TestError,
+    PyException,
+    "A statistical test failed."
+);
+create_exception!(
+    nist_sts,
+    RunnerError,
+    PyException,
+    "A problem with the runner itself, and not with the tests it runs."
+);
+create_exception!(
+    nist_sts,
+    StsError,
+    PyException,
+    "The library was used very wrong."
+);
 
 #[pymodule]
 pub mod nist_sts {
-    use pyo3::exceptions::PyResourceWarning;
+    use super::{RunnerError, StsError, TestError};
     use pyo3::prelude::*;
     use pyo3::PyResult;
-    use super::{TestError, RunnerError};
+    use std::num::NonZero;
 
     // re-exports of the BitVec and TestRunner
     #[pymodule_export]
@@ -30,6 +46,7 @@ pub mod nist_sts {
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m.add("TestError", m.py().get_type_bound::<TestError>())?;
         m.add("RunnerError", m.py().get_type_bound::<RunnerError>())?;
+        m.add("LibError", m.py().get_type_bound::<StsError>())?;
         Ok(())
     }
 
@@ -63,7 +80,11 @@ pub mod nist_sts {
         // String representation
         pub fn __repr__(&self) -> String {
             if let Some(comment) = self.0.comment() {
-                format!("TestResult(p_value = {}, comment = \"{}\")", self.0.p_value(), comment)
+                format!(
+                    "TestResult(p_value = {}, comment = \"{}\")",
+                    self.0.p_value(),
+                    comment
+                )
             } else {
                 format!("TestResult(p_value = {})", self.0.p_value())
             }
@@ -81,8 +102,10 @@ pub mod nist_sts {
     /// If called multiple times or after the first test, an error will be raised.
     #[pyfunction]
     pub fn set_max_threads(max_threads: usize) -> PyResult<()> {
+        let max_threads =
+            NonZero::new(max_threads).ok_or(StsError::new_err("0 is not a valid thread count"))?;
         sts_lib::set_max_threads(max_threads)
-            .map_err(|e| PyResourceWarning::new_err(format!("Function was already used: {e}")))
+            .map_err(|e| StsError::new_err(format!("Function was already used: {e}")))
     }
 
     #[pyfunction]
@@ -125,7 +148,7 @@ pub mod nist_sts {
         /// See [tests::random_excursions_variant_test]
         RandomExcursionsVariant,
     }
-    
+
     impl From<sts_lib::Test> for Test {
         fn from(value: sts_lib::Test) -> Self {
             match value {
@@ -135,7 +158,9 @@ pub mod nist_sts {
                 sts_lib::Test::LongestRunOfOnes => Test::LongestRunOfOnes,
                 sts_lib::Test::BinaryMatrixRank => Test::BinaryMatrixRank,
                 sts_lib::Test::SpectralDft => Test::SpectralDft,
-                sts_lib::Test::NonOverlappingTemplateMatching => Test::NonOverlappingTemplateMatching,
+                sts_lib::Test::NonOverlappingTemplateMatching => {
+                    Test::NonOverlappingTemplateMatching
+                }
                 sts_lib::Test::OverlappingTemplateMatching => Test::OverlappingTemplateMatching,
                 sts_lib::Test::MaurersUniversalStatistical => Test::MaurersUniversalStatistical,
                 sts_lib::Test::LinearComplexity => Test::LinearComplexity,
@@ -147,7 +172,7 @@ pub mod nist_sts {
             }
         }
     }
-    
+
     impl From<Test> for sts_lib::Test {
         fn from(value: Test) -> Self {
             match value {
@@ -157,7 +182,9 @@ pub mod nist_sts {
                 Test::LongestRunOfOnes => sts_lib::Test::LongestRunOfOnes,
                 Test::BinaryMatrixRank => sts_lib::Test::BinaryMatrixRank,
                 Test::SpectralDft => sts_lib::Test::SpectralDft,
-                Test::NonOverlappingTemplateMatching => sts_lib::Test::NonOverlappingTemplateMatching,
+                Test::NonOverlappingTemplateMatching => {
+                    sts_lib::Test::NonOverlappingTemplateMatching
+                }
                 Test::OverlappingTemplateMatching => sts_lib::Test::OverlappingTemplateMatching,
                 Test::MaurersUniversalStatistical => sts_lib::Test::MaurersUniversalStatistical,
                 Test::LinearComplexity => sts_lib::Test::LinearComplexity,
@@ -181,7 +208,7 @@ pub mod nist_sts {
             self.__repr__()
         }
     }
-    
+
     #[pymodule]
     pub mod tests {
         /// The functions for calling the tests directly.

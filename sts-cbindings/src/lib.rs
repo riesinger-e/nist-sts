@@ -1,15 +1,16 @@
 #![doc = include_str!("../README.md")]
 
 pub mod bitvec;
+pub mod constants;
 pub mod test_args;
 pub mod test_result;
 pub mod test_runner;
 pub mod tests;
-pub mod constants;
 
 use crate::test_runner::test::RawTest;
 use std::cell::RefCell;
 use std::ffi::{c_char, c_int};
+use std::num::NonZero;
 use std::slice;
 use sts_lib::test_runner::RunnerError;
 
@@ -91,18 +92,25 @@ pub unsafe extern "C" fn get_last_error(ptr: *mut c_char, len: &mut usize) -> c_
 ///
 /// If called multiple times or after the first test, an error will be returned.
 ///
-/// Since this library uses [rayon](https://docs.rs/rayon/latest/rayon/index.html), this function
-/// effectively calls
-/// [ThreadPoolBuilder::num_threads](https://docs.rs/rayon/latest/rayon/struct.ThreadPoolBuilder.html#method.num_threads).
-/// If you use rayon in the calling code, no rayon workload may have been run before calling this
-/// function.
-///
 /// ## Return values
 ///
 /// * 0: the call worked.
 /// * 1: an error happened - use [get_last_error]
 #[no_mangle]
 pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
+    let max_threads = match NonZero::new(max_threads) {
+        Some(max_threads) => max_threads,
+        None => {
+            LAST_ERROR.with_borrow_mut(|err| {
+                *err = (
+                    ErrorCode::SetMaxThreads,
+                    "0 is not a valid thread count".to_owned(),
+                )
+            });
+            return 1;
+        }
+    };
+
     match sts_lib::set_max_threads(max_threads) {
         Ok(()) => 0,
         Err(e) => {
@@ -171,7 +179,9 @@ fn set_last_from_error(error: sts_lib::Error) {
         e @ sts_lib::Error::Overflow(_) => (ErrorCode::Overflow, e.to_string()),
         e @ sts_lib::Error::NaN => (ErrorCode::NaN, e.to_string()),
         e @ sts_lib::Error::Infinite => (ErrorCode::Infinite, e.to_string()),
-        e @ sts_lib::Error::GammaFunctionFailed(_) => (ErrorCode::GammaFunctionFailed, e.to_string()),
+        e @ sts_lib::Error::GammaFunctionFailed(_) => {
+            (ErrorCode::GammaFunctionFailed, e.to_string())
+        }
         e @ sts_lib::Error::InvalidParameter(_) => (ErrorCode::InvalidParameter, e.to_string()),
     };
 

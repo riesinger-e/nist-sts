@@ -1,9 +1,9 @@
 //! Everything needed to store the data to test.
 
 use crate::BYTE_SIZE;
-use rayon::prelude::*;
 use std::ffi::c_char;
 use std::mem;
+use crate::internals::THREAD_POOL;
 
 /// A list of bits, tightly packed - used in all tests
 #[derive(Clone, Debug)]
@@ -54,42 +54,47 @@ impl BitVec {
     ///
     /// This function runs in parallel.
     pub fn from_ascii_str(value: &str) -> Option<Self> {
-        // split into byte sized chunks and convert
-        let byte_chunks = value.as_bytes().par_chunks_exact(BYTE_SIZE);
+        THREAD_POOL.install(|| {
+            use rayon::iter::ParallelIterator;
+            use rayon::slice::ParallelSlice;
+            
+            // split into byte sized chunks and convert
+            let byte_chunks = value.as_bytes().par_chunks_exact(BYTE_SIZE);
 
-        // the remainder: smaller than 1 byte
-        let remainder = byte_chunks
-            .remainder()
-            .iter()
-            .map(|&bit| {
-                if bit == b'0' {
-                    Some(false)
-                } else if bit == b'1' {
-                    Some(true)
-                } else {
-                    None
-                }
-            })
-            .collect::<Option<_>>()?;
-
-        let data = byte_chunks
-            .map(|chunk| {
-                // [0] = MSB
-                // [7] = LSB
-                (0..BYTE_SIZE).try_fold(0u8, |byte, i| {
-                    if chunk[i] == b'1' {
-                        Some(byte | (1 << (BYTE_SIZE - i - 1)))
-                    } else if chunk[i] == b'0' {
-                        // no need to change the byte itself
-                        Some(byte)
+            // the remainder: smaller than 1 byte
+            let remainder = byte_chunks
+                .remainder()
+                .iter()
+                .map(|&bit| {
+                    if bit == b'0' {
+                        Some(false)
+                    } else if bit == b'1' {
+                        Some(true)
                     } else {
                         None
                     }
                 })
-            })
-            .collect::<Option<_>>()?;
+                .collect::<Option<_>>()?;
 
-        Some(Self { data, remainder })
+            let data = byte_chunks
+                .map(|chunk| {
+                    // [0] = MSB
+                    // [7] = LSB
+                    (0..BYTE_SIZE).try_fold(0u8, |byte, i| {
+                        if chunk[i] == b'1' {
+                            Some(byte | (1 << (BYTE_SIZE - i - 1)))
+                        } else if chunk[i] == b'0' {
+                            // no need to change the byte itself
+                            Some(byte)
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .collect::<Option<_>>()?;
+
+            Some(Self { data, remainder })
+        })
     }
 
     /// Creates a [BitVec] from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
@@ -348,28 +353,33 @@ impl From<Vec<bool>> for BitVec {
 impl<'a> From<&'a [bool]> for BitVec {
     /// Creates a [BitVec] from a slice of booleans, each boolean representing one bit.
     fn from(value: &'a [bool]) -> Self {
-        // split into byte sized chunks and convert
-        let byte_chunks = value.par_chunks_exact(BYTE_SIZE);
+        THREAD_POOL.install(|| {
+            use rayon::iter::ParallelIterator;
+            use rayon::slice::ParallelSlice;
+            
+            // split into byte sized chunks and convert
+            let byte_chunks = value.par_chunks_exact(BYTE_SIZE);
 
-        // the remainder: smaller than 1 byte
-        let remainder = byte_chunks.remainder().into();
+            // the remainder: smaller than 1 byte
+            let remainder = byte_chunks.remainder().into();
 
-        let data = byte_chunks
-            .map(|chunk| {
-                // [0] = MSB
-                // [7] = LSB
-                (0..BYTE_SIZE).fold(0u8, |byte, i| {
-                    byte | ((chunk[i] as u8) << (BYTE_SIZE - i - 1))
+            let data = byte_chunks
+                .map(|chunk| {
+                    // [0] = MSB
+                    // [7] = LSB
+                    (0..BYTE_SIZE).fold(0u8, |byte, i| {
+                        byte | ((chunk[i] as u8) << (BYTE_SIZE - i - 1))
+                    })
                 })
-            })
-            .collect();
+                .collect();
 
-        Self { data, remainder }
+            Self { data, remainder }
+        })
     }
 }
 
 impl AsRef<BitVec> for BitVec {
     fn as_ref(&self) -> &BitVec {
-        &self
+        self
     }
 }

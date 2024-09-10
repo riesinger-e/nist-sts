@@ -290,7 +290,7 @@ fn calculate_matrix_indices(row: usize, col: usize) -> Result<(usize, usize), Er
 /// This constant functions acts as a compile-time guard if called in a const context,
 /// panicking if M is not byte-aligned.
 //noinspection RsAssertEqual
-#[allow(clippy::assertions_on_constants)]
+#[expect(clippy::assertions_on_constants)]
 const fn matrix_guard() {
     // This is a compile-time guard - it checks the alignment on compile time if the function is used.
     assert!(M % BYTE_SIZE == 0, "Matrix has to be byte-aligned!");

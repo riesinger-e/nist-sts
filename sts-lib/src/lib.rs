@@ -8,8 +8,8 @@ use crate::tests::template_matching::non_overlapping::NonOverlappingTemplateTest
 use crate::tests::template_matching::overlapping::OverlappingTemplateTestArgs;
 use strum::{Display, EnumIter};
 use thiserror::Error;
-use rayon::ThreadPoolBuilder;
 use crate::tests::approximate_entropy::ApproximateEntropyTestArg;
+use crate::internals::RAYON_THREAD_COUNT;
 
 // Trait must be public for enum iter to work.
 pub use strum::IntoEnumIterator;
@@ -157,19 +157,16 @@ pub enum Error {
 /// Sets the maximum of threads to be used by the tests. These method can only be called ONCE and only
 /// BEFORE a test is started. If not used, a sane default will be chosen.
 ///
-/// If called multiple times or after the first test, an error will be returned.
-///
-/// Since this library uses [rayon](https://docs.rs/rayon/latest/rayon/index.html), this function
-/// effectively calls
-/// [ThreadPoolBuilder::num_threads](https://docs.rs/rayon/latest/rayon/struct.ThreadPoolBuilder.html#method.num_threads).
-/// If you use rayon in the calling code, no rayon workload may have been run before calling this
-/// function.
-pub fn set_max_threads(max_threads: usize) -> Result<(), Box<impl std::error::Error + Send + Sync + 'static>> {
-    ThreadPoolBuilder::new()
-        .num_threads(max_threads)
-        .build_global()
-        .map_err(Box::new)
+/// If this is called multiple times or after the thread pool was already used (i.e. a test was run), 
+/// an error will be returned.
+pub fn set_max_threads(max_threads: NonZero<usize>) -> Result<(), MaxThreadsSetError> {
+    RAYON_THREAD_COUNT.set(max_threads.get()).map_err(|_| MaxThreadsSetError)
 }
+
+/// Error type for [set_max_threads]
+#[derive(Debug, Error)]
+#[error("Could not set the maximum count of threads. Reason: multiple calls to fn / threadpool already used.")]
+pub struct MaxThreadsSetError;
 
 /// Returns the minimum input length, in bits, for the specified test.
 pub fn get_min_length_for_test(test: Test) -> NonZero<usize> {

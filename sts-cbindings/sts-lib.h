@@ -303,12 +303,6 @@ int get_last_error(char *ptr,
  *
  * If called multiple times or after the first test, an error will be returned.
  *
- * Since this library uses [rayon](https://docs.rs/rayon/latest/rayon/index.html), this function
- * effectively calls
- * [ThreadPoolBuilder::num_threads](https://docs.rs/rayon/latest/rayon/struct.ThreadPoolBuilder.html#method.num_threads).
- * If you use rayon in the calling code, no rayon workload may have been run before calling this
- * function.
- *
  * ## Return values
  *
  * * 0: the call worked.

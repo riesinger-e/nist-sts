@@ -13,5 +13,5 @@ links = "cerf-wrapper"
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.69.4"
+bindgen = "0.70.1"
 cmake = "0.1.50"

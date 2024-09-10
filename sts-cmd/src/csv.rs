@@ -1,6 +1,6 @@
 //! Everything needed to save CSV results.
 
-use std::error::Error;
+use core::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs::{File};
 use std::path::Path;

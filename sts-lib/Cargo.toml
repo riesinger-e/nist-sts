@@ -13,6 +13,7 @@ license = "MIT"
 bigdecimal = "0.4.5"
 libcerf = { path = "../libcerf" }
 lzma-rs = "0.3.0"
+num_cpus = "1.16.0"
 rayon = "1.10.0"
 rustfft = "6.2.0"
 statrs = "0.17.1"
