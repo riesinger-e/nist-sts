@@ -24,7 +24,7 @@ use crate::tests::template_matching::overlapping::{
 };
 use crate::tests::template_matching::TemplateArg;
 use crate::DEFAULT_THRESHOLD;
-use crate::{Error, BYTE_SIZE};
+use crate::{Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
@@ -157,9 +157,6 @@ fn test_binary_matrix_rank_test() {
     let mut bitvec = BitVec::from(data);
     bitvec.crop(length);
     assert_eq!(bitvec.len_bit(), length);
-    assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
-    assert!(bitvec.remainder.is_empty());
-
     // run the test
     let output = binary_matrix_rank_test(&bitvec);
     result_checker(&output);
@@ -288,8 +285,6 @@ fn test_overlapping_template_matching_test() {
     let data = fs::read(file_path).unwrap();
     let bitvec = BitVec::from(data);
     assert_eq!(bitvec.len_bit(), length);
-    assert_eq!(bitvec.data.len(), length / BYTE_SIZE);
-    assert!(bitvec.remainder.is_empty());
 
     // create the custom template
     let arg = OverlappingTemplateTestArgs::new_nist_behaviour(9).unwrap();

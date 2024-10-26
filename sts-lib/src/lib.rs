@@ -27,9 +27,6 @@ pub mod tests;
 
 // shared data structures
 
-/// How many bits a byte has
-const BYTE_SIZE: usize = 8;
-
 /// The default threshold to determine if a test passed, use [TestResult::passed].
 pub const DEFAULT_THRESHOLD: f64 = 0.01;
 
