@@ -18,14 +18,15 @@
 //! deviate from the NIST reference implementation. In testing, the observed deviation was not too
 //! big.
 
-use std::num::NonZero;
-use sts_lib_derive::use_thread_pool;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
-use crate::{Error, TestResult, BYTE_SIZE};
+use crate::{Error, TestResult};
+use std::num::NonZero;
+use std::ops::Range;
+use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(1_000_000) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -67,38 +68,27 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
     let mut last_index = 0;
     let mut prev: i64 = 0;
 
-    for &byte in &data.data {
-        (0..BYTE_SIZE)
-            .rev()
-            .map(|shift| 1 << shift)
-            .for_each(|mask| {
-                if byte & mask != 0 {
-                    prev += 1
-                } else {
-                    prev -= 1
-                }
+    let (words, last_word) = data.as_full_slice();
 
-                // increment counter for state occurrences per cycle
-                if set_state(&mut states_per_cycle[last_index], prev) {
-                    states_per_cycle.push(Default::default());
-                    last_index += 1;
-                }
-            });
+    for &word in words {
+        handle_word(
+            word,
+            0..usize::BITS,
+            &mut prev,
+            &mut last_index,
+            &mut states_per_cycle,
+        );
     }
 
-    for &bit in &data.remainder {
-        // set the previous value to the current value.
-        if bit {
-            prev += 1;
-        } else {
-            prev -= 1;
-        }
-
-        // increment counter for state occurrences per cycle
-        if set_state(&mut states_per_cycle[last_index], prev) {
-            states_per_cycle.push(Default::default());
-            last_index += 1;
-        }
+    if let Some(word) = last_word {
+        let bits = 0..(data.bit_count_last_word as u32);
+        handle_word(
+            word,
+            bits,
+            &mut prev,
+            &mut last_index,
+            &mut states_per_cycle,
+        );
     }
 
     let num_cycles = states_per_cycle.len();
@@ -146,7 +136,6 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
         TestResult::new_with_comment(0.0, "x = +2"),
         TestResult::new_with_comment(0.0, "x = +3"),
         TestResult::new_with_comment(0.0, "x = +4"),
-
     ];
     chis.into_iter()
         .enumerate()
@@ -159,6 +148,31 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
         })?;
 
     Ok(p_values)
+}
+
+/// Handle step 1 to 5 for one word, with a specified bit range
+fn handle_word(
+    word: usize,
+    bits: Range<u32>,
+    prev: &mut i64,
+    last_index: &mut usize,
+    states: &mut Vec<[u8; 8]>,
+) {
+    bits.map(|bit| usize::BITS - bit - 1)
+        .map(|shift| 1 << shift)
+        .for_each(|mask| {
+            if word & mask != 0 {
+                *prev += 1
+            } else {
+                *prev -= 1
+            }
+
+            // increment counter for state occurrences per cycle
+            if set_state(&mut states[*last_index], *prev) {
+                states.push(Default::default());
+                *last_index += 1;
+            }
+        });
 }
 
 /// Sets the state of the current cycle based on the current cumulative sum.

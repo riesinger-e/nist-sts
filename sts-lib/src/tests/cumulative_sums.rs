@@ -9,11 +9,12 @@
 //! [Error::InvalidParameter].
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64};
-use crate::{Error, TestResult, BYTE_SIZE};
+use crate::internals::check_f64;
+use crate::{Error, TestResult};
 use statrs::distribution;
 use statrs::distribution::ContinuousCDF;
 use std::num::NonZero;
+use std::ops::Range;
 use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
@@ -46,19 +47,36 @@ pub fn cumulative_sums_test(data: &BitVec) -> Result<[TestResult; 2], Error> {
 /// Internal implementation of the cumulative sum test. Assumes that all constraints are met.
 /// pub(crate) to allow for tests.
 pub(crate) fn cusum_test_internal(data: &BitVec, mode: bool) -> Result<TestResult, Error> {
+    // create a range iterator if the last value needs to be handled differently (not a full word).
+    // range iterator goes from LSB to MSB by default (reverse order).
+    let (full_words, last_word) = data.as_full_slice();
+    let last_word = last_word.map(|w| (w, 0..(data.bit_count_last_word as usize)));
+
     // Step 1: form a normalized sequence: 1 -> 1, 0 -> -1
     // Step 2: compute partial sums of subsequences of the original sequence, each starting with
     // [0] (if mode == false) or [^1] (if mode == true)
     // Step 3: compute the largest absolute value out of the partial sums
     // This is all one big operation - we don't need to save the list, we can just compare with the prev maximum.
     let max = if mode {
-        // Start with last bits
-        let (max, prev) = add_bit_iter(0, 0, data.remainder.iter().copied().rev());
-        add_byte_iter(max, prev, data.data.iter().copied(), true).0
+        // Start with last bits, going in reverse
+        if let Some((last_word, shifts)) = last_word {
+            // if going backwards, the LSB is the first bit to watch
+            let (max, prev) = handle_value(0, 0, last_word, shifts, true);
+
+            handle_slice(max, prev, full_words, true).0
+        } else {
+            handle_slice(0, 0, &data.words, true).0
+        }
     } else {
-        // Start from the beginning.
-        let (max, prev) = add_byte_iter(0, 0, data.data.iter().copied(), false);
-        add_bit_iter(max, prev, data.remainder.iter().copied()).0
+        // Start with first bits, normal order
+        if let Some((last_word, shifts)) = last_word {
+            let (max, prev) = handle_slice(0, 0, full_words, false);
+
+            // if going forwards, the MSB is the first bit to watch
+            handle_value(max, prev, last_word, shifts, false).0
+        } else {
+            handle_slice(0, 0, &data.words, false).0
+        }
     };
 
     // Step 4: compute p_value = 1
@@ -111,42 +129,41 @@ pub(crate) fn cusum_test_internal(data: &BitVec, mode: bool) -> Result<TestResul
     Ok(TestResult::new(p_value))
 }
 
-/// Add the increasing cumulative sums of the bits to the state variables.
+/// Add the increasing cumulative sums of the bytes to the state variables.
+/// Parameter rev: if the bit order should be reversed.
 /// Returns the new state variables.
-fn add_bit_iter(mut max: u64, mut prev: i64, iter: impl Iterator<Item = bool>) -> (u64, i64) {
-    for bit in iter {
-        // set the previous value to the current value.
-        if bit {
-            prev += 1;
-        } else {
-            prev -= 1;
+fn handle_slice(mut max: u64, mut prev: i64, data: &[usize], rev: bool) -> (u64, i64) {
+    if rev {
+        for &value in data.iter().rev() {
+            (max, prev) = handle_value(max, prev, value, 0..(usize::BITS as usize), rev);
         }
-
-        // set maximum if necessary
-        if max < i64::unsigned_abs(prev) {
-            max = i64::unsigned_abs(prev);
+    } else {
+        for &value in data.iter() {
+            (max, prev) = handle_value(max, prev, value, 0..(usize::BITS as usize), rev);
         }
     }
 
     (max, prev)
 }
 
-/// Add the increasing cumulative sums of the bytes to the state variables.
-/// Parameter rev: if the bit order should be reversed.
-/// Returns the new state variables.
-fn add_byte_iter<I>(mut max: u64, mut prev: i64, iter: I, rev: bool) -> (u64, i64)
-where
-    I: Iterator<Item = u8> + DoubleEndedIterator,
-{
-    #[inline]
-    fn handle_byte(
+/// Handle an individual value:
+/// shifts denotes which bits to read
+#[inline]
+fn handle_value(
+    max: u64,
+    prev: i64,
+    value: usize,
+    bits_to_read: Range<usize>,
+    rev: bool,
+) -> (u64, i64) {
+    fn internal(
         mut max: u64,
         mut prev: i64,
-        byte: u8,
-        shift_iter: impl Iterator<Item = usize>,
+        value: usize,
+        shifts: impl Iterator<Item = usize>,
     ) -> (u64, i64) {
-        shift_iter.map(|shift| 1 << shift).for_each(|mask| {
-            if byte & mask != 0 {
+        shifts.map(|shift| 1 << shift).for_each(|mask| {
+            if value & mask != 0 {
                 prev += 1
             } else {
                 prev -= 1
@@ -160,15 +177,16 @@ where
         (max, prev)
     }
 
-    if rev {
-        for byte in iter.rev() {
-            (max, prev) = handle_byte(max, prev, byte, 0..BYTE_SIZE);
-        }
-    } else {
-        for byte in iter {
-            (max, prev) = handle_byte(max, prev, byte, (0..BYTE_SIZE).rev());
-        }
-    }
+    // convert to iterator of shifts to do
+    let iter = bits_to_read
+        .into_iter()
+        .map(|bit_idx| usize::BITS as usize - bit_idx - 1);
 
-    (max, prev)
+    if rev {
+        // if going backwards, the LSB is the first bit to watch
+        internal(max, prev, value, iter.rev())
+    } else {
+        // if going forward, the MSB is the first bit to watch
+        internal(max, prev, value, iter)
+    }
 }

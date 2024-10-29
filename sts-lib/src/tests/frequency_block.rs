@@ -4,9 +4,10 @@
 //! It is recommended that each block  has a length of at least 100 bits.
 //! This test needs an argument, see [FrequencyBlockTestArg].
 
+use crate::bitvec::iter::BitVecIntoIter;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
-use crate::{Error, TestResult, BYTE_SIZE};
+use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -19,6 +20,9 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
         None => panic!("Literal should be non-zero!"),
     }
 };
+
+// ratio of usize to byte
+const WORD_BYTE_RATIO: usize = (usize::BITS / u8::BITS) as usize;
 
 /// The argument for the Frequency test within a block: the block length.
 ///
@@ -41,11 +45,11 @@ impl FrequencyBlockTestArg {
     /// If block_length is a multiple of 8 (bits in a byte), [Self::Bytewise] is automatically
     /// chosen. Else, [Self::Bitwise] is chosen.
     pub fn new(block_length: NonZero<usize>) -> Self {
-        if block_length.get() % BYTE_SIZE == 0 {
+        if block_length.get() % (u8::BITS as usize) == 0 {
             // For this value to be 0, block_length has to be 0, so it can't be, so unwrapping is
             // no problem.
             // Because: 0 % 8 == 0 - 8 % 8 == 0 but 1 % 8 == 1
-            let value = NonZero::new(block_length.get() / BYTE_SIZE).unwrap();
+            let value = NonZero::new(block_length.get() / (u8::BITS as usize)).unwrap();
             Self::Bytewise(value)
         } else {
             Self::Bitwise(block_length)
@@ -64,37 +68,69 @@ pub fn frequency_block_test(
     test_arg: FrequencyBlockTestArg,
 ) -> Result<TestResult, Error> {
     // Step 0 - get the block length or calculate one
-    match test_arg {
-        FrequencyBlockTestArg::Bytewise(block_length) => {
-            frequency_block_test_bytes(data, block_length.get())
-        }
+    let block_length = match test_arg {
+        FrequencyBlockTestArg::Bytewise(block_length) => block_length.get(),
         FrequencyBlockTestArg::Bitwise(block_length) => {
-            frequency_block_test_bits(data, block_length.get())
+            return frequency_block_test_bits(data, block_length.get())
         }
         FrequencyBlockTestArg::ChooseAutomatically => {
-            let block_size = choose_block_length(data.data.len());
-            frequency_block_test_bytes(data, block_size)
+            let byte_length = BitVecIntoIter::<u8>::iter(data).len();
+            choose_block_length(byte_length)
         }
+    };
+
+    if block_length % WORD_BYTE_RATIO == 0 {
+        frequency_block_test_unit::<usize, _>(data, block_length / WORD_BYTE_RATIO)
+    } else {
+        frequency_block_test_unit::<u8, _>(data, block_length)
     }
 }
 
-/// Frequency test within a block, optimization for block sizes that are whole bytes.
+// Trait to make the test generic over words vs. bytes
+trait CountOnes: Copy + Clone + Send + Sync {
+    const BITS: usize;
+
+    fn count_ones(&self) -> usize;
+}
+
+impl CountOnes for u8 {
+    const BITS: usize = u8::BITS as usize;
+
+    fn count_ones(&self) -> usize {
+        u8::count_ones(*self) as usize
+    }
+}
+
+impl CountOnes for usize {
+    const BITS: usize = usize::BITS as usize;
+
+    fn count_ones(&self) -> usize {
+        usize::count_ones(*self) as usize
+    }
+}
+
+/// Frequency test within a block, optimization for block sizes that are whole primitive types.
 ///
 /// The passed block_length has to in bytes.
-fn frequency_block_test_bytes(
-    data: &BitVec,
-    block_length_bytes: usize,
-) -> Result<TestResult, Error> {
+fn frequency_block_test_unit<T, D>(data: &D, block_length_unit: usize) -> Result<TestResult, Error>
+where
+    T: CountOnes,
+    D: BitVecIntoIter<T>,
+{
     // Step 1 - calculate the amount of blocks
-    let block_count = data.data.len() / block_length_bytes;
-    let required_bytes = block_length_bytes * block_count;
+    let block_count = data.iter().len() / block_length_unit;
+    let required_units = block_length_unit * block_count;
 
     // "magic" length where parallel runtime may be faster than serial.
     // Just tried different input lengths on the developers machine.
-    let half_chi = if required_bytes >= 1_600_000 {
-        frequency_block_test_bytes_par(&data.data[0..required_bytes], block_length_bytes, block_count)
+    let half_chi = if required_units >= 1_600_000 {
+        frequency_block_test_par(
+            data.par_iter().take(required_units),
+            block_length_unit,
+            block_count,
+        )
     } else {
-        frequency_block_test_bytes_serial(&data.data[0..required_bytes], block_length_bytes)
+        frequency_block_test_serial(data.iter().take(required_units), block_length_unit)
     }?;
 
     // Step 4: compute p-value = igamc(block_count / 2, chi / 2)
@@ -105,11 +141,15 @@ fn frequency_block_test_bytes(
     Ok(TestResult::new(p_value))
 }
 
-/// Calculate half_chi for a block length that is a multiple of whole bytes, without parallelization.
+/// Calculate half_chi for a block length that is a multiple of whole T, without parallelization.
 /// This is faster with smaller sequences, but slower with longer sequences.
-/// See also [frequency_block_test_bytes_par].
-fn frequency_block_test_bytes_serial(data: &[u8], block_length_bytes: usize) -> Result<f64, Error> {
-    let block_length_bits = block_length_bytes * BYTE_SIZE;
+/// See also [frequency_block_test_par].
+fn frequency_block_test_serial<T, I>(data: I, block_length_unit: usize) -> Result<f64, Error>
+where
+    T: CountOnes,
+    I: Iterator<Item = T>,
+{
+    let block_length_bits = block_length_unit * T::BITS;
 
     // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
     // Step 3 - calculate half_chi
@@ -118,27 +158,25 @@ fn frequency_block_test_bytes_serial(data: &[u8], block_length_bytes: usize) -> 
     let mut half_chi = 0.0;
 
     // Result of benchmarking: parallelization is not worth it
-    data
-        .iter()
-        .enumerate()
-        .try_for_each(|(byte_idx, byte)| {
-            let block_idx = byte_idx / block_length_bytes;
+    data.enumerate().try_for_each(|(idx, unit)| {
+        let block_idx = idx / block_length_unit;
 
-            if current_block_idx != block_idx {
-                // remove old results
-                let count_ones = current_count_of_ones as f64;
-                let pi = count_ones / (block_length_bits as f64);
-                // Step 3 - compute the chi^2 statistics - calculate the current part
-                half_chi += (pi - 0.5).powi(2);
+        if current_block_idx != block_idx {
+            // remove old results
+            let count_ones = current_count_of_ones as f64;
+            let pi = count_ones / (block_length_bits as f64);
+            // Step 3 - compute the chi^2 statistics - calculate the current part
+            half_chi += (pi - 0.5).powi(2);
 
-                current_block_idx = block_idx;
-                current_count_of_ones = 0;
-            }
+            current_block_idx = block_idx;
+            current_count_of_ones = 0;
+        }
 
-            current_count_of_ones = current_count_of_ones.checked_add(byte.count_ones() as usize)
-                .ok_or(Error::Overflow("adding ones to a block count".to_owned()))?;
-            Ok::<_, Error>(())
-        })?;
+        current_count_of_ones = current_count_of_ones
+            .checked_add(unit.count_ones())
+            .ok_or(Error::Overflow("adding ones to a block count".to_owned()))?;
+        Ok::<_, Error>(())
+    })?;
 
     // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
     let count_ones = current_count_of_ones as f64;
@@ -146,20 +184,26 @@ fn frequency_block_test_bytes_serial(data: &[u8], block_length_bytes: usize) -> 
     half_chi += (pi - 0.5).powi(2);
 
     // Calculate the half_chi (multiplication with 4.0 replaced by 2.0)
-    let half_chi = half_chi
-        * 2.0
-        * (block_length_bits as f64);
+    let half_chi = half_chi * 2.0 * (block_length_bits as f64);
 
     check_f64(half_chi)?;
 
     Ok(half_chi)
 }
 
-/// Calculate half_chi for a block length that is a multiple of whole bytes, with parallelization.
+/// Calculate half_chi for a block length that is a multiple of whole T, with parallelization.
 /// This is faster with longer sequences, but slower with smaller sequences.
-/// See also [frequency_block_test_bytes_serial].
-fn frequency_block_test_bytes_par(data: &[u8], block_length_bytes: usize, block_count: usize) -> Result<f64, Error> {
-    let block_length_bits = block_length_bytes * BYTE_SIZE;
+/// See also [frequency_block_test_serial].
+fn frequency_block_test_par<T, I>(
+    data: I,
+    block_length_unit: usize,
+    block_count: usize,
+) -> Result<f64, Error>
+where
+    T: CountOnes,
+    I: IndexedParallelIterator<Item = T>,
+{
+    let block_length_bits = block_length_unit * T::BITS;
 
     // Step 2 - calculate the count of ones in the block for each block
     let count_of_ones = {
@@ -168,18 +212,16 @@ fn frequency_block_test_bytes_par(data: &[u8], block_length_bytes: usize, block_
         vec.into_boxed_slice()
     };
 
-    data.par_iter()
-        .enumerate()
-        .try_for_each(|(byte_idx, byte)| {
-            let block_idx = byte_idx / block_length_bytes;
+    data.enumerate().try_for_each(|(idx, byte)| {
+        let block_idx = idx / block_length_unit;
 
-            let prev = count_of_ones[block_idx].fetch_add(byte.count_ones() as usize, Ordering::Relaxed);
-            if prev == usize::MAX {
-                Err(Error::Overflow("adding ones to a block count".to_owned()))
-            } else {
-                Ok(())
-            }
-        })?;
+        let prev = count_of_ones[block_idx].fetch_add(byte.count_ones(), Ordering::Relaxed);
+        if prev == usize::MAX {
+            Err(Error::Overflow("adding ones to a block count".to_owned()))
+        } else {
+            Ok(())
+        }
+    })?;
 
     // Step 2 - calculate pi_i = (ones in the block) / block_length for each block
     // Step 3 - calculate half_chi
@@ -199,24 +241,34 @@ fn frequency_block_test_bytes_par(data: &[u8], block_length_bytes: usize, block_
 }
 
 /// Choose a block length based on 2.2.7. Needs the amount of bytes (each byte contains 8 values)
-/// as the parameter. This method can only choose byte-sized blocks.
-fn choose_block_length(byte_vec_length: usize) -> usize {
-    const MIN_BLOCK_LENGTH: usize = 20 / BYTE_SIZE + 1;
+/// as the parameter. This method can only choose byte-sized blocks. If possible, it chooses usize-
+/// size blocks.
+fn choose_block_length(byte_length: usize) -> usize {
+    const MIN_BLOCK_LENGTH: usize = 20 / (u8::BITS as usize) + 1;
 
-    // Start with the recommended minimum block length based on the length of the data.
-    // This also satisfies that less than 100 block should exist.
-    let block_length = byte_vec_length / 100 + 1;
-
-    if block_length < MIN_BLOCK_LENGTH {
-        // has to be at least the min block length
-        MIN_BLOCK_LENGTH
+    if byte_length >= 80 * WORD_BYTE_RATIO {
+        // use usize-based block length. 80 is chosen here, because it means we will have at least 10 blocks.
+        // 80 * (64 / 8) = 80 * 8 = 640 --> 10 64-bit values
+        let word_length = byte_length / (usize::BITS as usize);
+        (word_length / 100 + 1) * WORD_BYTE_RATIO
     } else {
-        block_length
+        // Start with the recommended minimum block length based on the length of the data.
+        // This also satisfies that less than 100 block should exist.
+        let block_length = byte_length / 100 + 1;
+
+        if block_length < MIN_BLOCK_LENGTH {
+            // has to be at least the min block length
+            MIN_BLOCK_LENGTH
+        } else {
+            block_length
+        }
     }
 }
 
 /// Frequency test within a block for bit lengths that are not byte-sized.
 fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<TestResult, Error> {
+    const WORD_SIZE: usize = usize::BITS as usize;
+
     // Step 1 - calculate the amount of blocks
     let block_count = data.len_bit() / block_length_bits;
 
@@ -224,140 +276,43 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
     // We can't split in chunks here, because chunks would only catch whole bytes.
 
     // How many bytes are needed - there could be unused bytes at the end
-    let bytes_needed = if block_length_bits * block_count % BYTE_SIZE == 0 {
+    let words_needed = if block_length_bits * block_count % WORD_SIZE == 0 {
         // no remainder
-        block_length_bits * block_count / BYTE_SIZE
+        block_length_bits * block_count / WORD_SIZE
     } else {
         // a remainder is left: 1 additional byte is needed for it.
-        block_length_bits * block_count / BYTE_SIZE + 1
+        block_length_bits * block_count / WORD_SIZE + 1
     };
-
-    // if the remainder needs to be used
-    let (bytes_needed, add_remainder) = if bytes_needed > data.data.len() {
-        (data.data.len(), true)
-    } else {
-        (bytes_needed, false)
-    };
-
+    
     let count_ones_per_block = {
         let mut vec = Vec::with_capacity(block_count);
         vec.resize_with(block_count, || AtomicUsize::new(0));
         vec.into_boxed_slice()
     };
-
-    data.data[0..bytes_needed]
-        .into_par_iter()
+    
+    data.words[0..words_needed]
+        .par_iter()
         .enumerate()
-        .try_for_each(|(idx, value)| {
-            // Calculate, based on the index, the index of the current block
-            let current_block_idx = idx * BYTE_SIZE / block_length_bits;
+        .for_each(|(idx, value)| {
+            for bit_idx in 0..WORD_SIZE {
+                let block_idx = (idx * WORD_SIZE + bit_idx) / block_length_bits;
 
-            // Calculate, based on the index, how many bits of this block need to go where.
-            // This formula is best explained by an example:
-            //
-            // Block size: 9 bits
-            // Data:
-            // 0 0 0 0 0 0 0 0 || 0|0 0 0 0 0 0 0 || 0 0|0 0 0 0 0 0 || 0 0 0|0 0 0 0 0 || 0 0 0 0| ...
-            // 1 | means a block border, 2 || mean a byte border
-            // Here we have 5 bytes with 4 blocks.
-            //
-            // The formula for calculation is
-            // (idx + 1) * BYTE_SIZE % block_length_bits >= BYTE_SIZE
-            // with BYTE_SIZE = 8
-            //
-            // For byte 0: (0 + 1) * 8 % 9 = 8 --> take the full byte for the current block
-            // For byte 1: 2 * 8 % 9 = 7 --> take 8 - 7 = 1 bits for the current block, 7 bits for the next
-            // For byte 2: 3 * 8 % 9 = 6 --> take 8 - 6 = 2 bits for the current block, 6 bits for the next
-            // For byte 3: 4 * 8 % 9 = 5 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
-            // For byte 4: 5 * 8 % 9 = 4 --> take 8 - 4 = 4 bits for the current block, 4 bits for the next
-            //
-            // Other examples:
-            // Block size: 7 bits
-            // 0 0 0 0 0 0 0|0 || 0 0 0 0 0 0|0 0 || 0 0 0 0 0|0 0 0 || 0 0 0 0|0 0 0 0 || 0 0 0| ...
-            //
-            // For byte 0: 1 * 8 % 7 = 1 --> take 8 - 1 = 7 bits for the current block, 1 bit for the next
-            // For byte 1: 2 * 8 % 7 = 2 --> take 8 - 2 = 6 bits for the current block, 2 bits for the next
-            // For byte 2: 3 * 8 % 7 = 3 --> take 8 - 3 = 5 bits for the current block, 3 bits for the next
-            // For byte 3: 4 * 8 % 7 = 4 --> take 8 - 4 = 4 bits for the current block, 4 bits for the next
-            // For byte 4: 5 * 8 % 7 = 4 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
-            //
-            // Block size: 11 bits
-            // 0 0 0 0 0 0 0 0 || 0 0 0|0 0 0 0 0 || 0 0 0 0 0 0|0 0 || 0 0 0 0 0 0 0 0 || 0| ...
-            // For byte 0: 1 * 8 % 11 = 8 --> take the full byte for the current block
-            // For byte 1: 2 * 8 % 11 = 5 --> take 8 - 5 = 3 bits for the current block, 5 bits for the next
-            // For byte 2: 3 * 8 % 11 = 2 --> take 8 - 2 = 6 bits for the current block, 2 bits for the next
-            // For byte 3: 4 * 8 % 11 = 10 >= 8 --> take the full byte for the current block
-            // For byte 4: 5 * 8 % 11 = 7 --> take 8 - 7 = 1 bits for the current block, 7 bits for the next
-            let remainder = (idx + 1) * BYTE_SIZE % block_length_bits;
-            if remainder >= BYTE_SIZE {
-                // take the whole block
-                let prev = count_ones_per_block[current_block_idx]
-                    .fetch_add(value.count_ones() as usize, Ordering::Relaxed);
-                if prev == usize::MAX {
-                    return Err(Error::Overflow(format!("adding ones to the sum: {}", prev)));
+                if block_idx == block_count {
+                    break;
                 }
-            } else {
-                // see this example:
-                // Block size: 3 bits
-                // 0 0 0|0 0 0|0 0 || 0|0 0 0|0 0 0| ...
-                // 1 Byte can consist of more than 1 block!
-                // This can be solved by taking each bit, calculating the block offset for it
-                // (0 means current block) and adding the value to the right block.
 
-                // how many bits are left to be added to the current block_offset
-                let mut bits_left = remainder;
-                // the block offset from the current block
-                let mut block_offset =
-                    ((BYTE_SIZE - remainder) / block_length_bits).clamp(1, usize::MAX);
-                for shift in 0..BYTE_SIZE {
-                    if bits_left == 0 {
-                        bits_left = block_length_bits;
-                        block_offset -= 1;
-                    }
+                let bit = value >> (WORD_SIZE - bit_idx - 1) & 1;
 
-                    // check if the block even exists
-                    if current_block_idx + block_offset < block_count {
-                        let value = (*value >> shift) & 0x01;
-                        let prev = count_ones_per_block[current_block_idx + block_offset]
-                            .fetch_add(value as usize, Ordering::Relaxed);
-                        if prev == usize::MAX {
-                            return Err(Error::Overflow(format!(
-                                "adding {value} to the sum {}",
-                                prev
-                            )));
-                        }
-                    }
-
-                    bits_left -= 1;
+                if bit == 1 {
+                    count_ones_per_block[block_idx].fetch_add(1, Ordering::Relaxed);
                 }
             }
-
-            Ok(())
-        })?;
-
-    if add_remainder {
-        // add the necessary part of the remainder to the last block
-        let needed_bits = (BYTE_SIZE - ((data.data.len() + 1) * BYTE_SIZE % block_length_bits))
-            % block_length_bits;
-
-        let value = data.remainder[0..needed_bits]
-            .iter()
-            .map(|&bit| bit as usize)
-            .sum();
-        let prev = count_ones_per_block[block_count - 1].fetch_add(value, Ordering::Relaxed);
-        if prev == usize::MAX {
-            return Err(Error::Overflow(format!(
-                "Adding the remainder to the sum: {}",
-                prev
-            )));
-        }
-    }
-
-    let pis = Box::into_iter(count_ones_per_block)
-        .map(|count_ones| {
-            let count_ones = count_ones.into_inner();
-            (count_ones as f64) / (block_length_bits as f64)
         });
+
+    let pis = Box::into_iter(count_ones_per_block).map(|count_ones| {
+        let count_ones = count_ones.into_inner();
+        (count_ones as f64) / (block_length_bits as f64)
+    });
 
     // Step 3 - compute the chi^2 statistics - calculate the values for each element in the sum
     let chi_parts = pis.map(|pi| (pi - 0.5).powi(2));

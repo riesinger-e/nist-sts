@@ -8,13 +8,13 @@
 
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, erfc};
-use crate::{Error, TestResult, BYTE_SIZE};
+use crate::{Error, TestResult};
 use std::f64::consts::SQRT_2;
 use std::num::NonZero;
 use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(2020) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -35,8 +35,8 @@ const EXPECTED_VALUES: [f64; 16] = [
 ///
 /// Source: "Handbook of Applied Cryptography", p. 184, table 5.3
 const VARIANCES: [f64; 16] = [
-    0.690, 1.338, 1.901, 2.358, 2.705, 2.954, 3.125, 3.238,
-    3.311, 3.356, 3.384, 3.401, 3.410, 3.416, 3.419, 3.421,
+    0.690, 1.338, 1.901, 2.358, 2.705, 2.954, 3.125, 3.238, 3.311, 3.356, 3.384, 3.401, 3.410,
+    3.416, 3.419, 3.421,
 ];
 
 /// Maurers "Universal Statistical" Test  - No. 9
@@ -82,19 +82,11 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
                     "multiplying {block_idx} by {block_length}"
                 )))?;
 
-        let start_byte = total_start_bit / BYTE_SIZE;
-        let start_bit = total_start_bit % BYTE_SIZE;
-
-        let end_bit = start_bit + block_length - 1;
-        let end_byte = start_byte + end_bit / BYTE_SIZE;
-
-        let shift = BYTE_SIZE - end_bit % BYTE_SIZE - 1;
-
-        // we don't need to think about the edge case that the last byte is from the additional bits
-        // here, because where are test blocks after the initialization blocks
-        let current_block = &data.data[start_byte..=end_byte];
-        // arguments must be valid.
-        let current_block = extract_usize(current_block, shift, block_length).unwrap();
+        let current_block = extract_block(
+            data,
+            total_start_bit,
+            block_length,
+        );
 
         // save the block idx if it no later block was already found
         if table[current_block] == 0 {
@@ -123,26 +115,11 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
                     "multiplying {block_idx} by {block_length}"
                 )))?;
 
-        let start_byte = total_start_bit / BYTE_SIZE;
-        let start_bit = total_start_bit % BYTE_SIZE;
-
-        let end_bit = start_bit + block_length - 1;
-        let end_byte = start_byte + end_bit / BYTE_SIZE;
-
-        let shift = BYTE_SIZE - end_bit % BYTE_SIZE - 1;
-
-        // edge case: last byte is not stored in data.data
-        let current_block = if end_byte >= data.data.len() {
-            let mut current_block = Vec::from(&data.data[start_byte..]);
-            let last_byte = data.get_last_byte();
-            current_block.push(last_byte);
-            // arguments must be valid.
-            extract_usize(current_block, shift, block_length).unwrap()
-        } else {
-            let current_block = &data.data[start_byte..=end_byte];
-            // arguments must be valid.
-            extract_usize(current_block, shift, block_length).unwrap()
-        };
+        let current_block = extract_block(
+            data,
+            total_start_bit,
+            block_length,
+        );
 
         let last_block_idx = table[current_block];
         table[current_block] = block_idx + 1;
@@ -177,36 +154,33 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
     })
 }
 
-/// Extract a big-endian usize value contained somewhere in the given byte vector.
-///
-/// 1. The byte list may not contain more than 4 bytes.
-/// 2. The necessary right shift may not be more than 7 bits.
-/// 3. The bit length of the value itself may be max. 32 - shift bits.
-///
-/// The output is of type usize to be used in indexing - either 32 or 64 bits.
-fn extract_usize(bytes: impl AsRef<[u8]>, shift: usize, value_length_bits: usize) -> Option<usize> {
-    let bytes = bytes.as_ref();
-    if shift >= BYTE_SIZE || bytes.len() > 4 || bytes.is_empty() {
-        return None;
-    }
+/// Extract a usize value with length block_length, starting from the start_bit_idx in the BitVec.
+/// The block length may not be more than `usize::BITS`, i.e. not more than 32.
+const fn extract_block(
+    data: &BitVec,
+    total_start_bit_idx: usize,
+    block_size_bits: usize,
+) -> usize {
+    debug_assert!(block_size_bits < usize::BITS as usize);
+    
+    // calculate necessary indices
+    let start_idx = total_start_bit_idx / (usize::BITS as usize);
+    let start_bit_idx = total_start_bit_idx % (usize::BITS as usize);
 
-    let bytes = match bytes.len() {
-        1 => [0, 0, 0, bytes[0]],
-        2 => [0, 0, bytes[0], bytes[1]],
-        3 => [0, bytes[0], bytes[1], bytes[2]],
-        4 => [bytes[0], bytes[1], bytes[2], bytes[3]],
-        _ => unreachable!(),
+    let end_bit_idx = start_bit_idx + block_size_bits - 1;
+    let end_idx = start_idx + end_bit_idx / (usize::BITS as usize);
+    
+    // Calculate the shift
+    let shift = (usize::BITS as usize) - (end_bit_idx % (usize::BITS as usize)) - 1;
+    
+    // create the mask
+    let mask = (1 << block_size_bits) - 1;
+    
+    let value = if start_idx == end_idx {
+        data.words[start_idx] >> shift
+    } else {
+        data.words[start_idx] << ((usize::BITS as usize) - shift) | data.words[end_idx] >> shift
     };
 
-    // create an u32 from the array - big endian because it is read from the sequence
-    let not_shifted_value = u32::from_be_bytes(bytes);
-
-    // shift
-    let shifted_value = not_shifted_value >> shift;
-
-    // create the mask & apply it
-    let mask = (1 << value_length_bits) - 1;
-
-    // on all (known to me) platforms, usize is either 32 bit or 64 bit.
-    Some((shifted_value & mask) as usize)
+    value & mask
 }

@@ -1,19 +1,22 @@
 #![doc = include_str!("../README.md")]
+// Explicitly only support sane CPU architectures - target_pointer_width = 16 would be unwise for this
+// kind of application.
+#![cfg(any(target_pointer_width = "64", target_pointer_width = "32"))]
 
-use std::num::NonZero;
+use crate::internals::RAYON_THREAD_COUNT;
+use crate::tests::approximate_entropy::ApproximateEntropyTestArg;
 use crate::tests::frequency_block::FrequencyBlockTestArg;
 use crate::tests::linear_complexity::LinearComplexityTestArg;
 use crate::tests::serial::SerialTestArg;
 use crate::tests::template_matching::non_overlapping::NonOverlappingTemplateTestArgs;
 use crate::tests::template_matching::overlapping::OverlappingTemplateTestArgs;
+use std::num::NonZero;
 use strum::{Display, EnumIter};
 use thiserror::Error;
-use crate::tests::approximate_entropy::ApproximateEntropyTestArg;
-use crate::internals::RAYON_THREAD_COUNT;
 
 // Trait must be public for enum iter to work.
-pub use strum::IntoEnumIterator;
 pub use strum::EnumCount;
+pub use strum::IntoEnumIterator;
 
 // internal usage only
 pub(crate) mod internals;
@@ -154,10 +157,12 @@ pub enum Error {
 /// Sets the maximum of threads to be used by the tests. These method can only be called ONCE and only
 /// BEFORE a test is started. If not used, a sane default will be chosen.
 ///
-/// If this is called multiple times or after the thread pool was already used (i.e. a test was run), 
+/// If this is called multiple times or after the thread pool was already used (i.e. a test was run),
 /// an error will be returned.
 pub fn set_max_threads(max_threads: NonZero<usize>) -> Result<(), MaxThreadsSetError> {
-    RAYON_THREAD_COUNT.set(max_threads.get()).map_err(|_| MaxThreadsSetError)
+    RAYON_THREAD_COUNT
+        .set(max_threads.get())
+        .map_err(|_| MaxThreadsSetError)
 }
 
 /// Error type for [set_max_threads]

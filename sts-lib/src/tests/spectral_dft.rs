@@ -6,18 +6,19 @@
 //! It is recommended (but not required) for the input to be of at least 1000 bits.
 
 use crate::bitvec::BitVec;
-use crate::{Error, TestResult, BYTE_SIZE};
+use crate::internals::{check_f64, erfc};
+use crate::{Error, TestResult};
 use rayon::prelude::*;
 use rustfft::num_complex::Complex;
 use rustfft::FftPlanner;
-use std::sync::{Mutex, LazyLock};
-use crate::internals::{check_f64, erfc};
 use std::f64::consts::FRAC_1_SQRT_2;
 use std::num::NonZero;
+use std::ops::Range;
+use std::sync::{LazyLock, Mutex};
 use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(1000) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -25,7 +26,8 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 };
 
 // Use a global planner to allow for caching if the test is run multiple times.
-static FFT_PLANNER: LazyLock<Mutex<FftPlanner<f32>>> = LazyLock::new(|| Mutex::new(FftPlanner::new()));
+static FFT_PLANNER: LazyLock<Mutex<FftPlanner<f32>>> =
+    LazyLock::new(|| Mutex::new(FftPlanner::new()));
 
 /// Spectral DFT test - No. 6
 ///
@@ -36,21 +38,20 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: convert the input bit sequence to a sequence of -1 and +1 (x)
     // This is done in parallel. f32 is used for better performance with such large lists.
     // For use in the fourier transformation, the number is converted to a complex number.
-    let mut x = data
-        .data
+    let (words, last_word) = data.as_full_slice();
+
+    let mut x = words
         .par_iter()
-        .flat_map_iter(|&byte| {
-            (0..BYTE_SIZE).rev().map(move |shift| {
-                let real = (((byte >> shift) & 0x01) as f32) * 2.0 - 1.0;
-                Complex::from(real)
-            })
+        .flat_map_iter(|&word| {
+            // one number per bit
+            convert_word(word, 0..usize::BITS)
         })
         .collect::<Vec<_>>();
     // add remaining bits
-    x.extend(data.remainder.iter().map(|&bit| {
-        let real = if bit { 1.0 } else { -1.0 };
-        Complex::from(real)
-    }));
+    if let Some(last_word) = last_word {
+        let bits = 0..(data.bit_count_last_word as u32);
+        x.extend(convert_word(last_word, bits))
+    }
 
     // the bit length
     let n = data.len_bit();
@@ -79,25 +80,32 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 6: compute n_1 = count of observed entries in M that are < t
     let n_1 = x[0..(n / 2)]
         .par_iter()
-        .try_fold(|| 0_usize, |count, s| {
-            let no = Complex::<f64> {
-                re: s.re as f64,
-                im: s.im as f64,
-            };
-            let norm = no.norm();
-            check_f64(norm)?;
+        .try_fold(
+            || 0_usize,
+            |count, s| {
+                let no = Complex::<f64> {
+                    re: s.re as f64,
+                    im: s.im as f64,
+                };
+                let norm = no.norm();
+                check_f64(norm)?;
 
-            if norm < t {
-                count.checked_add(1)
-                    .ok_or(Error::Overflow(format!("adding 1 to count of elements in fft that are > {t}")))
-            } else {
-                Ok(count)
-            }
-        })
-        .try_reduce(|| 0_usize, |a, b| {
-            a.checked_add(b)
-                .ok_or(Error::Overflow(format!("fft: adding part-sum {a} to {b}")))
-        })? as f64;
+                if norm < t {
+                    count.checked_add(1).ok_or(Error::Overflow(format!(
+                        "adding 1 to count of elements in fft that are > {t}"
+                    )))
+                } else {
+                    Ok(count)
+                }
+            },
+        )
+        .try_reduce(
+            || 0_usize,
+            |a, b| {
+                a.checked_add(b)
+                    .ok_or(Error::Overflow(format!("fft: adding part-sum {a} to {b}")))
+            },
+        )? as f64;
 
     // Step 7: compute d = (n_1 - n_0) / sqrt(data.len_bit() * 0.95 * 0.05 / 4.0)
     let d = (n_1 - n_0) / f64::sqrt((data.len_bit() as f64) * 0.95 * 0.05 / 4.0);
@@ -108,4 +116,14 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
     check_f64(p_value)?;
 
     Ok(TestResult::new(p_value))
+}
+
+/// Convert a word into a sequence of bit, with bit 1 -> 1.0 and bit 0 -> -1.0
+#[inline]
+fn convert_word(word: usize, bits: Range<u32>) -> impl Iterator<Item = Complex<f32>> {
+    bits.map(move |bit| {
+        let shift = usize::BITS - bit - 1;
+        let real = (((word >> shift) & 0x01) as f32) * 2.0 - 1.0;
+        Complex::from(real)
+    })
 }

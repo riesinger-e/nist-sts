@@ -11,7 +11,7 @@ use crate::tests::linear_complexity::LinearComplexityTestArg;
 use crate::tests::serial::SerialTestArg;
 use crate::tests::template_matching::non_overlapping::NonOverlappingTemplateTestArgs;
 use crate::tests::template_matching::overlapping::OverlappingTemplateTestArgs;
-use crate::{Test, TestArgs, BYTE_SIZE};
+use crate::{Test, TestArgs};
 use std::collections::HashMap;
 use std::fs;
 use std::num::NonZero;
@@ -20,7 +20,7 @@ use std::sync::LazyLock;
 
 /// Test args. These are used by all tests in this module.
 static TEST_ARGS: LazyLock<TestArgs> = LazyLock::new(|| TestArgs {
-    frequency_block: FrequencyBlockTestArg::Bytewise(NonZero::new(128 / BYTE_SIZE).unwrap()),
+    frequency_block: FrequencyBlockTestArg::Bytewise(NonZero::new(128 / 8).unwrap()),
     non_overlapping_template: NonOverlappingTemplateTestArgs::new_const::<9, 8>(),
     overlapping_template: OverlappingTemplateTestArgs::new_nist_behaviour(9).unwrap(),
     linear_complexity: LinearComplexityTestArg::ManualBlockLength(NonZero::new(500).unwrap()),
@@ -166,7 +166,7 @@ fn common_parts(test_file: PathBuf, expected: HashMap<Test, Vec<(usize, f64)>>) 
         let result = result.unwrap();
 
         for &(idx, expected) in &expected[&test] {
-            assert_f64_eq!(round(result[idx].p_value, 6), expected);
+            assert_f64_eq!(round(result[idx].p_value, 6), expected, test);
         }
     }
 }

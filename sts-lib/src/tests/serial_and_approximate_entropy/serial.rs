@@ -6,29 +6,29 @@
 //!
 //! This test needs a parameter [SerialTestArg]. Check the described constraints there.
 //!
-//! The paper describes the test slightly wrong: in 2.11.5 step 5, the second argument need to be 
+//! The paper describes the test slightly wrong: in 2.11.5 step 5, the second argument need to be
 //! halved in both *igamc* calculations. Only then are the calculated P-values equal to the P-values
 //! described in 2.11.6 and the reference implementation.
-//! 
-//! The input length should be at least 2^19 bit, although this is not enforced. If the default 
+//!
+//! The input length should be at least 2^19 bit, although this is not enforced. If the default
 //! value for [SerialTestArg] is used, a smaller input length will lead to an Error because
 //! of constraint no. 3!
 
-use std::num::NonZero;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
+use crate::tests::serial_and_approximate_entropy::{access_bits, validate_test_arg};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
+use std::num::NonZero;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use sts_lib_derive::use_thread_pool;
-use crate::tests::serial_and_approximate_entropy::{access_bits, validate_test_arg};
 
 // calculation: minimum block length = 2
 // Following relation must be true:
 // 2 < (log2(len_bit) as int) - 2
 // -> log2(2^5) - 2 = 3
 /// The minimum input length for this test, in bits.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(1 << 5) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -47,7 +47,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 ///
 /// Constraint 3 is checked on executing the test, [serial_test]. If the constraint is violated,
 /// [Error::InvalidParameter] will be returned.
-/// 
+///
 /// The default value for this argument is 16. For this to work, the input length must be at least
 /// 2^19 bit.
 #[derive(Copy, Clone, Debug)]
@@ -68,7 +68,6 @@ impl Default for SerialTestArg {
     }
 }
 
-
 /// Serial Test  - No. 11
 ///
 /// See also the [module docs](crate::tests::serial).
@@ -76,7 +75,10 @@ impl Default for SerialTestArg {
 /// [Error::InvalidParameter] is raised. For the exact constraints, see [SerialTestArg].
 //noinspection DuplicatedCode
 #[use_thread_pool(crate::internals::THREAD_POOL)]
-pub fn serial_test(data: &BitVec, SerialTestArg(block_length): SerialTestArg) -> Result<[TestResult; 2], Error> {
+pub fn serial_test(
+    data: &BitVec,
+    SerialTestArg(block_length): SerialTestArg,
+) -> Result<[TestResult; 2], Error> {
     // only check the argument when not testing
     #[cfg(not(test))]
     {
@@ -94,30 +96,27 @@ pub fn serial_test(data: &BitVec, SerialTestArg(block_length): SerialTestArg) ->
     // Step 2: determine the frequency of all possible overlapping m, (m-1) and (m-2) bit blocks.
     // (m == block_length)
     let frequencies = create_frequency_slices(block_length);
-    (0..data.len_bit())
-        .into_par_iter()
-        .try_for_each(|idx| {
-            for i in 0..3 {
-                // this can happen when block_length = 2
-                if block_length - i == 0 {
-                    continue;
-                }
-
-                let idx = access_bits(data, idx, block_length - i).unwrap_or_else(|| {
-                    panic!("serial_test: idx for (m - {i}) should be valid")
-                });
-                let prev = frequencies[i as usize][idx].fetch_add(1, Ordering::Relaxed);
-                if prev == usize::MAX {
-                    return Err(Error::Overflow(format!(
-                        "Adding 1 to frequency count {}",
-                        prev
-                    )));
-                }
+    (0..data.len_bit()).into_par_iter().try_for_each(|idx| {
+        for i in 0..3 {
+            // this can happen when block_length = 2
+            if block_length - i == 0 {
+                continue;
             }
 
-            Ok(())
-        })?;
-    
+            let idx = access_bits(data, idx, block_length - i)
+                .unwrap_or_else(|| panic!("serial_test: idx for (m - {i}) should be valid"));
+            let prev = frequencies[i as usize][idx].fetch_add(1, Ordering::Relaxed);
+            if prev == usize::MAX {
+                return Err(Error::Overflow(format!(
+                    "Adding 1 to frequency count {}",
+                    prev
+                )));
+            }
+        }
+
+        Ok(())
+    })?;
+
     // Step 3: for each tested block length m (3 in total), compute
     // psi^2(m) = (2^m) / n * sum(v_mi^2) - n
     // with n denoting the bit length of the sequence and v_mi denoting on element in the frequency list
@@ -130,7 +129,7 @@ pub fn serial_test(data: &BitVec, SerialTestArg(block_length): SerialTestArg) ->
             // this can happen when block_length = 2
             if block_length - i as u8 == 0 {
                 *psi = 0.0;
-                return Ok(())
+                return Ok(());
             }
 
             let sum = frequency

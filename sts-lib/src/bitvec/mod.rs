@@ -1,9 +1,12 @@
 //! Everything needed to store the data to test.
 
+use crate::internals::THREAD_POOL;
 use std::ffi::c_char;
 use std::mem;
 use std::ops::Deref;
-use crate::internals::THREAD_POOL;
+
+pub mod array_chunks;
+pub mod iter;
 
 /// A list of bits, tightly packed - used in all tests
 #[derive(Clone, Debug)]
@@ -17,7 +20,11 @@ pub struct BitVec {
 impl BitVec {
     /// How many bits the Vec contains
     pub fn len_bit(&self) -> usize {
-        (self.words.len() - 1)  * (usize::BITS as usize) + (self.bit_count_last_word as usize)
+        if self.bit_count_last_word == 0 {
+            self.words.len() * (usize::BITS as usize)
+        } else {
+            (self.words.len() - 1) * (usize::BITS as usize) + (self.bit_count_last_word as usize)
+        }
     }
 
     /// Crop the BitVec to the passed bit length. This operation does nothing
@@ -52,25 +59,33 @@ impl BitVec {
             use rayon::iter::ParallelIterator;
             use rayon::slice::ParallelSlice;
 
-            let words = value.as_bytes().par_chunks(usize::BITS as usize)
+            let words = value
+                .as_bytes()
+                .par_chunks(usize::BITS as usize)
                 .map(|chunk| {
                     // [0] = MSB
-                    chunk.iter().enumerate().try_fold(0usize, |word, (i, char)| {
-                        if *char == b'1' {
-                            Some(word | (1 << ((usize::BITS as usize) - i - 1)))
-                        } else if *char == b'0' {
-                            // no need to change the value itself
-                            Some(word)
-                        } else {
-                            None
-                        }
-                    })
+                    chunk
+                        .iter()
+                        .enumerate()
+                        .try_fold(0usize, |word, (i, char)| {
+                            if *char == b'1' {
+                                Some(word | (1 << ((usize::BITS as usize) - i - 1)))
+                            } else if *char == b'0' {
+                                // no need to change the value itself
+                                Some(word)
+                            } else {
+                                None
+                            }
+                        })
                 })
                 .collect::<Option<_>>()?;
 
             let bit_count_last_word = (value.len() % (usize::BITS as usize)) as u8;
 
-            Some(Self { words, bit_count_last_word })
+            Some(Self {
+                words,
+                bit_count_last_word,
+            })
         })
     }
 
@@ -137,21 +152,16 @@ impl BitVec {
         Self::from_c_str_internal(ptr, Some(max_length))
     }
 
-    //noinspection RsAssertEqual
-    /// Returns the bits, stored in bytes. The MSB of each value has the lowest index.
-    /// The last value may be incomplete, check [Self::len_bit] to calculate the bit count in the last
-    /// value.
-    pub fn as_bytes(&self) -> &[u8] {
-        // u8 should always have an alignment of 1 - catch the exotic platforms that do not
-        const {
-            assert!(align_of::<u8>() == 1, "What platform is this? u8 should always be byte-aligned.")
-        }
+    /// Returns the bits, stored as the given numerical primitives. The MSB of each value has the lowest index.
+    /// Each value is filled - returns an optional additional value, that may be unfilled,
+    pub(crate) fn as_full_slice(&self) -> (&[usize], Option<usize>) {
+        let len = if self.bit_count_last_word == 0 {
+            self.words.len()
+        } else {
+            self.words.len() - 1
+        };
 
-        // This conversion should be lossless
-        // SAFETY: each usize can be interpreted as some count of u8
-        unsafe {
-            self.words.align_to::<u8>().1
-        }
+        (&self.words[..len], self.words.get(len).copied())
     }
 }
 
@@ -166,7 +176,7 @@ impl BitVec {
     fn from_ascii_str_lossy_internal(value: &str, max_length: Option<usize>) -> Self {
         let mut full_words = Vec::new();
         let mut current_bit_idx = (usize::BITS as u8) - 1; // start with a wrap around
-        // we only need to increment if the length is relevant.
+                                                           // we only need to increment if the length is relevant.
         let mut found_bit_len = max_length.map(|_| 0_usize);
 
         for char in value.bytes() {
@@ -200,7 +210,7 @@ impl BitVec {
             bit_count_last_word: (current_bit_idx + 1) % (usize::BITS as u8),
         }
     }
-    
+
     /// Creates a [BitVec] from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
     /// Any other character is ignored.  If a `max_length` is given, a maximum of `max_length` valid
     /// bits are read (not counting any invalid characters) and the maximum bit length ist
@@ -270,6 +280,7 @@ impl BitVec {
     }
 }
 
+// conversion functions
 impl From<Vec<u8>> for BitVec {
     /// Creates a [BitVec] from a [Vec] of bytes, each containing 8 values.
     fn from(value: Vec<u8>) -> Self {
@@ -291,7 +302,8 @@ impl<'a> From<&'a [u8]> for BitVec {
             use rayon::slice::ParallelSlice;
 
             // copy, converting to the right data type
-            let words = value.par_chunks(BYTES_PER_WORD)
+            let words = value
+                .par_chunks(BYTES_PER_WORD)
                 .map(|chunk| {
                     chunk.iter().enumerate().fold(0usize, |word, (i, byte)| {
                         let shift = (usize::BITS as usize) - ((u8::BITS as usize) * (i + 1));
@@ -329,7 +341,8 @@ impl<'a> From<&'a [bool]> for BitVec {
             use rayon::iter::ParallelIterator;
             use rayon::slice::ParallelSlice;
 
-            let words = value.par_chunks(usize::BITS as usize)
+            let words = value
+                .par_chunks(usize::BITS as usize)
                 .map(|chunk| {
                     // [0] = MSB
                     chunk.iter().enumerate().fold(0usize, |word, (i, &bit)| {
@@ -340,7 +353,10 @@ impl<'a> From<&'a [bool]> for BitVec {
 
             let bit_count_last_word = (value.len() % (usize::BITS as usize)) as u8;
 
-            Self { words, bit_count_last_word }
+            Self {
+                words,
+                bit_count_last_word,
+            }
         })
     }
 }

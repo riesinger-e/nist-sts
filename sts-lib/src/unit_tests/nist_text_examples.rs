@@ -23,8 +23,8 @@ use crate::tests::template_matching::overlapping::{
     overlapping_template_matching_test, OverlappingTemplateTestArgs,
 };
 use crate::tests::template_matching::TemplateArg;
+use crate::Error;
 use crate::DEFAULT_THRESHOLD;
-use crate::{Error};
 use std::fs;
 use std::num::NonZero;
 use std::path::Path;
@@ -210,9 +210,10 @@ fn test_spectral_dft_2() {
 fn test_non_overlapping_template_matching_1() {
     let input = BitVec::from_ascii_str("10100100101110010110").unwrap();
 
-    let template = [0b0010_0000_u8];
-    let templates = [template.as_slice()];
+    let template = 0b001;
     let template_len = 3;
+    let templates = [template << (usize::BITS as usize - template_len)];
+
     let count_blocks = 2;
     let template_arg =
         TemplateArg::new_with_custom_templates(templates.as_slice(), template_len).unwrap();
@@ -248,9 +249,10 @@ fn test_non_overlapping_template_matching_2() {
     let input = BitVec::from(data);
     assert_eq!(input.len_bit(), length);
 
-    let template: [u8; 2] = [0b0010_1111, 0b1000_0000];
-    let templates = [template.as_slice()];
+    let template = 0b0_0101_1111;
     let template_len = 9;
+    let templates = [template << (usize::BITS as usize - template_len)];
+
     let template_arg =
         TemplateArg::new_with_custom_templates(templates.as_slice(), template_len).unwrap();
     let test_arg =

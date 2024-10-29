@@ -13,7 +13,7 @@ pub mod template_matching;
 // This module contains them both, for API consistency, both modules are re-exported as if they
 // were defined in this module.
 mod serial_and_approximate_entropy;
-pub use serial_and_approximate_entropy::{serial, approximate_entropy};
+pub use serial_and_approximate_entropy::{approximate_entropy, serial};
 pub mod cumulative_sums;
 pub mod random_excursions;
 pub mod random_excursions_variant;

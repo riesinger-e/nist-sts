@@ -3,17 +3,16 @@
 //! This test focuses on the numbers of ones and zeros in the sequence - the proportion should
 //! be roughly 50:50.
 
+use crate::bitvec::BitVec;
 use crate::internals::{check_f64, erfc};
-use crate::{BYTE_SIZE};
-use crate::{TestResult, Error};
+use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::f64::consts::FRAC_1_SQRT_2;
 use std::num::NonZero;
 use sts_lib_derive::use_thread_pool;
-use crate::bitvec::BitVec;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(100) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -21,7 +20,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 };
 
 /// Frequency (mono bit) test - No. 1
-/// 
+///
 /// See the [module docs](crate::tests::frequency).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
 #[use_thread_pool(crate::internals::THREAD_POOL)]
@@ -29,8 +28,8 @@ pub fn frequency_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: convert 0 values to -1 and calculate the sum of all bits.
     // This operation is done in parallel.
     // first sum up the full bytes, then the remaining bits.
-    let sum = data
-        .data
+    let mut sum = data
+        .words
         .par_iter()
         .try_fold(
             || 0_isize,
@@ -38,7 +37,7 @@ pub fn frequency_test(data: &BitVec) -> Result<TestResult, Error> {
                 // the count of bits with value '1' in the byte
                 let count_ones = value.count_ones() as usize;
                 // the count of zeros is built from the count of ones (1 byte = 8 bits)
-                let count_zeros = BYTE_SIZE - count_ones;
+                let count_zeros = (usize::BITS as usize) - count_ones;
 
                 // Adding and subtracting the count from the sum ist the same as conversion to -1 and +1.
                 // Conversion to usize is definitely safe - count_ones and count_zeros range `0..=8`
@@ -63,30 +62,30 @@ pub fn frequency_test(data: &BitVec) -> Result<TestResult, Error> {
                 )))
             },
         )?;
-    // remainder: not parallel, always a maximum of 8
-    let sum = data.remainder.iter().try_fold(sum, |sum, value| {
-        if *value {
-            // true is 1
-            sum.checked_add_unsigned(1)
-        } else {
-            // false is -1
-            sum.checked_sub_unsigned(1)
-        }
-            .ok_or(Error::Overflow(format!("adding the remainder to the sum: {sum}")))
-    })?;
-    
+
+    if data.bit_count_last_word != 0 {
+        // subtracted too many zeros in the last word, add them again
+        let zeroes = (usize::BITS as usize) - (data.bit_count_last_word as usize);
+
+        sum = sum
+            .checked_add_unsigned(zeroes)
+            .ok_or(Error::Overflow(format!(
+                "correcting the zero count: {sum} + {zeroes}"
+            )))?;
+    }
+
     // Step 2: compute s_obs = abs(sum) / sqrt(n)
     let s_obs = (sum
         .checked_abs()
         .ok_or(Error::Overflow(format!("abs({sum}) - type isize")))? as f64)
         / f64::sqrt(data.len_bit() as f64);
-    
+
     check_f64(s_obs)?;
-    
+
     // Step 3: compute P-value = erfc(s_obs / sqrt(2))
     let p_value = erfc(s_obs * FRAC_1_SQRT_2);
 
     check_f64(p_value)?;
-    
+
     Ok(TestResult::new(p_value))
 }

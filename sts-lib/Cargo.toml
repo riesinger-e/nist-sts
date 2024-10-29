@@ -20,3 +20,4 @@ statrs = "0.17.1"
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.61"
 sts-lib-derive = { path = "./sts-lib-derive" }
+tinyvec = "1.8.0"

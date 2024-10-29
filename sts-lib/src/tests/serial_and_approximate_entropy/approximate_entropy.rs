@@ -25,7 +25,7 @@ use sts_lib_derive::use_thread_pool;
 // 2 < (log2(len_bit) as int) - 5
 // -> log2(2^8) - 5 = 3
 /// The minimum input length for this test, in bits.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(1 << 8) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -94,28 +94,21 @@ pub fn approximate_entropy_test(
     // Step 5.2: determine the frequency of all possible overlapping (m+1) bit blocks.
     // (m == block_length)
     let frequencies = create_frequency_slices(block_length);
-    (0..data.len_bit())
-        .into_par_iter()
-        .try_for_each(|idx| {
-            frequencies
-                .iter()
-                .enumerate()
-                .try_for_each(|(i, freq)| {
-                    let idx =
-                        access_bits(data, idx, block_length + i as u8).unwrap_or_else(|| {
-                            panic!("serial_test: idx for (m + {i}) should be valid")
-                        });
+    (0..data.len_bit()).into_par_iter().try_for_each(|idx| {
+        frequencies.iter().enumerate().try_for_each(|(i, freq)| {
+            let idx = access_bits(data, idx, block_length + i as u8)
+                .unwrap_or_else(|| panic!("serial_test: idx for (m + {i}) should be valid"));
 
-                    let prev = freq[idx].fetch_add(1, Ordering::Relaxed);
-                    if prev == usize::MAX {
-                        return Err(Error::Overflow(format!(
-                            "Adding 1 to frequency count {}",
-                            prev
-                        )));
-                    }
-                    Ok(())
-                })
-        })?;
+            let prev = freq[idx].fetch_add(1, Ordering::Relaxed);
+            if prev == usize::MAX {
+                return Err(Error::Overflow(format!(
+                    "Adding 1 to frequency count {}",
+                    prev
+                )));
+            }
+            Ok(())
+        })
+    })?;
 
     // Step 3 / Step 5.3: for each frequency i, calculate i / len_bit
     // Step 4 / Step 5.4: calculate the sum of (i * ln(i)), where i denotes an entry in the frequency

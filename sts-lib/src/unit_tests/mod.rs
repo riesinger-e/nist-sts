@@ -21,6 +21,13 @@ macro_rules! assert_f64_eq {
             "Expected {expected}, got {got}"
         );
     };
+    ($left:expr, $right:expr, $prefix: tt) => {
+        let (got, expected) = ($left, $right);
+        assert!(
+            f64::abs(got - expected) < f64::EPSILON,
+            "{}: Expected {expected}, got {got}", $prefix
+        );
+    };
 }
 
 use assert_f64_eq;
@@ -43,14 +50,8 @@ fn test_bitvec_from_bool() {
     // assert that length is the expected 10
     assert_eq!(bitvec.len_bit(), input_data.len());
 
-    let bits = 0b1011_0101_0100_0000;
-    let bits = if usize::BITS == 32 {
-        bits << 16
-    } else if usize::BITS == 64 {
-        bits << (16 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b10_1101_0101;
+    let bits = bits << (usize::BITS as usize - input_data.len());
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, 10);
 }
@@ -69,14 +70,8 @@ fn test_bitvec_from_ascii_string() {
     // assert that length is the expected 10
     assert_eq!(bitvec.len_bit(), input_data.len());
 
-    let bits = 0b1011_0101_0100_0000;
-    let bits = if usize::BITS == 32 {
-        bits << 16
-    } else if usize::BITS == 64 {
-        bits << (16 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b10_1101_0101;
+    let bits = bits << (usize::BITS as usize - input_data.len());
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, 10);
 }
@@ -95,22 +90,17 @@ fn test_bitvec_from_ascii_string_invalid() {
 #[test]
 fn test_bitvec_from_ascii_string_lossy() {
     let input_data = "101a101100b101010o100";
+    let bit_len = 18;
 
     let bitvec = BitVec::from_ascii_str_lossy(input_data);
 
     // assert that length is the expected 18
-    assert_eq!(bitvec.len_bit(), 18);
+    assert_eq!(bitvec.len_bit(), bit_len);
 
-    let bits = 0b1011_0110_0101_0101_0000;
-    let bits = if usize::BITS == 32 {
-        bits << 12
-    } else if usize::BITS == 64 {
-        bits << (12 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b10_1101_1001_0101_0100;
+    let bits = bits << (usize::BITS as usize - bit_len);
     assert_eq!(&*bitvec.words, &[bits]);
-    assert_eq!(bitvec.bit_count_last_word, 18);
+    assert_eq!(bitvec.bit_count_last_word, bit_len as u8);
 }
 
 /// Test the lossy ASCII string parsing with a given max len
@@ -124,24 +114,12 @@ fn test_bitvec_from_ascii_string_lossy_with_max_len() {
         // assert that length is the expected 18
         assert_eq!(bitvec.len_bit(), usize::min(length, 18));
         if length == 14 {
-            let bits = 0b1011_0110_0101_0100;
-            let bits = if usize::BITS == 32 {
-                bits << 16
-            } else if usize::BITS == 64 {
-                bits << (16 + 32)
-            } else {
-                panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-            };
+            let bits = 0b10_1101_1001_0101;
+            let bits = bits << (usize::BITS as usize - length);
             assert_eq!(&*bitvec.words, &[bits]);
         } else {
-            let bits = 0b1011_0110_0101_0101_0000;
-            let bits = if usize::BITS == 32 {
-                bits << 12
-            } else if usize::BITS == 64 {
-                bits << (12 + 32)
-            } else {
-                panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-            };
+            let bits = 0b10_1101_1001_0101_0100;
+            let bits = bits << (usize::BITS as usize - 18);
             assert_eq!(&*bitvec.words, &[bits]);
         }
     }
@@ -159,14 +137,8 @@ fn test_bitvec_from_c_str() {
     // assert that length is the expected 10
     assert_eq!(bitvec.len_bit(), input_len);
 
-    let bits = 0b1011_0101_0100_0000;
-    let bits = if usize::BITS == 32 {
-        bits << 16
-    } else if usize::BITS == 64 {
-        bits << (16 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b10_1101_0101;
+    let bits = bits << (usize::BITS as usize - input_len);
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, input_len as u8);
 }
@@ -175,22 +147,18 @@ fn test_bitvec_from_c_str() {
 #[test]
 fn test_bitvec_from_c_str_lossy() {
     let input_data = c"101a101100b101010o100";
+    let input_len = 18;
 
     let bitvec = unsafe { BitVec::from_c_str(input_data.as_ptr()) };
 
     // assert that length is the expected 18
-    assert_eq!(bitvec.len_bit(), 18);
+    assert_eq!(bitvec.len_bit(), input_len);
 
-    let bits = 0b1011_0110_0101_0101_0000;
-    let bits = if usize::BITS == 32 {
-        bits << 12
-    } else if usize::BITS == 64 {
-        bits << (12 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b10_1101_1001_0101_0100;
+    let bits = bits << (usize::BITS as usize - input_len);
+
     assert_eq!(&*bitvec.words, &[bits]);
-    assert_eq!(bitvec.bit_count_last_word, 18);
+    assert_eq!(bitvec.bit_count_last_word, input_len as u8);
 }
 
 /// Test the c string pointer parsing with invalid characters interspersed and a given max length.
@@ -204,24 +172,12 @@ fn test_bitvec_from_c_str_with_max_len() {
         // assert that length is the expected 18
         assert_eq!(bitvec.len_bit(), usize::min(length, 18));
         if length == 13 {
-            let bits = 0b1011_0110_0101_0000;
-            let bits = if usize::BITS == 32 {
-                bits << 16
-            } else if usize::BITS == 64 {
-                bits << (16 + 32)
-            } else {
-                panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-            };
+            let bits = 0b1_0110_1100_1010;
+            let bits = bits << (usize::BITS as usize - length);
             assert_eq!(&*bitvec.words, &[bits]);
         } else {
-            let bits = 0b1011_0110_0101_0101_0000;
-            let bits = if usize::BITS == 32 {
-                bits << 12
-            } else if usize::BITS == 64 {
-                bits << (12 + 32)
-            } else {
-                panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-            };
+            let bits = 0b10_1101_1001_0101_0100;
+            let bits = bits << (usize::BITS as usize - 18);
             assert_eq!(&*bitvec.words, &[bits]);
         }
     }
@@ -242,14 +198,9 @@ fn test_bitvec_crop_more_than_1_byte() {
     // assert that length is the expected one
     assert_eq!(bitvec.len_bit(), length);
 
-    let bits = 0b1011_0101_1011_0101_1011_0101_0100;
-    let bits = if usize::BITS == 32 {
-        bits << 4
-    } else if usize::BITS == 64 {
-        bits << (4 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b10_1101_0110_1101_0110_1101_0101;
+    let bits = bits << (usize::BITS as usize - length);
+
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, length as u8);
 
@@ -258,14 +209,9 @@ fn test_bitvec_crop_more_than_1_byte() {
 
     assert_eq!(bitvec.len_bit(), length);
 
-    let bits = 0b1011_0101_1010;
-    let bits = if usize::BITS == 32 {
-        bits << 20
-    } else if usize::BITS == 64 {
-        bits << (20 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b101_1010_1101;
+    let bits = bits << (usize::BITS as usize - length);
+
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, length as u8);
 }
@@ -284,14 +230,8 @@ fn test_bitvec_crop_less_than_1_byte() {
 
     assert_eq!(bitvec.len_bit(), length);
 
-    let bits = 0b1011_0101_0100;
-    let bits = if usize::BITS == 32 {
-        bits << 20
-    } else if usize::BITS == 64 {
-        bits << (20 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b10_1101_0101;
+    let bits = bits << (usize::BITS as usize - length);
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, length as u8);
 
@@ -300,14 +240,8 @@ fn test_bitvec_crop_less_than_1_byte() {
 
     assert_eq!(bitvec.len_bit(), length);
 
-    let bits = 0b1011_0101_0000;
-    let bits = if usize::BITS == 32 {
-        bits << 20
-    } else if usize::BITS == 64 {
-        bits << (20 + 32)
-    } else {
-        panic!("Unsupported CPU: usize must be 4 or 8 bytes")
-    };
+    let bits = 0b1_0110_1010;
+    let bits = bits << (usize::BITS as usize - length);
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, length as u8);
 }
@@ -349,27 +283,18 @@ fn test_pi_calculation() {
 #[test]
 fn test_berlekamp_massey() {
     // start_bit is 0, everything in the sequence
-    let sequence = [0b1101_0111, 0b1000_1000];
+    let value = 0b1_1010_1111_0001;
     let bit_len = 13;
     let start_bit = 0;
+    let sequence = [value << (usize::BITS as usize - bit_len - start_bit)];
 
-    assert_eq!(berlekamp_massey(&sequence, None, bit_len, start_bit), 4);
-
-    // start_bit is 0, last byte comes separate
-    let sequence = [0b1101_0111];
-    let additional_bit = 0b1000_1000;
-    let bit_len = 13;
-    let start_bit = 0;
-
-    assert_eq!(
-        berlekamp_massey(&sequence, Some(additional_bit), bit_len, start_bit),
-        4
-    );
+    assert_eq!(berlekamp_massey(&sequence, bit_len, start_bit), 4);
 
     // start bit is != 0
-    let sequence = [0b0110_1011, 0b1100_0100];
+    let value = 0b01_1010_1111_0001;
     let bit_len = 13;
     let start_bit = 1;
+    let sequence = [value << (usize::BITS as usize - bit_len - start_bit)];
 
-    assert_eq!(berlekamp_massey(&sequence, None, bit_len, start_bit), 4);
+    assert_eq!(berlekamp_massey(&sequence, bit_len, start_bit), 4);
 }

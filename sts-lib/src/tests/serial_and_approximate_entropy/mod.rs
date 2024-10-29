@@ -2,7 +2,6 @@
 //! is defined here. The submodules are reexported in [crate::tests] for API consistency.
 
 use crate::bitvec::BitVec;
-use crate::BYTE_SIZE;
 
 pub mod approximate_entropy;
 pub mod serial;
@@ -22,6 +21,9 @@ fn validate_test_arg(block_length: u8) -> Option<u8> {
 ///
 /// start_idx is measured in bits.
 ///
+/// This function may wrap-around, meaning if start_idx + block_length >= data.len_bit(), bits from
+/// the start will be read.
+///
 /// Bounds: start_idx < [BitVec::len_bit], block_length <= [usize::BITS]
 fn access_bits(data: &BitVec, start_idx: usize, block_length: u8) -> Option<usize> {
     let data_len = data.len_bit();
@@ -30,51 +32,49 @@ fn access_bits(data: &BitVec, start_idx: usize, block_length: u8) -> Option<usiz
         return None;
     }
 
-    let mut number: usize = 0;
-    let mut bits_left = block_length;
-    let mut idx = start_idx;
+    let end_idx = start_idx + block_length as usize;
+    
+    let res = if end_idx >= data_len {
+        // wrap-around
+        let end_idx = end_idx % data_len;
+        let end_bit_idx = end_idx % (usize::BITS as usize);
 
-    while bits_left > 0 {
-        idx %= data_len;
+        // read all bits from start_idx to the end (1 or 2 words)
+        let start_word_idx = start_idx / (usize::BITS as usize);
+        let start_bit_idx = start_idx % (usize::BITS as usize);
 
-        let byte_idx = idx / BYTE_SIZE;
+        // first part is either last word or second-to-last word
+        let mut result: usize = data.words[start_word_idx] << start_bit_idx;
 
-        if byte_idx < data.data.len() {
-            let bit_idx = idx % BYTE_SIZE;
-            let byte = data.data[byte_idx];
-
-            if bit_idx == 0 && bits_left >= BYTE_SIZE as u8 {
-                // still inside the byte array, byte aligned storing possible
-                bits_left -= BYTE_SIZE as u8;
-
-                number |= (byte as usize) << bits_left;
-
-                idx += BYTE_SIZE;
-            } else {
-                // still inside the byte array, but not byte aligned
-                bits_left -= 1;
-
-                let bit = ((byte >> (BYTE_SIZE - bit_idx - 1)) & 1) != 0;
-
-                if bit {
-                    number |= 1 << bits_left;
-                }
-
-                idx += 1;
-            }
-        } else {
-            // in data.remainder
-            bits_left -= 1;
-
-            let rem_idx = idx - data.data.len() * BYTE_SIZE;
-
-            if data.remainder[rem_idx] {
-                number |= 1 << bits_left;
-            }
-
-            idx += 1;
+        if start_word_idx != data.words.len() - 1 {
+            // add last word, if necessary
+            result |= data.words[data.words.len() - 1] >> (usize::BITS as usize - start_bit_idx);
         }
-    }
 
-    Some(number)
+        // add first word
+        let shift = (block_length as usize) - end_bit_idx;
+        let last_part = data.words[0] >> shift;
+
+        result | last_part
+    } else {
+        // read "normally", maximum of 2 words possible
+        let start_word_idx = start_idx / (usize::BITS as usize);
+        let end_word_idx = end_idx / (usize::BITS as usize);
+
+        let start_bit_idx = start_idx % (usize::BITS as usize);
+
+        let first_part = data.words[start_word_idx] << start_bit_idx;
+
+        if start_word_idx == end_word_idx {
+            first_part
+        } else {
+            let second_part = data.words[end_word_idx] >> (usize::BITS as usize - start_bit_idx);
+            first_part | second_part
+        }
+    };
+
+    // now the block_size high bits contain the value --> shift to low bits
+    let res = res >> (usize::BITS as u8 - block_length);
+
+    Some(res)
 }

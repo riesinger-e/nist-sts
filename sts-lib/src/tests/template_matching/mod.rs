@@ -6,8 +6,6 @@
 pub mod non_overlapping;
 pub mod overlapping;
 
-use crate::BYTE_SIZE;
-use std::cmp::Ordering;
 use std::io::BufReader;
 use std::sync::LazyLock;
 
@@ -24,7 +22,7 @@ pub const DEFAULT_TEMPLATE_LENGTH: usize = 9;
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct TemplateArg<'a> {
-    templates: &'a [&'a [u8]],
+    templates: &'a [usize],
     template_len: usize,
 }
 
@@ -102,7 +100,7 @@ impl TemplateArg<'static> {
 
         // The split references are stored for reuse later.
         // Again: LazyLock creation so that this is not done on startup.
-        static TEMPLATES: [LazyLock<Box<[&[u8]]>>; 20] = [
+        static TEMPLATES: [LazyLock<Box<[usize]>>; 20] = [
             LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[0], 2)),
             LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[1], 3)),
             LazyLock::new(|| split_template_file(UNCOMPRESSED_TEMPLATE_FILES[2], 4)),
@@ -137,32 +135,16 @@ impl TemplateArg<'static> {
 }
 
 impl<'a> TemplateArg<'a> {
-    /// Constructor for custom templates - templates are checked for fitting length, if the length
-    /// is not ok, `None` is returned.
-    pub fn new_with_custom_templates(
-        templates: &'a [&'a [u8]],
-        template_len: usize,
-    ) -> Option<Self> {
+    /// Constructor for custom templates - template length must be valid
+    pub fn new_with_custom_templates(templates: &'a [usize], template_len: usize) -> Option<Self> {
         // Basic bounds check
         if !(2..=21).contains(&template_len) {
-            return None;
-        }
-
-        // calculate template length in bytes
-        let template_len_bytes =
-            if template_len % BYTE_SIZE == 0 { 0 } else { 1 } + template_len / BYTE_SIZE;
-
-        let all_templates_have_right_len = templates
-            .iter()
-            .all(|template| template.len() == template_len_bytes);
-
-        if all_templates_have_right_len {
+            None
+        } else {
             Some(Self {
                 templates,
                 template_len,
             })
-        } else {
-            None
         }
     }
 }
@@ -187,105 +169,57 @@ fn decompress_template_file(compressed: &[u8]) -> Box<[u8]> {
 
 /// Split a (decompressed) template file.
 /// Argument: the template length in bits.
-fn split_template_file(template_raw: &[u8], template_len: usize) -> Box<[&[u8]]> {
+fn split_template_file(template_raw: &[u8], template_len: usize) -> Box<[usize]> {
     // how long each template in the files is, in bytes.
-    let template_len_bytes =
-        if template_len % BYTE_SIZE == 0 { 0 } else { 1 } + template_len / BYTE_SIZE;
+    let template_len_bytes = if template_len % (u8::BITS as usize) == 0 {
+        0
+    } else {
+        1
+    } + template_len / (u8::BITS as usize);
 
     template_raw
         // templates are stored as 1 big byte array, but the template length is known
         // and for not-filled bytes, 0-padding is used
         .chunks_exact(template_len_bytes)
+        .map(|chunk| {
+            // interpret as a big endian u32
+            let arr = match template_len_bytes {
+                1 => [chunk[0], 0, 0, 0],
+                2 => [chunk[0], chunk[1], 0, 0],
+                3 => [chunk[0], chunk[1], chunk[2], 0],
+                4 => [chunk[0], chunk[1], chunk[2], chunk[3]],
+                _ => unreachable!("Maximum of 22 bits"),
+            };
+
+            let value = u32::from_be_bytes(arr);
+            // if usize is u64, we need to shift the remaining 32 bits
+            (value as usize) << (usize::BITS - u32::BITS)
+        })
         .collect::<Box<_>>()
 }
 
-/// Right shift the individual bits in the [Vec], carrying over bits to the next element and extending
-/// as necessary. `last_bit_index` is the index of the last bit in the last byte.
-/// A new last_bit_index is returned. The maximum allowed shift ist 7. The given Vec must have
-/// a maximum of 7 elements.
-#[must_use]
-fn right_shift_byte_vec(
-    bytes: &mut Vec<u8>,
-    mut last_bit_index: usize,
-    shift: usize,
-) -> Option<usize> {
-    if shift >= BYTE_SIZE || bytes.len() > 7 {
-        return None;
-    }
-
-    // no-op
-    if shift == 0 {
-        // unchanged
-        return Some(last_bit_index);
-    }
-
-    // at maximum, one byte has to be added to the end
-    if last_bit_index + shift >= BYTE_SIZE {
-        bytes.push(0)
-    }
-    // write new last bit index
-    last_bit_index = (last_bit_index + shift) % BYTE_SIZE;
-
-    // reinterpret as an appropriate number (Big Endian) and shift
-    match bytes.len() {
-        0 => (), //noop
-        1 => bytes[0] >>= shift,
-        2 => {
-            let value = u16::from_be_bytes(bytes.as_slice().try_into().unwrap()) >> shift;
-            *bytes = value.to_be_bytes().into();
-        }
-        3..=4 => {
-            let prev_length = bytes.len();
-            for _ in prev_length..4 {
-                bytes.push(0);
-            }
-            let value = u32::from_be_bytes(bytes.as_slice().try_into().unwrap()) >> shift;
-            *bytes = value.to_be_bytes().into();
-            bytes.truncate(prev_length);
-        }
-        5..=8 => {
-            let prev_length = bytes.len();
-            for _ in prev_length..8 {
-                bytes.push(0);
-            }
-            let value = u64::from_be_bytes(bytes.as_slice().try_into().unwrap()) >> shift;
-            *bytes = value.to_be_bytes().into();
-            bytes.truncate(prev_length);
-        }
-        _ => unreachable!(),
-    }
-
-    Some(last_bit_index)
-}
-
 /// Take the template length and create a bitmask to compare if the template matches
-fn create_mask(template_bit_len: usize) -> Vec<u8> {
-    // Count of bytes that should consist onf only "1" bits
-    let one_bytes = template_bit_len / BYTE_SIZE;
-
-    let mut mask = vec![0xff; one_bytes];
-
-    mask.push(match template_bit_len % BYTE_SIZE {
-        // early return - no additional byte is needed
-        0 => return mask,
-        1 => 0b1000_0000,
-        2 => 0b1100_0000,
-        3 => 0b1110_0000,
-        4 => 0b1111_0000,
-        5 => 0b1111_1000,
-        6 => 0b1111_1100,
-        7 => 0b1111_1110,
-        _ => unreachable!(),
-    });
-    mask
+#[inline]
+fn create_mask(template_bit_len: usize) -> usize {
+    ((1 << template_bit_len) - 1) << (usize::BITS as usize - template_bit_len)
 }
 
-/// Access the specified index, with the additional byte seen as the last index.
-/// Panics if the index is out of bounds.
-fn get_byte(data: &[u8], byte: &u8, idx: usize) -> u8 {
-    match idx.cmp(&data.len()) {
-        Ordering::Less => data[idx],
-        Ordering::Equal => *byte,
-        _ => panic!("get_byte(): idx {idx} is out of bounds!"),
+/// For bit masks and templates: right shift a base template or mask (whose bits are starting at the MSB),
+/// if overflowing, a second value is returned.
+///
+/// `shift < usize::BITS` must uphold.
+#[inline]
+fn overflowing_right_shift(
+    value: usize,
+    template_bit_len: usize,
+    shift: usize,
+) -> (usize, Option<usize>) {
+    let shifted = value >> shift;
+
+    if (usize::BITS as usize) < template_bit_len + shift {
+        let overflow_shift = (usize::BITS as usize) - shift;
+        (shifted, Some(value << overflow_shift))
+    } else {
+        (shifted, None)
     }
 }

@@ -7,19 +7,20 @@
 //! of the longest runs of zeroes, meaning that only this test is necessary. See the NIST publication.
 //!
 //! The data has to be at least 128 bits in length.
-//! 
-//! The probability constants were recalculated, so you might see a deviation when comparing the 
+//!
+//! The probability constants were recalculated, so you might see a deviation when comparing the
 //! output with the reference implementation. In testing, the deviations were not too big.
 
-use std::num::NonZero;
+use crate::bitvec::array_chunks::TypedArrayChunks;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
-use crate::{Error, TestResult, BYTE_SIZE};
+use crate::{Error, TestResult};
 use rayon::prelude::*;
+use std::num::NonZero;
 use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(128) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -60,62 +61,113 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 0: determine the block length and the block count, based on 2.4.2.
     // Also determine the values bucket_count (= K + 1) and n, as given 2.4.4
     // All possible values are whole bytes.
-    let (block_length_bits, bucket_count, table_criteria, probabilities) = match data.len_bit() {
-        bit_len @ 0..=127 => {
-            return Err(Error::InvalidParameter(format!(
-                "Input length has to be at least 128 bits, is {}",
-                bit_len
-            )))
+    match data.len_bit() {
+        bit_len @ 0..=127 => Err(Error::InvalidParameter(format!(
+            "Input length has to be at least 128 bits, is {}",
+            bit_len
+        ))),
+        128..=6271 => {
+            const BLOCK_SIZE: usize = 8 / (u8::BITS as usize);
+            let data = TypedArrayChunks::<u8>::par_chunks::<BLOCK_SIZE>(data);
+
+            longest_run_of_ones(data, TABLE_SORTING_CRITERIA_8, PROBABILITIES_8)
         }
-        128..=6271 => (
-            8,
-            4,
-            TABLE_SORTING_CRITERIA_8.as_slice(),
-            PROBABILITIES_8.as_slice(),
-        ),
-        6272..=749_999 => (
-            128,
-            6,
-            TABLE_SORTING_CRITERIA_128.as_slice(),
-            PROBABILITIES_128.as_slice(),
-        ),
-        750_000.. => (
-            10_000,
-            7,
-            TABLE_SORTING_CRITERIA_10_4.as_slice(),
-            PROBABILITIES_10_4.as_slice(),
-        ),
-    };
-    let block_length_bytes = block_length_bits / BYTE_SIZE;
-    let block_count = data.data.len() / block_length_bytes;
+        6272..=749_999 => {
+            const BLOCK_SIZE: usize = 128 / (usize::BITS as usize);
+            let data = TypedArrayChunks::<usize>::par_chunks::<BLOCK_SIZE>(data);
+
+            longest_run_of_ones(data, TABLE_SORTING_CRITERIA_128, PROBABILITIES_128)
+        }
+        750_000.. => {
+            const BLOCK_SIZE: usize = 10_000 / (u16::BITS as usize);
+            let data = TypedArrayChunks::<u16>::par_chunks::<BLOCK_SIZE>(data);
+
+            longest_run_of_ones(data, TABLE_SORTING_CRITERIA_10_4, PROBABILITIES_10_4)
+        }
+    }
+}
+
+trait LongestRunOfOnesPrimitive: Copy + Send + Sync {
+    const BITS: u32;
+
+    /// Count the bits with value 1 in the value
+    fn count_ones(self) -> u32;
+
+    /// Get the bit accessed by the specified right shift
+    fn get_bit(self, right_shift: u32) -> bool;
+}
+
+impl LongestRunOfOnesPrimitive for u8 {
+    const BITS: u32 = u8::BITS;
+
+    fn count_ones(self) -> u32 {
+        u8::count_ones(self)
+    }
+
+    fn get_bit(self, right_shift: u32) -> bool {
+        ((self >> right_shift) & 0x01) == 1
+    }
+}
+
+impl LongestRunOfOnesPrimitive for u16 {
+    const BITS: u32 = u16::BITS;
+
+    fn count_ones(self) -> u32 {
+        u16::count_ones(self)
+    }
+
+    fn get_bit(self, right_shift: u32) -> bool {
+        ((self >> right_shift) & 0x01) == 1
+    }
+}
+
+impl LongestRunOfOnesPrimitive for usize {
+    const BITS: u32 = usize::BITS;
+
+    fn count_ones(self) -> u32 {
+        usize::count_ones(self)
+    }
+
+    fn get_bit(self, right_shift: u32) -> bool {
+        ((self >> right_shift) & 0x01) == 1
+    }
+}
+
+fn longest_run_of_ones<
+    const BUCKET_COUNT: usize,
+    const BLOCK_SIZE: usize,
+    T: LongestRunOfOnesPrimitive,
+>(
+    data: impl IndexedParallelIterator<Item = [T; BLOCK_SIZE]>,
+    table_criteria: [usize; BUCKET_COUNT],
+    probabilities: [f64; BUCKET_COUNT],
+) -> Result<TestResult, Error> {
+    let block_count = data.len();
 
     // Step 1: divide the sequence into blocks
     // Step 2: Calculate the length of the longest run per block and sort it into a table based on its length.
     // Since block_count should always be higher than block_length, the outer loop is parallel here.
     let run_table = data
-        .data
-        .par_chunks_exact(block_length_bytes)
         .try_fold(
-            || vec![0_usize; bucket_count].into_boxed_slice(),
+            || [0_usize; BUCKET_COUNT],
             |mut table, chunk| {
                 // only runs of 1 are relevant here
                 let mut current_run_length: usize = 0;
                 let mut max_run_length: usize = 0;
 
-                for &byte in chunk {
-                    if byte.count_ones() as usize == BYTE_SIZE {
+                for unit in chunk {
+                    if unit.count_ones() == T::BITS {
                         // easy case: all ones
-                        current_run_length =
-                            current_run_length
-                                .checked_add(BYTE_SIZE)
-                                .ok_or(Error::Overflow(format!(
-                                    "adding {BYTE_SIZE} to run length {current_run_length}"
-                                )))?;
+                        current_run_length = current_run_length
+                            .checked_add(T::BITS as usize)
+                            .ok_or(Error::Overflow(format!(
+                                "adding {} to run length {current_run_length}",
+                                T::BITS
+                            )))?;
                     } else {
                         // we have to inspect bit by bit
-                        for shift in (0..BYTE_SIZE).rev() {
-                            let bit = (byte >> shift) & 0x01;
-                            if bit == 1 {
+                        for shift in (0..T::BITS).rev() {
+                            if unit.get_bit(shift) {
                                 current_run_length =
                                     current_run_length.checked_add(1).ok_or(Error::Overflow(
                                         format!("adding 1 to run length {current_run_length}"),
@@ -136,20 +188,22 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
                     max_run_length = current_run_length;
                 }
 
-                add_run_to_table(&mut table, table_criteria, max_run_length)?;
+                add_run_to_table(&mut table, table_criteria.as_slice(), max_run_length)?;
                 Ok(table)
             },
         )
         .try_reduce(
-            || vec![0_usize; bucket_count].into_boxed_slice(),
-            |a, b| {
-                Box::into_iter(a)
-                    .zip(Box::into_iter(b))
-                    .map(|(a, b)| {
-                        a.checked_add(b)
-                            .ok_or(Error::Overflow(format!("Adding run part sums {a} and {b}")))
-                    })
-                    .collect::<Result<Box<_>, _>>()
+            || [0_usize; BUCKET_COUNT],
+            |mut a, b| -> Result<_, Error> {
+                a.iter_mut()
+                    .zip(b.into_iter())
+                    .try_for_each(|(a, b)| -> Result<(), Error> {
+                        *a = a
+                            .checked_add(b)
+                            .ok_or(Error::Overflow(format!("Adding run part sums {a} and {b}")))?;
+                        Ok(())
+                    })?;
+                Ok(a)
             },
         )?;
 
@@ -157,7 +211,7 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
     // The values of pi_i are provided in section 3.4 and were recalculated (4 decimal places is
     // very likely too much rounding).
     // Here block_count is taken for n = N.
-    let chi = (0..bucket_count)
+    let chi = (0..BUCKET_COUNT)
         .map(|idx| {
             f64::powi(
                 (run_table[idx] as f64) - (block_count as f64) * probabilities[idx],
@@ -169,7 +223,7 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
     check_f64(chi)?;
 
     // Step 4: compute p_value = igamc(K / 2, chi / 2)
-    let param1 = ((bucket_count - 1) as f64) / 2.0;
+    let param1 = ((BUCKET_COUNT - 1) as f64) / 2.0;
     check_f64(param1)?;
     let param2 = chi / 2.0;
     check_f64(param2)?;
@@ -180,7 +234,7 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
 
 /// to sort a given run length into the run table described in 2.4.4 (2)
 fn add_run_to_table(
-    table: &mut Box<[usize]>,
+    table: &mut [usize],
     criteria: &[usize],
     run_length: usize,
 ) -> Result<(), Error> {

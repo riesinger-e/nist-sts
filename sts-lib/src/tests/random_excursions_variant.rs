@@ -12,14 +12,15 @@
 //!
 //! The input length must be at least 10^6 bits, otherwise, an error is returned.
 
-use std::num::NonZero;
-use sts_lib_derive::use_thread_pool;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, erfc};
-use crate::{Error, TestResult, BYTE_SIZE};
+use crate::{Error, TestResult};
+use std::num::NonZero;
+use std::ops::Range;
+use sts_lib_derive::use_thread_pool;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
-pub const MIN_INPUT_LENGTH: NonZero<usize> = const { 
+pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
     match NonZero::new(1_000_000) {
         Some(v) => v,
         None => panic!("Literal should be non-zero!"),
@@ -47,38 +48,21 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
     let mut prev: i64 = 0;
     let mut num_cycles = 1;
 
-    for &byte in &data.data {
-        (0..BYTE_SIZE)
-            .rev()
-            .map(|shift| 1 << shift)
-            .try_for_each(|mask| -> Result<(), Error> {
-                if byte & mask != 0 {
-                    prev += 1
-                } else {
-                    prev -= 1
-                }
+    let (words, last_word) = data.as_full_slice();
 
-                // increment counter for state occurrences per cycle
-                if inc_frequency(&mut frequencies, prev)? {
-                    num_cycles += 1;
-                }
-
-                Ok(())
-            })?;
+    for &word in words {
+        handle_word(
+            word,
+            0..usize::BITS,
+            &mut prev,
+            &mut num_cycles,
+            &mut frequencies,
+        )?;
     }
 
-    for &bit in &data.remainder {
-        // set the previous value to the current value.
-        if bit {
-            prev += 1;
-        } else {
-            prev -= 1;
-        }
-
-        // increment counter for state occurrences per cycle
-        if inc_frequency(&mut frequencies, prev)? {
-            num_cycles += 1;
-        }
+    if let Some(word) = last_word {
+        let bits = 0..(data.bit_count_last_word as u32);
+        handle_word(word, bits, &mut prev, &mut num_cycles, &mut frequencies)?;
     }
 
     #[cfg(not(test))]
@@ -137,6 +121,32 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
     }
 
     Ok(p_values)
+}
+
+/// Handle step 1 to 4 for one word, with a specified bit range
+fn handle_word(
+    word: usize,
+    bits: Range<u32>,
+    prev: &mut i64,
+    num_cycles: &mut usize,
+    frequencies: &mut [usize; 18],
+) -> Result<(), Error> {
+    bits.map(|bit| usize::BITS - bit - 1)
+        .map(|shift| 1 << shift)
+        .try_for_each(|mask| -> Result<(), Error> {
+            if word & mask != 0 {
+                *prev += 1
+            } else {
+                *prev -= 1
+            }
+
+            // increment counter for state occurrences per cycle
+            if inc_frequency(frequencies, *prev)? {
+                *num_cycles += 1;
+            }
+
+            Ok(())
+        })
 }
 
 /// Increments the right frequency counter based on the current value, returns true if a new
