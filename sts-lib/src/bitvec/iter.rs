@@ -11,7 +11,7 @@ pub(super) const fn elements_per_usize<T: Sized>() -> usize {
     size_of::<usize>() / size_of::<T>()
 }
 
-// part of the implementation of Iterator::split() is shared between this module and array_chunks
+/// The implementation of Iterator::split() is shared between this module and array_chunks
 macro_rules! shared_split_impl {
     ($self: ident, $len: ident, $primitive: ty) => {
         if $len == 0 {
@@ -35,11 +35,7 @@ macro_rules! shared_split_impl {
                 end: ArrayVec::new(),
             };
 
-            let part2 = Self {
-                start,
-                data,
-                end,
-            };
+            let part2 = Self { start, data, end };
 
             (part1, part2)
         } else if $len == $self.start.len() {
@@ -56,13 +52,11 @@ macro_rules! shared_split_impl {
             };
 
             (part1, part2)
-        } else if $len - $self.start.len()
-            >= $self.data.len() * elements_per_usize::<$primitive>()
+        } else if $len - $self.start.len() >= $self.data.len() * elements_per_usize::<$primitive>()
         {
             // we can take the whole self.data
-            let rem = $len
-                - $self.start.len()
-                - ($self.data.len() * elements_per_usize::<$primitive>());
+            let rem =
+                $len - $self.start.len() - ($self.data.len() * elements_per_usize::<$primitive>());
 
             if rem == 0 {
                 let Self { start, data, end } = $self;
@@ -171,14 +165,17 @@ macro_rules! shared_split_impl {
                 (part1, part2)
             }
         }
-    }
+    };
 }
 
 pub(super) use shared_split_impl;
 
+/// Implementation for an iterator yielding the given type, using a usize slice as base.
+/// A generic implementation is not possible because Rust does not support const generics affecting
+/// the struct size as of now.
 macro_rules! iter {
     ($name: ident<$primitive: ty> => |$u_name: ident: usize| $split_usize: block) => {
-        pub struct $name<'a> {
+        pub(crate) struct $name<'a> {
             start: ArrayVec<[$primitive; const { elements_per_usize::<$primitive>() - 1 }]>,
             data: &'a [usize],
             end: ArrayVec<[$primitive; const { elements_per_usize::<$primitive>() - 1 }]>,
@@ -288,9 +285,10 @@ macro_rules! iter {
     }
 }
 
+/// Implements a parallel iterator that wraps the given serial iterator.
 macro_rules! par_iter {
     ($outer_name: ident($inner_ty: ident)) => {
-        pub struct $outer_name<'a>($inner_ty<'a>);
+        pub(crate) struct $outer_name<'a>($inner_ty<'a>);
 
         impl<'a> $outer_name<'a> {
             pub(super) fn new(inner: $inner_ty<'a>) -> Self {
@@ -342,27 +340,29 @@ macro_rules! par_iter {
     };
 }
 
-iter!(BitvecIterU8<u8> => |value: usize| {
+iter!(BitVecIterU8<u8> => |value: usize| {
     value.to_be_bytes()
 });
-par_iter!(ParBitvecIterU8(BitvecIterU8));
+par_iter!(ParBitVecIterU8(BitVecIterU8));
 iter!(BitVecIterU16<u16>);
 par_iter!(ParBitVecIterU16(BitVecIterU16));
 #[cfg(not(target_pointer_width = "32"))]
-iter!(BitvecIterU32<u32>);
+iter!(BitVecIterU32<u32>);
 // on 32-bit systems, usize and u32 are the same
 #[cfg(target_pointer_width = "32")]
-iter!(BitvecIterU32<u32> => |value: usize| {
+iter!(BitVecIterU32<u32> => |value: usize| {
     [value as u32]
 });
-par_iter!(ParBitvecIterU32(BitvecIterU32));
-iter!(BitvecIterUsize<usize> => |value: usize| {
+par_iter!(ParBitVecIterU32(BitVecIterU32));
+iter!(BitVecIterUsize<usize> => |value: usize| {
     [value]
 });
-par_iter!(ParBitvecIterUsize(BitvecIterUsize));
+par_iter!(ParBitVecIterUsize(BitVecIterUsize));
 
 /// Trait for generic iteration
-pub trait BitVecIntoIter<T>
+///
+/// This trait is sealed. It cannot be implemented by library consumers.
+pub(crate) trait BitVecIntoIter<T>
 where
     T: Copy + Clone + Send + Sync,
 {
@@ -386,8 +386,8 @@ where
 }
 
 impl BitVecIntoIter<u8> for BitVec {
-    type Iterator<'a> = BitvecIterU8<'a>;
-    type ParIterator<'a> = ParBitvecIterU8<'a>;
+    type Iterator<'a> = BitVecIterU8<'a>;
+    type ParIterator<'a> = ParBitVecIterU8<'a>;
 
     #[allow(clippy::needless_lifetimes)]
     fn iter<'a>(&'a self) -> Self::Iterator<'a> {
@@ -405,12 +405,12 @@ impl BitVecIntoIter<u8> for BitVec {
             }
         }
 
-        BitvecIterU8::new(slice, rest)
+        BitVecIterU8::new(slice, rest)
     }
 
     #[allow(clippy::needless_lifetimes)]
     fn par_iter<'a>(&'a self) -> Self::ParIterator<'a> {
-        ParBitvecIterU8::new(BitVecIntoIter::<u8>::iter(self))
+        ParBitVecIterU8::new(BitVecIntoIter::<u8>::iter(self))
     }
 }
 
@@ -445,8 +445,8 @@ impl BitVecIntoIter<u16> for BitVec {
 }
 
 impl BitVecIntoIter<u32> for BitVec {
-    type Iterator<'a> = BitvecIterU32<'a>;
-    type ParIterator<'a> = ParBitvecIterU32<'a>;
+    type Iterator<'a> = BitVecIterU32<'a>;
+    type ParIterator<'a> = ParBitVecIterU32<'a>;
 
     #[allow(clippy::needless_lifetimes)]
     fn iter<'a>(&'a self) -> Self::Iterator<'a> {
@@ -456,7 +456,7 @@ impl BitVecIntoIter<u32> for BitVec {
         let mut rest = ArrayVec::new();
         #[cfg(not(target_pointer_width = "32"))]
         if let Some(value) = value {
-            let values = BitvecIterU32::split_usize(value);
+            let values = BitVecIterU32::split_usize(value);
 
             for value in values
                 .into_iter()
@@ -466,28 +466,28 @@ impl BitVecIntoIter<u32> for BitVec {
             }
         }
 
-        BitvecIterU32::new(slice, rest)
+        BitVecIterU32::new(slice, rest)
     }
 
     #[allow(clippy::needless_lifetimes)]
     fn par_iter<'a>(&'a self) -> Self::ParIterator<'a> {
-        ParBitvecIterU32::new(BitVecIntoIter::<u32>::iter(self))
+        ParBitVecIterU32::new(BitVecIntoIter::<u32>::iter(self))
     }
 }
 
 impl BitVecIntoIter<usize> for BitVec {
-    type Iterator<'a> = BitvecIterUsize<'a>;
-    type ParIterator<'a> = ParBitvecIterUsize<'a>;
+    type Iterator<'a> = BitVecIterUsize<'a>;
+    type ParIterator<'a> = ParBitVecIterUsize<'a>;
 
     #[allow(clippy::needless_lifetimes)]
     fn iter<'a>(&'a self) -> Self::Iterator<'a> {
         let (slice, _) = self.as_full_slice();
 
-        BitvecIterUsize::new(slice, ArrayVec::new())
+        BitVecIterUsize::new(slice, ArrayVec::new())
     }
 
     #[allow(clippy::needless_lifetimes)]
     fn par_iter<'a>(&'a self) -> Self::ParIterator<'a> {
-        ParBitvecIterUsize::new(BitVecIntoIter::<usize>::iter(self))
+        ParBitVecIterUsize::new(BitVecIntoIter::<usize>::iter(self))
     }
 }

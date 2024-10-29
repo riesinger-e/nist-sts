@@ -7,9 +7,12 @@ use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use std::{array, mem};
 use tinyvec::ArrayVec;
 
-macro_rules! typed_array_chunks {
+/// Implementation for an iterator yielding chunks of the given type, using a usize slice as base.
+/// A generic implementation is not possible because Rust does not support const generics affecting
+/// the struct size as of now.
+macro_rules! impl_chunks {
     ($name: ident<$primitive: ty> => |$u_name: ident: usize| $split_usize: block) => {
-        pub struct $name<'a, const N: usize> {
+        pub(crate) struct $name<'a, const N: usize> {
             start: ArrayVec<[$primitive; const { elements_per_usize::<$primitive>() - 1 }]>,
             data: &'a [usize],
             end: ArrayVec<[$primitive; const { elements_per_usize::<$primitive>() - 1 }]>,
@@ -160,7 +163,7 @@ macro_rules! typed_array_chunks {
     };
 
     ($name: ident<$primitive: ty>) => {
-        typed_array_chunks!($name<$primitive> => |value: usize| {
+        impl_chunks!($name<$primitive> => |value: usize| {
             let bytes = value.to_be_bytes();
 
             let array: [$primitive; elements_per_usize::<$primitive>()] = array::from_fn(|i| {
@@ -176,9 +179,10 @@ macro_rules! typed_array_chunks {
     }
 }
 
-macro_rules! typed_array_chunks_par {
+/// Implements a parallel iterator that wraps the given serial iterator, yielding array chunks.
+macro_rules! impl_chunks_par {
     ($outer_name: ident($inner_ty: ident)) => {
-        pub struct $outer_name<'a, const N: usize>($inner_ty<'a, N>);
+        pub(crate) struct $outer_name<'a, const N: usize>($inner_ty<'a, N>);
 
         impl<'a, const N: usize> $outer_name<'a, N> {
             pub(super) fn new(inner: $inner_ty<'a, N>) -> Self {
@@ -230,27 +234,28 @@ macro_rules! typed_array_chunks_par {
     };
 }
 
-typed_array_chunks!(TypedArrayChunksU8<u8> => |value: usize| {
+impl_chunks!(BitVecChunksU8<u8> => |value: usize| {
     value.to_be_bytes()
 });
-typed_array_chunks_par!(ParTypedArrayChunksU8(TypedArrayChunksU8));
-typed_array_chunks!(TypedArrayChunksU16<u16>);
-typed_array_chunks_par!(ParTypedArrayChunksU16(TypedArrayChunksU16));
+impl_chunks_par!(ParBitVecChunksU8(BitVecChunksU8));
+impl_chunks!(BitVecChunksU16<u16>);
+impl_chunks_par!(ParBitVecChunksU16(BitVecChunksU16));
 #[cfg(not(target_pointer_width = "32"))]
-typed_array_chunks!(TypedArrayChunksU32<u32>);
+impl_chunks!(BitVecChunksU32<u32>);
 // on 32-bit systems, usize and u32 are the same
 #[cfg(target_pointer_width = "32")]
-typed_array_chunks!(TypedArrayChunksU32<u32> => |value: usize| {
+impl_chunks!(BitVecChunksU32<u32> => |value: usize| {
     [value as u32]
 });
-typed_array_chunks_par!(ParTypedArrayChunksU32(TypedArrayChunksU32));
-typed_array_chunks!(TypedArrayChunksUsize<usize> => |value: usize| {
+impl_chunks_par!(ParBitVecChunksU32(BitVecChunksU32));
+impl_chunks!(BitVecChunksUsize<usize> => |value: usize| {
     [value]
 });
-typed_array_chunks_par!(ParTypedArrayChunksUsize(TypedArrayChunksUsize));
+impl_chunks_par!(ParBitVecChunksUsize(BitVecChunksUsize));
 
-/// Trait for generic access to typed array chunks
-pub trait TypedArrayChunks<T>
+/// Trait for generic access to typed array chunks - meaning chunk iterators that yield their
+/// chunks as arrays.
+pub(crate) trait BitVecChunks<T>
 where
     T: Copy + Clone + Send + Sync,
 {
@@ -276,9 +281,9 @@ where
     fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N>;
 }
 
-impl TypedArrayChunks<u8> for BitVec {
-    type Iterator<'a, const N: usize> = TypedArrayChunksU8<'a, N>;
-    type ParIterator<'a, const N: usize> = ParTypedArrayChunksU8<'a, N>;
+impl BitVecChunks<u8> for BitVec {
+    type Iterator<'a, const N: usize> = BitVecChunksU8<'a, N>;
+    type ParIterator<'a, const N: usize> = ParBitVecChunksU8<'a, N>;
 
     #[allow(clippy::needless_lifetimes)]
     fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
@@ -296,19 +301,19 @@ impl TypedArrayChunks<u8> for BitVec {
             }
         }
 
-        TypedArrayChunksU8::new(slice, rest)
+        BitVecChunksU8::new(slice, rest)
     }
 
     #[allow(clippy::needless_lifetimes)]
     fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
-        ParTypedArrayChunksU8::new(TypedArrayChunks::<u8>::chunks::<N>(self))
+        ParBitVecChunksU8::new(BitVecChunks::<u8>::chunks::<N>(self))
     }
 }
 
-impl TypedArrayChunks<u16> for BitVec {
-    type Iterator<'a, const N: usize> = TypedArrayChunksU16<'a, N>;
+impl BitVecChunks<u16> for BitVec {
+    type Iterator<'a, const N: usize> = BitVecChunksU16<'a, N>;
 
-    type ParIterator<'a, const N: usize> = ParTypedArrayChunksU16<'a, N>;
+    type ParIterator<'a, const N: usize> = ParBitVecChunksU16<'a, N>;
 
     #[allow(clippy::needless_lifetimes)]
     fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
@@ -316,7 +321,7 @@ impl TypedArrayChunks<u16> for BitVec {
 
         let mut rest = ArrayVec::new();
         if let Some(value) = value {
-            let values = TypedArrayChunksU16::<N>::split_usize(value);
+            let values = BitVecChunksU16::<N>::split_usize(value);
 
             for value in values
                 .into_iter()
@@ -326,18 +331,18 @@ impl TypedArrayChunks<u16> for BitVec {
             }
         }
 
-        TypedArrayChunksU16::new(slice, rest)
+        BitVecChunksU16::new(slice, rest)
     }
 
     #[allow(clippy::needless_lifetimes)]
     fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
-        ParTypedArrayChunksU16::new(TypedArrayChunks::<u16>::chunks::<N>(self))
+        ParBitVecChunksU16::new(BitVecChunks::<u16>::chunks::<N>(self))
     }
 }
 
-impl TypedArrayChunks<u32> for BitVec {
-    type Iterator<'a, const N: usize> = TypedArrayChunksU32<'a, N>;
-    type ParIterator<'a, const N: usize> = ParTypedArrayChunksU32<'a, N>;
+impl BitVecChunks<u32> for BitVec {
+    type Iterator<'a, const N: usize> = BitVecChunksU32<'a, N>;
+    type ParIterator<'a, const N: usize> = ParBitVecChunksU32<'a, N>;
 
     #[allow(clippy::needless_lifetimes)]
     fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
@@ -347,7 +352,7 @@ impl TypedArrayChunks<u32> for BitVec {
         let mut rest = ArrayVec::new();
         #[cfg(not(target_pointer_width = "32"))]
         if let Some(value) = value {
-            let values = TypedArrayChunksU32::<N>::split_usize(value);
+            let values = BitVecChunksU32::<N>::split_usize(value);
 
             for value in values
                 .into_iter()
@@ -357,28 +362,28 @@ impl TypedArrayChunks<u32> for BitVec {
             }
         }
 
-        TypedArrayChunksU32::new(slice, rest)
+        BitVecChunksU32::new(slice, rest)
     }
 
     #[allow(clippy::needless_lifetimes)]
     fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
-        ParTypedArrayChunksU32::new(TypedArrayChunks::<u32>::chunks::<N>(self))
+        ParBitVecChunksU32::new(BitVecChunks::<u32>::chunks::<N>(self))
     }
 }
 
-impl TypedArrayChunks<usize> for BitVec {
-    type Iterator<'a, const N: usize> = TypedArrayChunksUsize<'a, N>;
-    type ParIterator<'a, const N: usize> = ParTypedArrayChunksUsize<'a, N>;
+impl BitVecChunks<usize> for BitVec {
+    type Iterator<'a, const N: usize> = BitVecChunksUsize<'a, N>;
+    type ParIterator<'a, const N: usize> = ParBitVecChunksUsize<'a, N>;
 
     #[allow(clippy::needless_lifetimes)]
     fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
         let (slice, _) = self.as_full_slice();
 
-        TypedArrayChunksUsize::new(slice, ArrayVec::new())
+        BitVecChunksUsize::new(slice, ArrayVec::new())
     }
 
     #[allow(clippy::needless_lifetimes)]
     fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
-        ParTypedArrayChunksUsize::new(TypedArrayChunks::<usize>::chunks::<N>(self))
+        ParBitVecChunksUsize::new(BitVecChunks::<usize>::chunks::<N>(self))
     }
 }

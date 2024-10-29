@@ -3,17 +3,15 @@
 //!
 //! For the format description, see the *README.md* in *sts-lib/templates*.
 
-use std::{fs, io};
-use std::fs::{OpenOptions};
+use clap::Parser;
+use regex::Regex;
+use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Seek};
 use std::path::PathBuf;
-use clap::Parser;
-use xz2::write::XzEncoder;
-use regex::Regex;
+use std::{fs, io};
 use sts_lib::bitvec::BitVec;
+use xz2::write::XzEncoder;
 
-// how many bits a byte has
-const BYTE_SIZE: usize = 8;
 // the file size threshold of 200 KiB, files over this threshold should be compressed
 const THRESHOLD: usize = 200 * 1024;
 // compression level: the default of xz
@@ -31,7 +29,6 @@ struct CmdLine {
     #[arg(short, long)]
     output_dir: PathBuf,
 }
-
 
 fn main() {
     let cmd_line = CmdLine::parse();
@@ -69,20 +66,13 @@ fn main() {
             let line = line.unwrap();
 
             let bitvec = BitVec::from_ascii_str_lossy(&line);
-            let (data, remainder) = bitvec.into_parts();
+            let (data, remainder) = bitvec.to_bytes();
 
             output.extend_from_slice(&data);
 
             // create a full byte for the remainder
-            if !remainder.is_empty() {
-                let byte = remainder.iter().enumerate()
-                    // get the indexes where the bit is 1
-                    .filter_map(|(idx, &bit)| bit.then_some(idx))
-                    .fold(0, |byte, idx| {
-                        // use the index where the bit is one to shift a 1 to the correct position
-                        byte | (1 << (BYTE_SIZE - idx - 1))
-                    });
-                output.push(byte)
+            if let Some(byte) = remainder {
+                output.push(byte);
             }
         }
 

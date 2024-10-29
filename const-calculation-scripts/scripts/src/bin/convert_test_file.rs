@@ -1,9 +1,9 @@
 //! Script to convert a NIST Test file (found in the original NIST STS distribution, folder `data`)
 //! to the file format used by the library.
 
+use clap::Parser;
 use std::fs;
 use std::path::PathBuf;
-use clap::{Parser};
 use sts_lib::bitvec::BitVec;
 
 /// Convert a NIST Test file, as found in the original implementation, folder `data` to the file
@@ -33,8 +33,8 @@ fn main() {
         BitVec::from_ascii_str_lossy(&data)
     };
 
-    // the remainder is not used (how would you serialize it?)
-    let (data, _) = bitvec.into_parts();
+    // the remainder is not used
+    let (data, _) = bitvec.to_bytes();
 
     fs::write(&cmd_line.output_file, data).unwrap();
 }

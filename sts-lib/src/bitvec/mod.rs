@@ -1,9 +1,11 @@
 //! Everything needed to store the data to test.
 
-use crate::internals::THREAD_POOL;
 use std::ffi::c_char;
 use std::mem;
 use std::ops::Deref;
+use tinyvec::ArrayVec;
+use sts_lib_derive::use_thread_pool;
+use crate::bitvec::iter::{BitVecIterU8, ParBitVecIterU8};
 
 pub mod array_chunks;
 pub mod iter;
@@ -54,38 +56,37 @@ impl BitVec {
     /// No other character is allowed. [usize::MAX] bits can be read.
     ///
     /// This function runs in parallel.
+    #[use_thread_pool(crate::internals::THREAD_POOL)]
     pub fn from_ascii_str(value: &str) -> Option<Self> {
-        THREAD_POOL.install(|| {
-            use rayon::iter::ParallelIterator;
-            use rayon::slice::ParallelSlice;
+        use rayon::iter::ParallelIterator;
+        use rayon::slice::ParallelSlice;
 
-            let words = value
-                .as_bytes()
-                .par_chunks(usize::BITS as usize)
-                .map(|chunk| {
-                    // [0] = MSB
-                    chunk
-                        .iter()
-                        .enumerate()
-                        .try_fold(0usize, |word, (i, char)| {
-                            if *char == b'1' {
-                                Some(word | (1 << ((usize::BITS as usize) - i - 1)))
-                            } else if *char == b'0' {
-                                // no need to change the value itself
-                                Some(word)
-                            } else {
-                                None
-                            }
-                        })
-                })
-                .collect::<Option<_>>()?;
-
-            let bit_count_last_word = (value.len() % (usize::BITS as usize)) as u8;
-
-            Some(Self {
-                words,
-                bit_count_last_word,
+        let words = value
+            .as_bytes()
+            .par_chunks(usize::BITS as usize)
+            .map(|chunk| {
+                // [0] = MSB
+                chunk
+                    .iter()
+                    .enumerate()
+                    .try_fold(0usize, |word, (i, char)| {
+                        if *char == b'1' {
+                            Some(word | (1 << ((usize::BITS as usize) - i - 1)))
+                        } else if *char == b'0' {
+                            // no need to change the value itself
+                            Some(word)
+                        } else {
+                            None
+                        }
+                    })
             })
+            .collect::<Option<_>>()?;
+
+        let bit_count_last_word = (value.len() % (usize::BITS as usize)) as u8;
+
+        Some(Self {
+            words,
+            bit_count_last_word,
         })
     }
 
@@ -152,6 +153,44 @@ impl BitVec {
         Self::from_c_str_internal(ptr, Some(max_length))
     }
 
+    /// Returns a list containing all full bytes of the BitVec, and 1 optional byte remainder.
+    /// The remainder byte will be filled starting from the MSB, the count of bits in the remainder
+    /// byte can be calculated using [Self::len_bit].
+    ///
+    /// This operation is expensive.
+    #[use_thread_pool(crate::internals::THREAD_POOL)]
+    pub fn to_bytes(&self) -> (Vec<u8>, Option<u8>) {
+        use rayon::prelude::*;
+
+        let (slice, value) = self.as_full_slice();
+
+        let mut rest = None;
+        let mut rest_for_iter = ArrayVec::new();
+
+        if let Some(value) = value {
+            let mut values = ArrayVec::from(value.to_be_bytes());
+
+            for value in values
+                .drain(..)
+                .take((self.bit_count_last_word as usize) / (u8::BITS as usize))
+            {
+                rest_for_iter.push(value)
+            }
+
+            if (self.bit_count_last_word as usize) % (u8::BITS as usize) != 0 {
+                rest = Some(values[0])
+            }
+        }
+
+        let bytes = ParBitVecIterU8::new(BitVecIterU8::new(slice, rest_for_iter))
+            .collect::<Vec<u8>>();
+
+        (bytes, rest)
+    }
+}
+
+// crate internals
+impl BitVec {
     /// Returns the bits, stored as the given numerical primitives. The MSB of each value has the lowest index.
     /// Each value is filled - returns an optional additional value, that may be unfilled,
     pub(crate) fn as_full_slice(&self) -> (&[usize], Option<usize>) {
@@ -290,33 +329,32 @@ impl From<Vec<u8>> for BitVec {
 
 impl<'a> From<&'a [u8]> for BitVec {
     /// Creates a [BitVec] from a slice of bytes, each containing 8 values.
+    #[use_thread_pool(crate::internals::THREAD_POOL)]
     fn from(value: &'a [u8]) -> Self {
+        use rayon::iter::ParallelIterator;
+        use rayon::slice::ParallelSlice;
+
         const BYTES_PER_WORD: usize = (usize::BITS / u8::BITS) as usize;
 
         // multiplication in the first step would be unwise (overflow potential)
         let byte_count_last_word = (value.len() % BYTES_PER_WORD) as u8;
         let bit_count_last_word = byte_count_last_word * (u8::BITS as u8);
 
-        THREAD_POOL.install(|| {
-            use rayon::iter::ParallelIterator;
-            use rayon::slice::ParallelSlice;
-
-            // copy, converting to the right data type
-            let words = value
-                .par_chunks(BYTES_PER_WORD)
-                .map(|chunk| {
-                    chunk.iter().enumerate().fold(0usize, |word, (i, byte)| {
-                        let shift = (usize::BITS as usize) - ((u8::BITS as usize) * (i + 1));
-                        word | (*byte as usize) << shift
-                    })
+        // copy, converting to the right data type
+        let words = value
+            .par_chunks(BYTES_PER_WORD)
+            .map(|chunk| {
+                chunk.iter().enumerate().fold(0usize, |word, (i, byte)| {
+                    let shift = (usize::BITS as usize) - ((u8::BITS as usize) * (i + 1));
+                    word | (*byte as usize) << shift
                 })
-                .collect();
+            })
+            .collect();
 
-            Self {
-                words,
-                bit_count_last_word,
-            }
-        })
+        Self {
+            words,
+            bit_count_last_word,
+        }
     }
 }
 
@@ -336,28 +374,27 @@ impl From<Vec<bool>> for BitVec {
 
 impl<'a> From<&'a [bool]> for BitVec {
     /// Creates a [BitVec] from a slice of booleans, each boolean representing one bit.
+    #[use_thread_pool(crate::internals::THREAD_POOL)]
     fn from(value: &'a [bool]) -> Self {
-        THREAD_POOL.install(|| {
-            use rayon::iter::ParallelIterator;
-            use rayon::slice::ParallelSlice;
+        use rayon::iter::ParallelIterator;
+        use rayon::slice::ParallelSlice;
 
-            let words = value
-                .par_chunks(usize::BITS as usize)
-                .map(|chunk| {
-                    // [0] = MSB
-                    chunk.iter().enumerate().fold(0usize, |word, (i, &bit)| {
-                        word | ((bit as usize) << ((usize::BITS as usize) - i - 1))
-                    })
+        let words = value
+            .par_chunks(usize::BITS as usize)
+            .map(|chunk| {
+                // [0] = MSB
+                chunk.iter().enumerate().fold(0usize, |word, (i, &bit)| {
+                    word | ((bit as usize) << ((usize::BITS as usize) - i - 1))
                 })
-                .collect();
+            })
+            .collect();
 
-            let bit_count_last_word = (value.len() % (usize::BITS as usize)) as u8;
+        let bit_count_last_word = (value.len() % (usize::BITS as usize)) as u8;
 
-            Self {
-                words,
-                bit_count_last_word,
-            }
-        })
+        Self {
+            words,
+            bit_count_last_word,
+        }
     }
 }
 
