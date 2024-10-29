@@ -9,7 +9,7 @@
 //! Because of this higher precision, results may deviate significantly when compared to the
 //! reference implementation, i.e. when testing with e.1e6.bin, the deviation is a whole 0.2.
 
-use crate::bitvec::array_chunks::{ParTypedArrayChunksU32, TypedArrayChunks};
+use crate::bitvec::array_chunks::{BitVecChunks, ParBitVecChunksU32};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult};
@@ -44,7 +44,7 @@ pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
     }
 
     // Step 1: divide the sequence into blocks with length M * Q = 32 * 32 bits = 32 u32
-    let data: ParTypedArrayChunksU32<M> = TypedArrayChunks::<u32>::par_chunks::<M>(data);
+    let data: ParBitVecChunksU32<M> = BitVecChunks::<u32>::par_chunks::<M>(data);
     let block_count = data.len();
 
     let categories = data

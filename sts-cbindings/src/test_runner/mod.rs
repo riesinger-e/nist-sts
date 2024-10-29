@@ -1,11 +1,11 @@
 //! The test runner, for running multiple tests in one call.
 
-use std::collections::HashMap;
 use crate::bitvec::BitVec;
 use crate::test_result::TestResult;
 use crate::test_runner::test::{RawTest, Test};
 use crate::test_runner::test_args::RunnerTestArgs;
 use crate::{set_last_from_runner_error, set_last_from_test_failed, set_last_invalid_test};
+use std::collections::HashMap;
 use std::ffi::c_int;
 use std::slice;
 use sts_lib::test_runner;
@@ -21,29 +21,35 @@ impl TestRunner {
     /// Convenience function, handles the iterators returned by the test runner functions.
     ///
     /// Used by all `test_runner_run_*` functions.
-    fn handle_results(&mut self, results: Result<impl Iterator<Item=(sts_lib::Test, Result<Vec<sts_lib::TestResult>, sts_lib::Error>)>, RunnerError>) -> c_int {
+    fn handle_results(
+        &mut self,
+        results: Result<
+            impl Iterator<
+                Item = (
+                    sts_lib::Test,
+                    Result<Vec<sts_lib::TestResult>, sts_lib::Error>,
+                ),
+            >,
+            RunnerError,
+        >,
+    ) -> c_int {
         match results {
             Ok(iter) => {
-                let (results, errs): (Vec<_>, Vec<_>) = iter.map(|(test, res)| {
-                    match res {
+                let (results, errs): (Vec<_>, Vec<_>) = iter
+                    .map(|(test, res)| match res {
                         Ok(res) => ((test, Some(res)), (test, None)),
-                        Err(e) => ((test, None), (test, Some(e)))
-                    }
-                })
+                        Err(e) => ((test, None), (test, Some(e))),
+                    })
                     .unzip();
 
                 let results = results
                     .into_iter()
-                    .filter_map(|(test, res)| {
-                        res.map(|res| (test, res.into_boxed_slice()))
-                    })
+                    .filter_map(|(test, res)| res.map(|res| (test, res.into_boxed_slice())))
                     .collect::<HashMap<_, _>>();
 
                 let errs = errs
                     .into_iter()
-                    .filter_map(|(test, err)| {
-                        err.map(|err| (test, err))
-                    })
+                    .filter_map(|(test, err)| err.map(|err| (test, err)))
                     .collect::<Box<_>>();
 
                 self.0 = results;
@@ -295,7 +301,6 @@ pub unsafe extern "C" fn test_runner_run_tests(
 
     runner.handle_results(test_runner::run_tests(&data.0, tests.into_iter(), args))
 }
-
 
 /// Try to convert the pointer with offset to a list of tests.
 /// Returns None and sets an error if any of the tests was invalid.

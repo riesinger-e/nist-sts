@@ -251,8 +251,7 @@ test_arg! {
 /// * otherwise: `NULL`
 #[no_mangle]
 pub extern "C" fn test_arg_serial_new(block_length: u8) -> Option<Box<TestArgSerial>> {
-    serial::SerialTestArg::new(block_length)
-        .map(|arg| Box::new(TestArgSerial(arg)))
+    serial::SerialTestArg::new(block_length).map(|arg| Box::new(TestArgSerial(arg)))
 }
 
 // approximate entropy test

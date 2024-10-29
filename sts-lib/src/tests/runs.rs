@@ -78,7 +78,7 @@ pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
             let prev_value = (unit >> (usize::BITS - 1)) & 0x1;
             calc_v_data_for_unit(unit, 1..bit_count, prev_value == 1)?
         };
-        
+
         v + v_rem
     } else {
         v

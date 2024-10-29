@@ -1,12 +1,12 @@
 //! Struct and conversion method for a validated arg.
 
-use std::num::NonZero;
 use crate::cmd_args::RegularArgs;
 use crate::toml_config::{
     TomlConfig, TomlFrequencyBlockLinearComplexity, TomlInput, TomlNonOverlapping, TomlOverlapping,
     TomlSerialApproximateEntropy, TomlTest, TomlTestArguments,
 };
 use crate::InputFormat;
+use std::num::NonZero;
 use std::path::PathBuf;
 use sts_lib::{Test, TestArgs};
 
@@ -130,8 +130,7 @@ impl ValidatedConfig {
             .or(input_format)
             .ok_or("The input format is unspecified in the config file and the cmd args!")?;
         let max_length = max_length.or(args_input_length);
-        let output_path = args_output_path
-            .or(output.and_then(|o| o.path));
+        let output_path = args_output_path.or(output.and_then(|o| o.path));
 
         let tests_to_run: TestsToRun = {
             let cmd_tests_to_run = tests_to_run.into();

@@ -101,7 +101,8 @@ impl NonOverlappingTemplateTestArgs {
             }
             // use default value for missing argument
             (template_len, count_blocks) => {
-                let template_len = template_len.or(Some(template_matching::DEFAULT_TEMPLATE_LENGTH));
+                let template_len =
+                    template_len.or(Some(template_matching::DEFAULT_TEMPLATE_LENGTH));
                 let count_blocks = count_blocks.or(Some(
                     template_matching::non_overlapping::DEFAULT_BLOCK_COUNT,
                 ));
@@ -415,7 +416,7 @@ impl ApproximateEntropyTestArg {
             None => Ok(Self(Default::default(), None)),
         }
     }
-    
+
     pub fn __repr__(&self) -> String {
         match self.1 {
             None => String::from("ApproximateEntropyTestArg()"),

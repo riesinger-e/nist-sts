@@ -25,7 +25,8 @@ macro_rules! assert_f64_eq {
         let (got, expected) = ($left, $right);
         assert!(
             f64::abs(got - expected) < f64::EPSILON,
-            "{}: Expected {expected}, got {got}", $prefix
+            "{}: Expected {expected}, got {got}",
+            $prefix
         );
     };
 }

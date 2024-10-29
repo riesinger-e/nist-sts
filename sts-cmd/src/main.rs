@@ -10,7 +10,7 @@ use sts_cmd::toml_config::TomlConfig;
 use sts_cmd::valid_arg::{TestsToRun, ValidatedConfig};
 use sts_cmd::InputFormat;
 use sts_lib::bitvec::BitVec;
-use sts_lib::{DEFAULT_THRESHOLD, IntoEnumIterator, Test, test_runner, TestResult};
+use sts_lib::{test_runner, IntoEnumIterator, Test, TestResult, DEFAULT_THRESHOLD};
 
 /// Macro to try fallible operations and exit if it fails.
 /// Supports custom literal messages that are printed at the start of the error message.
@@ -104,7 +104,9 @@ fn main() -> ExitCode {
                     match BitVec::from_ascii_str(input) {
                         Some(vec) => vec,
                         None => {
-                            eprintln!("Aborting: Input file contains characters other than '0' or '1'");
+                            eprintln!(
+                                "Aborting: Input file contains characters other than '0' or '1'"
+                            );
                             return ExitCode::FAILURE;
                         }
                     }
@@ -142,14 +144,10 @@ fn main() -> ExitCode {
         t @ TestsToRun::BlockList(_) | t @ TestsToRun::All => {
             // all tests that are applicable based on the length
             let iter = Test::iter()
-                .filter(|test| {
-                    sts_lib::get_min_length_for_test(*test).get() <= input.len_bit()
-                });
+                .filter(|test| sts_lib::get_min_length_for_test(*test).get() <= input.len_bit());
 
             if let TestsToRun::BlockList(block_list) = t {
-                iter
-                    .filter(|test| block_list.contains(test))
-                    .collect()
+                iter.filter(|test| block_list.contains(test)).collect()
             } else {
                 iter.collect()
             }
@@ -159,24 +157,28 @@ fn main() -> ExitCode {
     // Create CSV file, if necessary
     let mut csv_file = match config.output_path {
         Some(path) => Some(exit_on_error!(CsvFile::new(path))),
-        None => None
+        None => None,
     };
 
     // Create runner and run tests
     println!("Running the selected tests: ");
-    selected_tests
-        .iter()
-        .for_each(|test| print!("{test} "));
+    selected_tests.iter().for_each(|test| print!("{test} "));
     println!();
     println!();
 
     // iterator is evaluated lazy - each test is only run, when .next() is called.
-    let mut iter = exit_on_error!(test_runner::run_tests(&input, selected_tests.iter().copied(), config.test_arguments));
+    let mut iter = exit_on_error!(test_runner::run_tests(
+        &input,
+        selected_tests.iter().copied(),
+        config.test_arguments
+    ));
 
     // use a manual loop to be able to time the test.
     loop {
         let begin = Instant::now();
-        let Some((test, result)) = iter.next() else { break };
+        let Some((test, result)) = iter.next() else {
+            break;
+        };
         let time = begin.elapsed();
 
         // print as csv
@@ -185,7 +187,7 @@ fn main() -> ExitCode {
         }
 
         let time_as_ms = (time.as_micros() as f64) / 1000.0;
-        
+
         match result {
             Ok(res) => {
                 if res.len() == 1 {
@@ -197,7 +199,7 @@ fn main() -> ExitCode {
                     }
                 }
             }
-            Err(e) => println!("Test {test}: ERROR: {e}")
+            Err(e) => println!("Test {test}: ERROR: {e}"),
         }
     }
 
@@ -215,7 +217,11 @@ fn print_test_result(start_str: String, result: TestResult) {
     };
 
     if let Some(comment) = result.comment() {
-        println!("{start_str}: {passed}. P-Value: {}. Comment: {}", result.p_value(), comment);
+        println!(
+            "{start_str}: {passed}. P-Value: {}. Comment: {}",
+            result.p_value(),
+            comment
+        );
     } else {
         println!("{start_str}: {passed}. P-Value: {}", result.p_value());
     }

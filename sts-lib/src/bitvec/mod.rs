@@ -1,11 +1,11 @@
 //! Everything needed to store the data to test.
 
+use crate::bitvec::iter::{BitVecIterU8, ParBitVecIterU8};
 use std::ffi::c_char;
 use std::mem;
 use std::ops::Deref;
-use tinyvec::ArrayVec;
 use sts_lib_derive::use_thread_pool;
-use crate::bitvec::iter::{BitVecIterU8, ParBitVecIterU8};
+use tinyvec::ArrayVec;
 
 pub mod array_chunks;
 pub mod iter;
@@ -182,8 +182,8 @@ impl BitVec {
             }
         }
 
-        let bytes = ParBitVecIterU8::new(BitVecIterU8::new(slice, rest_for_iter))
-            .collect::<Vec<u8>>();
+        let bytes =
+            ParBitVecIterU8::new(BitVecIterU8::new(slice, rest_for_iter)).collect::<Vec<u8>>();
 
         (bytes, rest)
     }

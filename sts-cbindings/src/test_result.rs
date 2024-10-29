@@ -35,9 +35,7 @@ pub unsafe extern "C" fn test_result_destroy(ptr: Option<Box<TestResult>>) {
 #[no_mangle]
 pub unsafe extern "C" fn test_result_list_destroy(ptr: *mut Box<TestResult>, count: usize) {
     // SAFETY: caller has to ensure that the pointer is valid with count elements
-    _ = unsafe {
-        Box::from_raw(slice::from_raw_parts_mut(ptr, count))
-    };
+    _ = unsafe { Box::from_raw(slice::from_raw_parts_mut(ptr, count)) };
 }
 
 /// Returns the p_value of the test result.
@@ -88,7 +86,11 @@ pub unsafe extern "C" fn test_result_passed(result: &TestResult, threshold: f64)
 /// * `ptr` may not be mutated for the duration of this call.
 /// * All responsibility for `ptr` and `len`, especially for its de-allocation, remains with the caller.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_get_comment(result: &TestResult, ptr: *mut c_char, len: &mut usize) -> c_int {
+pub unsafe extern "C" fn test_result_get_comment(
+    result: &TestResult,
+    ptr: *mut c_char,
+    len: &mut usize,
+) -> c_int {
     // check if there is an error
     if result.0.comment().is_none() {
         return 1;
@@ -112,7 +114,7 @@ pub unsafe extern "C" fn test_result_get_comment(result: &TestResult, ptr: *mut 
             2
         } else {
             // length is OK, write the String
-            
+
             // SAFETY: it is the responsibility of the caller to ensure that the pointer is valid for
             //  writes of up to len bytes.
             let slice = unsafe { slice::from_raw_parts_mut(ptr as *mut u8, *len) };

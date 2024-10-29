@@ -11,7 +11,7 @@
 //! The probability constants were recalculated, so you might see a deviation when comparing the
 //! output with the reference implementation. In testing, the deviations were not too big.
 
-use crate::bitvec::array_chunks::TypedArrayChunks;
+use crate::bitvec::array_chunks::BitVecChunks;
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult};
@@ -68,19 +68,19 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
         ))),
         128..=6271 => {
             const BLOCK_SIZE: usize = 8 / (u8::BITS as usize);
-            let data = TypedArrayChunks::<u8>::par_chunks::<BLOCK_SIZE>(data);
+            let data = BitVecChunks::<u8>::par_chunks::<BLOCK_SIZE>(data);
 
             longest_run_of_ones(data, TABLE_SORTING_CRITERIA_8, PROBABILITIES_8)
         }
         6272..=749_999 => {
             const BLOCK_SIZE: usize = 128 / (usize::BITS as usize);
-            let data = TypedArrayChunks::<usize>::par_chunks::<BLOCK_SIZE>(data);
+            let data = BitVecChunks::<usize>::par_chunks::<BLOCK_SIZE>(data);
 
             longest_run_of_ones(data, TABLE_SORTING_CRITERIA_128, PROBABILITIES_128)
         }
         750_000.. => {
             const BLOCK_SIZE: usize = 10_000 / (u16::BITS as usize);
-            let data = TypedArrayChunks::<u16>::par_chunks::<BLOCK_SIZE>(data);
+            let data = BitVecChunks::<u16>::par_chunks::<BLOCK_SIZE>(data);
 
             longest_run_of_ones(data, TABLE_SORTING_CRITERIA_10_4, PROBABILITIES_10_4)
         }

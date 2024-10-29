@@ -2,7 +2,7 @@
 
 use crate::bitvec::BitVec;
 use crate::{tests, Error, Test, TestArgs, TestResult};
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use strum::IntoEnumIterator;
 use tests::template_matching::non_overlapping;
 use tests::template_matching::overlapping;
@@ -16,7 +16,9 @@ pub struct RunnerError(pub Test);
 /// Runs all available tests automatically, with necessary arguments automatically chosen.
 ///
 /// Returns all test results.
-pub fn run_all_tests_automatic(data: impl AsRef<BitVec>) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
+pub fn run_all_tests_automatic(
+    data: impl AsRef<BitVec>,
+) -> Result<impl Iterator<Item = (Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     run_tests_automatic(data, Test::iter())
 }
 
@@ -28,14 +30,17 @@ pub fn run_all_tests_automatic(data: impl AsRef<BitVec>) -> Result<impl Iterator
 pub fn run_tests_automatic(
     data: impl AsRef<BitVec>,
     tests: impl Iterator<Item = Test>,
-) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
+) -> Result<impl Iterator<Item = (Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     run_tests(data, tests, TestArgs::default())
 }
 
 /// Runs all available tests with the used arguments taken from the passed [args](TestArgs).
 ///
 /// Returns all test results.
-pub fn run_all_tests(data: impl AsRef<BitVec>, args: TestArgs) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
+pub fn run_all_tests(
+    data: impl AsRef<BitVec>,
+    args: TestArgs,
+) -> Result<impl Iterator<Item = (Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     run_tests(data, Test::iter(), args)
 }
 
@@ -48,7 +53,7 @@ pub fn run_tests(
     data: impl AsRef<BitVec>,
     mut tests: impl Iterator<Item = Test>,
     args: TestArgs,
-) -> Result<impl Iterator<Item=(Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
+) -> Result<impl Iterator<Item = (Test, Result<Vec<TestResult>, Error>)>, RunnerError> {
     // check for duplicate tests.
     let mut unique_tests = HashSet::with_capacity(tests.size_hint().0);
 

@@ -82,11 +82,7 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
                     "multiplying {block_idx} by {block_length}"
                 )))?;
 
-        let current_block = extract_block(
-            data,
-            total_start_bit,
-            block_length,
-        );
+        let current_block = extract_block(data, total_start_bit, block_length);
 
         // save the block idx if it no later block was already found
         if table[current_block] == 0 {
@@ -115,11 +111,7 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
                     "multiplying {block_idx} by {block_length}"
                 )))?;
 
-        let current_block = extract_block(
-            data,
-            total_start_bit,
-            block_length,
-        );
+        let current_block = extract_block(data, total_start_bit, block_length);
 
         let last_block_idx = table[current_block];
         table[current_block] = block_idx + 1;
@@ -156,26 +148,22 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
 
 /// Extract a usize value with length block_length, starting from the start_bit_idx in the BitVec.
 /// The block length may not be more than `usize::BITS`, i.e. not more than 32.
-const fn extract_block(
-    data: &BitVec,
-    total_start_bit_idx: usize,
-    block_size_bits: usize,
-) -> usize {
+const fn extract_block(data: &BitVec, total_start_bit_idx: usize, block_size_bits: usize) -> usize {
     debug_assert!(block_size_bits < usize::BITS as usize);
-    
+
     // calculate necessary indices
     let start_idx = total_start_bit_idx / (usize::BITS as usize);
     let start_bit_idx = total_start_bit_idx % (usize::BITS as usize);
 
     let end_bit_idx = start_bit_idx + block_size_bits - 1;
     let end_idx = start_idx + end_bit_idx / (usize::BITS as usize);
-    
+
     // Calculate the shift
     let shift = (usize::BITS as usize) - (end_bit_idx % (usize::BITS as usize)) - 1;
-    
+
     // create the mask
     let mask = (1 << block_size_bits) - 1;
-    
+
     let value = if start_idx == end_idx {
         data.words[start_idx] >> shift
     } else {

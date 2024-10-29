@@ -33,7 +33,7 @@ fn access_bits(data: &BitVec, start_idx: usize, block_length: u8) -> Option<usiz
     }
 
     let end_idx = start_idx + block_length as usize;
-    
+
     let res = if end_idx >= data_len {
         // wrap-around
         let end_idx = end_idx % data_len;

@@ -1,9 +1,9 @@
 //! Everything necessary for command line arguments.
 
+use crate::{ArgTest, InputFormat};
+use clap::{Args, Parser};
 use std::num::NonZero;
 use std::path::PathBuf;
-use clap::{Args, Parser};
-use crate::{ArgTest, InputFormat};
 
 /// The command line arguments.
 #[derive(Debug, Parser)]
@@ -47,13 +47,12 @@ pub struct RegularArgs {
     #[command(flatten)]
     pub tests_to_run: TestsToRun,
     /// Test argument overrides in TOML format.
-    /// 
-    /// Use the same format as the config file, key 'arguments' is implied. 
+    ///
+    /// Use the same format as the config file, key 'arguments' is implied.
     /// e.g. 'serial.block-length = 3'.
     #[arg(long, value_delimiter = ',')]
     pub overrides: Option<Vec<String>>,
 }
-
 
 /// Which tests are to be run. Allows only one of these options to be used.
 #[derive(Debug, Clone, Args)]

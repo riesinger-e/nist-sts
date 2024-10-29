@@ -7,9 +7,7 @@ fn main() {
 
     // Build the library - common parts
     let mut cmake = cmake::Config::new("cerf-wrapper");
-    cmake
-        .uses_cxx11()
-        .build_target("cerf-wrapper");
+    cmake.uses_cxx11().build_target("cerf-wrapper");
 
     // Build and link the library
     if target_triple.ends_with("msvc") {

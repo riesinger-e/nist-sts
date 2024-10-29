@@ -2,14 +2,14 @@ use crate::nist_sts::{BitVec, Test, TestResult};
 use crate::test_args::*;
 use crate::{RunnerError, TestError};
 use pyo3::prelude::*;
-use sts_lib::{Error, test_runner, TestArgs};
+use sts_lib::{test_runner, Error, TestArgs};
 
 type TestResultIteratorItem = (sts_lib::Test, Result<Vec<sts_lib::TestResult>, Error>);
 
 /// Iterator for the result of the [run_tests] function.
 #[pyclass]
 pub struct TestResultIterator {
-    iter: Box<dyn Iterator<Item=TestResultIteratorItem> + Send + 'static>,
+    iter: Box<dyn Iterator<Item = TestResultIteratorItem> + Send + 'static>,
 }
 
 #[pymethods]
@@ -20,7 +20,7 @@ impl TestResultIterator {
 
     pub fn __next__(mut this: PyRefMut<'_, Self>) -> PyResult<Option<(Test, PyObject)>> {
         if let Some((test, res)) = this.iter.next() {
-            let res = match res{
+            let res = match res {
                 Ok(res) => {
                     if res.len() == 1 {
                         TestResult(res[0]).into_py(this.py())
@@ -31,9 +31,7 @@ impl TestResultIterator {
                             .into_py(this.py())
                     }
                 }
-                Err(e) => {
-                    return Err(TestError::new_err(e.to_string()))
-                }
+                Err(e) => return Err(TestError::new_err(e.to_string())),
             };
 
             Ok(Some((test.into(), res)))
@@ -42,7 +40,6 @@ impl TestResultIterator {
         }
     }
 }
-
 
 /// Runs the tests.
 ///
@@ -98,8 +95,7 @@ pub fn run_tests(
 
     match tests {
         Some(tests) => {
-            let tests = tests.into_iter()
-                .map(|t| t.into());
+            let tests = tests.into_iter().map(|t| t.into());
 
             let iter = test_runner::run_tests(data.0.clone(), tests, args)
                 .map_err(|e| RunnerError::new_err(format!("Duplicate test: {}", e.0)))?;

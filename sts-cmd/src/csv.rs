@@ -1,19 +1,19 @@
 //! Everything needed to save CSV results.
 
 use core::error::Error;
-use std::fmt::{Display, Formatter};
-use std::fs::{File};
-use std::path::Path;
-use std::time::Duration;
 use csv::WriterBuilder;
 use serde::Serialize;
+use std::fmt::{Display, Formatter};
+use std::fs::File;
+use std::path::Path;
+use std::time::Duration;
 use sts_lib::{Test, TestResult, DEFAULT_THRESHOLD};
 
 /// Error type for [CsvFile]
 #[derive(Debug)]
 pub enum CsvFileError {
     Io(std::io::Error),
-    Csv(csv::Error)
+    Csv(csv::Error),
 }
 
 impl Display for CsvFileError {
@@ -48,9 +48,7 @@ impl CsvFile {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, CsvFileError> {
         let mut builder = WriterBuilder::new();
 
-        builder
-            .delimiter(b';')
-            .has_headers(true);
+        builder.delimiter(b';').has_headers(true);
 
         // target specific: on windows, lines should end with CRLF, on all other platforms, the default
         // LF is enough.
@@ -123,7 +121,7 @@ impl CsvFile {
                     result_no: 0,
                     pass_fail: "ERROR",
                     p_value: -1.0,
-                    comment: &err
+                    comment: &err,
                 };
 
                 self.0.serialize(row)?;

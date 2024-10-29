@@ -23,7 +23,6 @@ fn main() {
     assert!(source_crate_dir.exists());
     println!("cargo:rerun-if-changed={}", source_crate_dir.display());
 
-
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let out_path = out_dir.join("constants.rs");
 

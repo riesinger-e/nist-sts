@@ -1,6 +1,9 @@
 //! Opaque struct for the test arguments.
 
-use crate::test_args::{TestArgApproximateEntropy, TestArgFrequencyBlock, TestArgLinearComplexity, TestArgNonOverlappingTemplate, TestArgOverlappingTemplate, TestArgSerial};
+use crate::test_args::{
+    TestArgApproximateEntropy, TestArgFrequencyBlock, TestArgLinearComplexity,
+    TestArgNonOverlappingTemplate, TestArgOverlappingTemplate, TestArgSerial,
+};
 
 /// All test arguments for use in a *TestRunner*,
 /// prefilled with sane defaults.

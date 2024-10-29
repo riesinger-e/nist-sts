@@ -1,13 +1,13 @@
 //! The command line arguments for this program.
 
-use clap::{ValueEnum};
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use sts_lib::Test;
 
 pub mod cmd_args;
+pub mod csv;
 pub mod toml_config;
 pub mod valid_arg;
-pub mod csv;
 
 /// The tests that can be specified. Used both for command line arguments and TOML.
 #[derive(Copy, Clone, Debug, PartialEq, ValueEnum, Serialize, Deserialize)]

@@ -283,13 +283,13 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
         // a remainder is left: 1 additional byte is needed for it.
         block_length_bits * block_count / WORD_SIZE + 1
     };
-    
+
     let count_ones_per_block = {
         let mut vec = Vec::with_capacity(block_count);
         vec.resize_with(block_count, || AtomicUsize::new(0));
         vec.into_boxed_slice()
     };
-    
+
     data.words[0..words_needed]
         .par_iter()
         .enumerate()

@@ -47,9 +47,9 @@ pub unsafe extern "C" fn bitvec_from_str_with_max_length(
 }
 
 /// Creates a BitVec from a byte array, where each byte is filled with 8 bits.
-/// 
+///
 /// ## Parameters
-/// 
+///
 /// * `ptr`: pointer to the byte buffer
 /// * `len`: count of bytes (elements)
 ///
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn bitvec_from_bytes(ptr: *const u8, len: usize) -> Box<Bi
 ///
 /// * `ptr`: pointer to the bit buffer
 /// * `len`: count of bits (elements)
-/// 
+///
 /// ## Safety
 ///
 /// * The memory pointed to by `ptr` must be valid for reads of up to `len` elements.

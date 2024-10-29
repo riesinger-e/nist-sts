@@ -356,15 +356,9 @@ pub fn cumulative_sums_test(data: &BitVec) -> PyResult<(TestResult, TestResult)>
 ///
 /// Exceptions of type `TestError` may happen.
 #[pyfunction]
-pub fn random_excursions_test(
-    data: &BitVec,
-) -> PyResult<TestResultLen8> {
+pub fn random_excursions_test(data: &BitVec) -> PyResult<TestResultLen8> {
     random_excursions::random_excursions_test(&data.0)
-        .map(|res| {
-            TestResultLen8 {
-                data: res,
-            }
-        })
+        .map(|res| TestResultLen8 { data: res })
         .map_err(|e| TestError::new_err(e.to_string()))
 }
 
@@ -388,30 +382,25 @@ pub fn random_excursions_test(
 ///
 /// Exceptions of type `TestError` may happen.
 #[pyfunction]
-pub fn random_excursions_variant_test(
-    data: &BitVec,
-) -> PyResult<TestResultLen18> {
+pub fn random_excursions_variant_test(data: &BitVec) -> PyResult<TestResultLen18> {
     random_excursions_variant::random_excursions_variant_test(&data.0)
-        .map(|res| {
-            TestResultLen18 {
-                data: res,
-            }
-        })
+        .map(|res| TestResultLen18 { data: res })
         .map_err(|e| TestError::new_err(e.to_string()))
 }
 
 /// Struct to convert a test result with length 8 into a tuple
 pub struct TestResultLen8 {
-    data: [sts_lib::TestResult; 8]
+    data: [sts_lib::TestResult; 8],
 }
 
 impl IntoPy<PyObject> for TestResultLen8 {
     fn into_py(self, py: Python<'_>) -> PyObject {
-        let data: Vec<_> = self.data.into_iter()
+        let data: Vec<_> = self
+            .data
+            .into_iter()
             .map(|res| TestResult(res).into_py(py))
             .collect();
-        PyTuple::new_bound(py, data)
-            .into_py(py)
+        PyTuple::new_bound(py, data).into_py(py)
     }
 }
 
@@ -422,10 +411,11 @@ pub struct TestResultLen18 {
 
 impl IntoPy<PyObject> for TestResultLen18 {
     fn into_py(self, py: Python<'_>) -> PyObject {
-        let data: Vec<_> = self.data.into_iter()
+        let data: Vec<_> = self
+            .data
+            .into_iter()
             .map(|res| TestResult(res).into_py(py))
             .collect();
-        PyTuple::new_bound(py, data)
-            .into_py(py)
+        PyTuple::new_bound(py, data).into_py(py)
     }
 }

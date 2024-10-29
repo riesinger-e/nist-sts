@@ -1,17 +1,12 @@
 //! The statistical tests.
 
-use sts_lib::tests;
-use crate::test_result::TestResult;
 use crate::bitvec::BitVec;
 use crate::test_args::{
-    TestArgFrequencyBlock,
-    TestArgNonOverlappingTemplate,
-    TestArgOverlappingTemplate,
-    TestArgLinearComplexity,
-    TestArgSerial,
-    TestArgApproximateEntropy
+    TestArgApproximateEntropy, TestArgFrequencyBlock, TestArgLinearComplexity,
+    TestArgNonOverlappingTemplate, TestArgOverlappingTemplate, TestArgSerial,
 };
-
+use crate::test_result::TestResult;
+use sts_lib::tests;
 
 /// Macro for generating a valid C function that calls the rust test internally.
 macro_rules! test_wrapper {
