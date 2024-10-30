@@ -194,13 +194,14 @@ impl BitVec {
     /// Returns the bits, stored as the given numerical primitives. The MSB of each value has the lowest index.
     /// Each value is filled - returns an optional additional value, that may be unfilled,
     pub(crate) fn as_full_slice(&self) -> (&[usize], Option<usize>) {
-        let len = if self.bit_count_last_word == 0 {
-            self.words.len()
+        if self.bit_count_last_word == 0 {
+            (&self.words, None)
         } else {
-            self.words.len() - 1
-        };
-
-        (&self.words[..len], self.words.get(len).copied())
+            self.words
+                .split_last()
+                .map(|(&last, slice)| (slice, Some(last)))
+                .unwrap_or((&[], None))
+        }
     }
 }
 
