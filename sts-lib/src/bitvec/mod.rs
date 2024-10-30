@@ -56,7 +56,7 @@ impl BitVec {
     /// No other character is allowed. [usize::MAX] bits can be read.
     ///
     /// This function runs in parallel.
-    #[use_thread_pool(crate::internals::THREAD_POOL)]
+    #[use_thread_pool]
     pub fn from_ascii_str(value: &str) -> Option<Self> {
         use rayon::iter::ParallelIterator;
         use rayon::slice::ParallelSlice;
@@ -158,7 +158,7 @@ impl BitVec {
     /// byte can be calculated using [Self::len_bit].
     ///
     /// This operation is expensive.
-    #[use_thread_pool(crate::internals::THREAD_POOL)]
+    #[use_thread_pool]
     pub fn to_bytes(&self) -> (Vec<u8>, Option<u8>) {
         use rayon::prelude::*;
 
@@ -330,7 +330,7 @@ impl From<Vec<u8>> for BitVec {
 
 impl<'a> From<&'a [u8]> for BitVec {
     /// Creates a [BitVec] from a slice of bytes, each containing 8 values.
-    #[use_thread_pool(crate::internals::THREAD_POOL)]
+    #[use_thread_pool]
     fn from(value: &'a [u8]) -> Self {
         use rayon::iter::ParallelIterator;
         use rayon::slice::ParallelSlice;
@@ -375,7 +375,7 @@ impl From<Vec<bool>> for BitVec {
 
 impl<'a> From<&'a [bool]> for BitVec {
     /// Creates a [BitVec] from a slice of booleans, each boolean representing one bit.
-    #[use_thread_pool(crate::internals::THREAD_POOL)]
+    #[use_thread_pool]
     fn from(value: &'a [bool]) -> Self {
         use rayon::iter::ParallelIterator;
         use rayon::slice::ParallelSlice;

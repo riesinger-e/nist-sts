@@ -49,7 +49,7 @@ const PROBABILITIES: [[f64; 8]; 6] = [
 ///
 /// See the [module docs](crate::tests::random_excursions).
 /// If the given [BitVec] contains fewer than 10^6 bits, [Error::InvalidParameter] is returned.
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
     #[cfg(not(test))]
     {

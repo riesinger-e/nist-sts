@@ -29,7 +29,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 ///
 /// See also the [module docs](crate::tests::cumulative_sums).
 /// If the bit length is less than 100 bits, [Error::InvalidParameter] is raised.
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn cumulative_sums_test(data: &BitVec) -> Result<[TestResult; 2], Error> {
     if data.len_bit() < 100 {
         Err(Error::InvalidParameter(format!(

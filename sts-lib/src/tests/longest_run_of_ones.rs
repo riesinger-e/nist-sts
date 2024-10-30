@@ -56,7 +56,7 @@ const PROBABILITIES_10_4: [f64; 7] = [
 /// Test for the longest run of ones in a block - No. 4
 ///
 /// See the [module docs](crate::tests::longest_run_of_ones)
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 0: determine the block length and the block count, based on 2.4.2.
     // Also determine the values bucket_count (= K + 1) and n, as given 2.4.4

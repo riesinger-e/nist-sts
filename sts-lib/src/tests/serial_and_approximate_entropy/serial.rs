@@ -74,7 +74,7 @@ impl Default for SerialTestArg {
 /// If the combination of the given data ([BitVec]) and [SerialTestArg] is invalid,
 /// [Error::InvalidParameter] is raised. For the exact constraints, see [SerialTestArg].
 //noinspection DuplicatedCode
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn serial_test(
     data: &BitVec,
     SerialTestArg(block_length): SerialTestArg,

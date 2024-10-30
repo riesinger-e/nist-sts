@@ -24,7 +24,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 ///
 /// See the [module docs](crate::tests::runs).
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: calculate pi = count of ones / length of data
     let count_ones = data

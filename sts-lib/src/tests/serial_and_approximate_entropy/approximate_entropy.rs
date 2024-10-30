@@ -71,7 +71,7 @@ impl Default for ApproximateEntropyTestArg {
 /// If the combination of the given data ([BitVec]) and [ApproximateEntropyTestArg] is invalid,
 /// [Error::InvalidParameter] is raised. For the exact constraints, see [ApproximateEntropyTestArg].
 //noinspection DuplicatedCode
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn approximate_entropy_test(
     data: &BitVec,
     ApproximateEntropyTestArg(block_length): ApproximateEntropyTestArg,

@@ -95,7 +95,7 @@ impl Default for NonOverlappingTemplateTestArgs<'static> {
 /// Non-overlapping template match test - No. 7
 ///
 /// See the [module docs](crate::tests::template_matching::non_overlapping)
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn non_overlapping_template_matching_test(
     data: &BitVec,
     test_arg: NonOverlappingTemplateTestArgs,

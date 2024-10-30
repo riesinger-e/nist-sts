@@ -62,7 +62,7 @@ impl FrequencyBlockTestArg {
 /// See the [module docs](crate::tests::frequency_block_test).
 /// If test_arg is [FrequencyBlockTestArg::ChooseAutomatically], a reasonable default, based on 2.2.7, is chosen.
 /// If an error happens, it means either arithmetic underflow or overflow - beware.
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn frequency_block_test(
     data: &BitVec,
     test_arg: FrequencyBlockTestArg,

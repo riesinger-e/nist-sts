@@ -127,7 +127,7 @@ impl Default for OverlappingTemplateTestArgs {
 /// This test is quite slow in debug mode when using the more precise pi values, taking several
 /// seconds - it runs good when using release mode.
 /// For better performance, values that are calculated once are cached.
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn overlapping_template_matching_test(
     data: &BitVec,
     arg: OverlappingTemplateTestArgs,

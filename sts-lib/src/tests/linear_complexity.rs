@@ -60,7 +60,7 @@ pub enum LinearComplexityTestArg {
 /// The linear complexity test - No. 10
 ///
 /// See also the [module docs](crate::tests::linear_complexity).
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn linear_complexity_test(
     data: &BitVec,
     arg: LinearComplexityTestArg,

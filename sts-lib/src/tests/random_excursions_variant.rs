@@ -31,7 +31,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 ///
 /// See the [module docs](crate::tests::random_excursions_variant).
 /// If the given [BitVec] contains fewer than 10^6 bits, [Error::InvalidParameter] is returned.
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18], Error> {
     #[cfg(not(test))]
     {

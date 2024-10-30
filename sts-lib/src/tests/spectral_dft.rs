@@ -33,7 +33,7 @@ static FFT_PLANNER: LazyLock<Mutex<FftPlanner<f32>>> =
 ///
 /// See the [module docs](crate::tests::spectral_dft).
 /// If an error happens, it means either arithmetic underflow or overflow.
-#[use_thread_pool(crate::internals::THREAD_POOL)]
+#[use_thread_pool]
 pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
     // Step 1: convert the input bit sequence to a sequence of -1 and +1 (x)
     // This is done in parallel. f32 is used for better performance with such large lists.

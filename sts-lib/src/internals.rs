@@ -1,8 +1,9 @@
 //! Internal functions that are used by tests - can be changed anytime
 
 use libcerf::erfcx;
-use rayon::{ThreadPool, ThreadPoolBuilder};
+use rayon::ThreadPoolBuilder;
 use std::sync::{LazyLock, OnceLock};
+use sts_lib_derive::register_thread_pool;
 
 use crate::Error;
 
@@ -36,7 +37,8 @@ pub(crate) fn check_f64(value: f64) -> Result<(), Error> {
 pub(crate) static RAYON_THREAD_COUNT: OnceLock<usize> = OnceLock::new();
 
 /// The threadpool itself, lazily initialized on first use.
-pub(crate) static THREAD_POOL: LazyLock<ThreadPool> = LazyLock::new(|| {
+#[register_thread_pool]
+pub static THREAD_POOL: LazyLock<ThreadPool> = LazyLock::new(|| {
     let num_threads = *RAYON_THREAD_COUNT.get_or_init(num_cpus::get_physical);
 
     ThreadPoolBuilder::new()
