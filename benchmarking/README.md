@@ -35,5 +35,13 @@ The application will print the average execution time per implementation and tes
 
 The output contains per-file per-test comparisons, and a per-test comparison over all used files. 
 
-`benchmark.txt` contains the result of the benchmark, executed on the developers machine. As can be seen, this implementation is faster 
+## Example results
+
+`benchmark_result.txt` contains the result of the benchmark, executed on the developers machine. As can be seen, this implementation is faster 
 in every tested case.
+
+`benchmark_result-old.txt` contains the result of the benchmark, executed on an older version of the library code, where the BitVec type was implemented
+in terms of bytes (1 byte storing 8 bit). The current version of the code implements the BitVec as an array of `usize`, meaning word sized integers.
+
+As can be seen when comparing the results, using `usize` (and implementing most algorithms to use it) leads to small regressions in some tests, but huge
+improvements in other tests (e.g. `NonOverlappingTemplateMatching`). 
