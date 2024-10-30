@@ -377,20 +377,17 @@ where
         Self: 'a;
 
     /// Iterate sequentially
-    #[allow(clippy::needless_lifetimes)]
-    fn iter<'a>(&'a self) -> Self::Iterator<'a>;
+    fn iter(&self) -> Self::Iterator<'_>;
 
     /// Iterate in parallel
-    #[allow(clippy::needless_lifetimes)]
-    fn par_iter<'a>(&'a self) -> Self::ParIterator<'a>;
+    fn par_iter(&self) -> Self::ParIterator<'_>;
 }
 
 impl BitVecIntoIter<u8> for BitVec {
     type Iterator<'a> = BitVecIterU8<'a>;
     type ParIterator<'a> = ParBitVecIterU8<'a>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn iter<'a>(&'a self) -> Self::Iterator<'a> {
+    fn iter(&self) -> Self::Iterator<'_> {
         let (slice, value) = self.as_full_slice();
 
         let mut rest = ArrayVec::new();
@@ -408,8 +405,7 @@ impl BitVecIntoIter<u8> for BitVec {
         BitVecIterU8::new(slice, rest)
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_iter<'a>(&'a self) -> Self::ParIterator<'a> {
+    fn par_iter(&self) -> Self::ParIterator<'_> {
         ParBitVecIterU8::new(BitVecIntoIter::<u8>::iter(self))
     }
 }
@@ -419,8 +415,7 @@ impl BitVecIntoIter<u16> for BitVec {
 
     type ParIterator<'a> = ParBitVecIterU16<'a>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn iter<'a>(&'a self) -> Self::Iterator<'a> {
+    fn iter(&self) -> Self::Iterator<'_> {
         let (slice, value) = self.as_full_slice();
 
         let mut rest = ArrayVec::new();
@@ -438,8 +433,7 @@ impl BitVecIntoIter<u16> for BitVec {
         BitVecIterU16::new(slice, rest)
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_iter<'a>(&'a self) -> Self::ParIterator<'a> {
+    fn par_iter(&self) -> Self::ParIterator<'_> {
         ParBitVecIterU16::new(BitVecIntoIter::<u16>::iter(self))
     }
 }
@@ -448,8 +442,7 @@ impl BitVecIntoIter<u32> for BitVec {
     type Iterator<'a> = BitVecIterU32<'a>;
     type ParIterator<'a> = ParBitVecIterU32<'a>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn iter<'a>(&'a self) -> Self::Iterator<'a> {
+    fn iter(&self) -> Self::Iterator<'_> {
         let (slice, value) = self.as_full_slice();
 
         #[allow(unused_mut)]
@@ -469,8 +462,7 @@ impl BitVecIntoIter<u32> for BitVec {
         BitVecIterU32::new(slice, rest)
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_iter<'a>(&'a self) -> Self::ParIterator<'a> {
+    fn par_iter(&self) -> Self::ParIterator<'_> {
         ParBitVecIterU32::new(BitVecIntoIter::<u32>::iter(self))
     }
 }
@@ -479,15 +471,13 @@ impl BitVecIntoIter<usize> for BitVec {
     type Iterator<'a> = BitVecIterUsize<'a>;
     type ParIterator<'a> = ParBitVecIterUsize<'a>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn iter<'a>(&'a self) -> Self::Iterator<'a> {
+    fn iter(&self) -> Self::Iterator<'_> {
         let (slice, _) = self.as_full_slice();
 
         BitVecIterUsize::new(slice, ArrayVec::new())
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_iter<'a>(&'a self) -> Self::ParIterator<'a> {
+    fn par_iter(&self) -> Self::ParIterator<'_> {
         ParBitVecIterUsize::new(BitVecIntoIter::<usize>::iter(self))
     }
 }

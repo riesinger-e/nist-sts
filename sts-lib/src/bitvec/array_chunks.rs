@@ -5,6 +5,7 @@ use crate::bitvec::BitVec;
 use rayon::iter::plumbing::{bridge, Consumer, Producer, ProducerCallback, UnindexedConsumer};
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use std::{array, mem};
+use std::mem::MaybeUninit;
 use tinyvec::ArrayVec;
 
 /// Implementation for an iterator yielding chunks of the given type, using a usize slice as base.
@@ -59,7 +60,7 @@ macro_rules! impl_chunks {
                 }
 
                 // allocate next item
-                let mut next: [$primitive; N] = [0; N];
+                let mut next: [MaybeUninit<$primitive>; N] = [MaybeUninit::uninit(); N];
 
                 // how many items are needed after start
                 let mut current_idx = self.start.len();
@@ -85,11 +86,13 @@ macro_rules! impl_chunks {
                     }
                 };
 
-                // take all items out of start
+                // take all items out of start.
+                // (Stops when self.start is empty or next is full)
                 next.iter_mut()
                     .zip(self.start.drain(0..self.start.len()))
-                    .for_each(|(dst, src)| *dst = src);
+                    .for_each(|(dst, src)| { dst.write(src); });
 
+                // does nothing if next is already filled
                 // take from data
                 let (data, rest) = self.data.split_at(remaining_usize_len);
                 self.data = rest;
@@ -105,7 +108,7 @@ macro_rules! impl_chunks {
                     };
 
                     for value in values.drain(0..length) {
-                        next[current_idx] = value;
+                        next[current_idx] = MaybeUninit::new(value);
                         current_idx += 1;
                         remaining_len -= 1;
                     }
@@ -118,13 +121,18 @@ macro_rules! impl_chunks {
 
                 // add the last elements
                 if remaining_len != 0 {
+                    // array must be filled, otherwise where is a large logic whole somewhere here
+                    debug_assert!(self.end.len() >= remaining_len);
+
                     next[current_idx..]
                         .iter_mut()
                         .zip(self.end.drain(0..self.end.len()))
-                        .for_each(|(dst, src)| *dst = src);
+                        .for_each(|(dst, src)| { dst.write(src); });
                 }
 
-                Some(next)
+                // SAFETY: next is guaranteed to have been filled from self.start, self.data and self.end.
+                // Note that with opt-level >= 2, this .map() call should be a noop
+                Some(next.map(|v| unsafe { v.assume_init() }))
             }
 
             fn size_hint(&self) -> (usize, Option<usize>) {
@@ -273,20 +281,17 @@ where
         Self: 'a;
 
     /// Iterate over chunks sequentially
-    #[allow(clippy::needless_lifetimes)]
-    fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N>;
+    fn chunks<const N: usize>(&self) -> Self::Iterator<'_, N>;
 
     /// Iterator over chunks in parallel
-    #[allow(clippy::needless_lifetimes)]
-    fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N>;
+    fn par_chunks<const N: usize>(&self) -> Self::ParIterator<'_, N>;
 }
 
 impl BitVecChunks<u8> for BitVec {
     type Iterator<'a, const N: usize> = BitVecChunksU8<'a, N>;
     type ParIterator<'a, const N: usize> = ParBitVecChunksU8<'a, N>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
+    fn chunks<const N: usize>(&self) -> Self::Iterator<'_, N> {
         let (slice, value) = self.as_full_slice();
 
         let mut rest = ArrayVec::new();
@@ -304,8 +309,7 @@ impl BitVecChunks<u8> for BitVec {
         BitVecChunksU8::new(slice, rest)
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
+    fn par_chunks<const N: usize>(&self) -> Self::ParIterator<'_, N> {
         ParBitVecChunksU8::new(BitVecChunks::<u8>::chunks::<N>(self))
     }
 }
@@ -315,8 +319,7 @@ impl BitVecChunks<u16> for BitVec {
 
     type ParIterator<'a, const N: usize> = ParBitVecChunksU16<'a, N>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
+    fn chunks<const N: usize>(&self) -> Self::Iterator<'_, N> {
         let (slice, value) = self.as_full_slice();
 
         let mut rest = ArrayVec::new();
@@ -334,8 +337,7 @@ impl BitVecChunks<u16> for BitVec {
         BitVecChunksU16::new(slice, rest)
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
+    fn par_chunks<const N: usize>(&self) -> Self::ParIterator<'_, N> {
         ParBitVecChunksU16::new(BitVecChunks::<u16>::chunks::<N>(self))
     }
 }
@@ -344,8 +346,7 @@ impl BitVecChunks<u32> for BitVec {
     type Iterator<'a, const N: usize> = BitVecChunksU32<'a, N>;
     type ParIterator<'a, const N: usize> = ParBitVecChunksU32<'a, N>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
+    fn chunks<const N: usize>(&self) -> Self::Iterator<'_, N> {
         let (slice, value) = self.as_full_slice();
 
         #[allow(unused_mut)]
@@ -365,8 +366,7 @@ impl BitVecChunks<u32> for BitVec {
         BitVecChunksU32::new(slice, rest)
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
+    fn par_chunks<const N: usize>(&self) -> Self::ParIterator<'_, N> {
         ParBitVecChunksU32::new(BitVecChunks::<u32>::chunks::<N>(self))
     }
 }
@@ -375,15 +375,13 @@ impl BitVecChunks<usize> for BitVec {
     type Iterator<'a, const N: usize> = BitVecChunksUsize<'a, N>;
     type ParIterator<'a, const N: usize> = ParBitVecChunksUsize<'a, N>;
 
-    #[allow(clippy::needless_lifetimes)]
-    fn chunks<'a, const N: usize>(&'a self) -> Self::Iterator<'a, N> {
+    fn chunks<const N: usize>(&self) -> Self::Iterator<'_, N> {
         let (slice, _) = self.as_full_slice();
 
         BitVecChunksUsize::new(slice, ArrayVec::new())
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    fn par_chunks<'a, const N: usize>(&'a self) -> Self::ParIterator<'a, N> {
+    fn par_chunks<const N: usize>(&self) -> Self::ParIterator<'_, N> {
         ParBitVecChunksUsize::new(BitVecChunks::<usize>::chunks::<N>(self))
     }
 }
