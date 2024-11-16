@@ -1,11 +1,13 @@
 # Benchmarking
 
-The purpose of this command line application is to benchmark this implementation against the NIST reference implementation.
+The purpose of this command line application is to benchmark this implementation, optionally against the NIST reference implementation.
 This works by executing all tests 100 times each for 5 sample files and calculating the average. 
 
 **Warning**: The NIST reference implementation only works on UNIX systems - this application will refuse to work on non-UNIX systems.
 
 ## How to build the NIST reference implementation for benchmarking
+
+> *Note: you do not need to build the reference implementation if you just want to benchmark this implementation.*
 
 Since the NIST reference implementation only provides a TUI and no time values, some modifications are needed:
 
@@ -19,12 +21,13 @@ Since the NIST reference implementation only provides a TUI and no time values, 
 
 ```sh
 cargo run --release -p benchmarking -- \
-  <PATH_TO_BUILT_ASSESS_BINARY> <PATH_TO_TEST_FILES_DIRECTORY>
+  --bin <PATH_TO_BUILT_ASSESS_BINARY> --dir <PATH_TO_TEST_FILES_DIRECTORY>
 ```
 
 Replace `<PATH_TO_BUILT_ASSESS_BINARY>` with the path to the built `assess` binary of the NIST reference implementation.
+If the `--bin` option is missing, the reference implementation will not be used.
 
-Replace `<PATH_TO_TEST_FILES_DIRECTORY>` with the path to the test files directory. The test files are contained within this 
+Replace `<PATH_TO_TEST_FILES_DIRECTORY>` with the path to the test files' directory. The test files are contained within this 
 repository, from the repository root: `sts-lib/test-files`.
 
 You absolutely MUST use the release flag when using `cargo run`, otherwise the results will not be accurate.

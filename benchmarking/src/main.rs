@@ -33,9 +33,11 @@ type StatisticStorage = HashMap<Test, (Vec<f64>, Vec<f64>)>;
 #[command(version, author, about, long_about = None)]
 struct CmdArgs {
     /// The path to the modified and built 'assess' binary.
-    bin_path: PathBuf,
+    #[arg(short = 'b', long = "bin", value_name = "PATH_TO_BUILT_ASSESS_BINARY")]
+    bin_path: Option<PathBuf>,
     /// The path to the directory containing the test files.
     /// From the repository root: 'sts-lib/test-files'.
+    #[arg(short = 'd', long = "dir", value_name = "PATH_TO_TEST_FILES_DIRECTORY")]
     test_files_dir: PathBuf,
 }
 
@@ -75,23 +77,35 @@ fn map_c_name_to_test(name: String) -> Option<Test> {
 }
 
 /// Get the average of the given list
-fn average(list: &[f64]) -> f64 {
-    list.iter().sum::<f64>() / (list.len() as f64)
+fn average(list: &[f64]) -> Option<f64> {
+    if !list.is_empty() {
+        Some(list.iter().sum::<f64>() / (list.len() as f64))
+    } else {
+        None
+    }
 }
 
 /// Print the given statistics
-fn print_statistics(test: Test, rust_avg: f64, c_avg: f64) {
+fn print_statistics(test: Test, rust_avg: Option<f64>, c_avg: Option<f64>) {
     println!("\tTest {test}");
-    println!("\t\tAverage time of this implementation:          {rust_avg:.6} ms");
-    println!("\t\tAverage time of the reference implementation: {c_avg:.6} ms");
+    // print corresponding line only if necessary
+    if let Some(rust_avg) = rust_avg {
+        println!("\t\tAverage time of this implementation:          {rust_avg:.6} ms");
+    }
+    if let Some(c_avg) = c_avg {
+        println!("\t\tAverage time of the reference implementation: {c_avg:.6} ms");
+    }
 
-    let diff = 100.0 * rust_avg / c_avg;
-    let faster_or_slower = if diff <= 100.0 { "faster" } else { "SLOWER" };
+    // print diff only if both averages are given
+    if let (Some(rust_avg), Some(c_avg)) = (rust_avg, c_avg) {
+        let diff = 100.0 * rust_avg / c_avg;
+        let faster_or_slower = if diff <= 100.0 { "faster" } else { "SLOWER" };
 
-    println!(
-        "\t\t{faster_or_slower}: This implementation takes {:.2}% of the time of the reference implementation.",
-        diff.abs(),
-    );
+        println!(
+            "\t\t{faster_or_slower}: This implementation takes {:.2}% of the time of the reference implementation.",
+            diff.abs(),
+        );
+    }
 }
 
 /// Use the C implementation
@@ -177,17 +191,19 @@ fn main() {
 
     // check existence of binary
     let executable = args.bin_path;
-    if !executable.exists() {
-        panic!(
-            "Executable {} does not exist! Aborting..",
-            executable.display()
-        );
-    }
-    if !executable.is_file() {
-        panic!(
-            "Executable {} is no regular file! Aborting...",
-            executable.display()
-        );
+    if let Some(exe) = &executable {
+        if !exe.exists() {
+            panic!(
+                "Executable {} does not exist! Aborting..",
+                exe.display()
+            );
+        }
+        if !exe.is_file() {
+            panic!(
+                "Executable {} is no regular file! Aborting...",
+                exe.display()
+            );
+        }
     }
 
     // test arguments for the rust version
@@ -219,12 +235,14 @@ fn main() {
             );
             test_rust_imp(test_file, test_args, stats);
 
-            // C attempt
-            eprintln!(
-                "\tAttempt {}/{COUNT_RUNS_PER_FILE} - Reference implementation",
-                j + 1
-            );
-            test_c_imp(test_file, &executable, stats);
+            if let Some(exe) = &executable {
+                // C attempt
+                eprintln!(
+                    "\tAttempt {}/{COUNT_RUNS_PER_FILE} - Reference implementation",
+                    j + 1
+                );
+                test_c_imp(test_file, exe, stats);
+            }
         }
 
         // Print the statistics to stderr for separation
@@ -244,10 +262,19 @@ fn main() {
             all_averages
                 .entry(*test)
                 .and_modify(|(first, second)| {
-                    first.push(rust);
-                    second.push(c);
+                    if let Some(rust) = rust {
+                        first.push(rust);
+                    }
+                    if let Some(c) = c {
+                        second.push(c);
+                    }
                 })
-                .or_insert_with(|| (vec![rust], vec![c]));
+                .or_insert_with(|| {
+                    let rust = rust.map(|v| vec![v]).unwrap_or_default();
+                    let c = c.map(|v| vec![v]).unwrap_or_default();
+
+                    (rust, c)
+                });
         }
 
         println!();
