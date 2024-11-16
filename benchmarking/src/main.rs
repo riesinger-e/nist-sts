@@ -203,38 +203,35 @@ fn main() {
     // data structures to store the statistics: (rust, c)
     let mut statistics: [StatisticStorage; COUNT_TEST_FILES] =
         array::from_fn(|_| Default::default());
-
-    for (i, test_file) in test_files.iter().enumerate() {
-        println!("Testing {}...", test_file.display());
-        for j in 0..COUNT_RUNS_PER_FILE {
-            // Rust attempt
-            println!(
-                "\tAttempt {}/{COUNT_RUNS_PER_FILE} - This implementation",
-                j + 1
-            );
-            test_rust_imp(test_file, test_args, &mut statistics[i]);
-
-            // C attempt
-            println!(
-                "\tAttempt {}/{COUNT_RUNS_PER_FILE} - Reference implementation",
-                j + 1
-            );
-            test_c_imp(test_file, &executable, &mut statistics[i]);
-        }
-    }
-
-    println!();
-    println!();
-
     // will contain all calculated per-file averages
     let mut all_averages: StatisticStorage = HashMap::new();
 
-    // calculate averages per file and print them
-    for (i, file) in test_files.into_iter().enumerate() {
-        println!("Statistics for test file {}:", file.display());
+    for (i, test_file) in test_files.iter().enumerate() {
+        eprintln!("Testing {}...", test_file.display());
+
+        let stats = &mut statistics[i];
+
+        for j in 0..COUNT_RUNS_PER_FILE {
+            // Rust attempt
+            eprintln!(
+                "\tAttempt {}/{COUNT_RUNS_PER_FILE} - This implementation",
+                j + 1
+            );
+            test_rust_imp(test_file, test_args, stats);
+
+            // C attempt
+            eprintln!(
+                "\tAttempt {}/{COUNT_RUNS_PER_FILE} - Reference implementation",
+                j + 1
+            );
+            test_c_imp(test_file, &executable, stats);
+        }
+
+        // Print the statistics to stderr for separation
+        println!("Statistics for test file {}:", test_file.display());
 
         // sort the results by the test
-        let mut statistics = statistics[i].iter().collect::<Vec<_>>();
+        let mut statistics = stats.iter().collect::<Vec<_>>();
         statistics.sort_unstable_by_key(|(test, _)| **test as u8);
 
         let averages = statistics
