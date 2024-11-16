@@ -5,7 +5,7 @@
 //! Each tested [BitVec] should have at least 100 bits length.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc};
+use crate::internals::{check_f64, erfc, get_bit_from_value};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -66,7 +66,7 @@ pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
     let v = calc_v_data_for_slice(full_units)?;
 
     let v = if let Some(unit) = last_unit {
-        let bit_count = data.bit_count_last_word as u32;
+        let bit_count = data.bit_count_last_word as usize;
 
         let v_rem = if let Some(&full_unit) = full_units.last() {
             // if full_units contained data, take the last bit of it
@@ -103,6 +103,8 @@ pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
 
 /// Calculation of v statistic for the data array.
 fn calc_v_data_for_slice(data: &[usize]) -> Result<usize, Error> {
+    const BITS: usize = usize::BITS as usize;
+    
     // guard clause
     if data.is_empty() {
         return Ok(0);
@@ -111,10 +113,10 @@ fn calc_v_data_for_slice(data: &[usize]) -> Result<usize, Error> {
     // Special casing for the first byte
     let v_first_word = {
         // prev_value = first bit
-        let prev_value = (data[0] >> (usize::BITS - 1)) & 0x1;
+        let prev_value = get_bit_from_value(data[0], 0);
 
         // for the remaining bits, just get them and compare them to the previous bit to get the value
-        calc_v_data_for_unit(data[0], 1..usize::BITS, prev_value == 1)?
+        calc_v_data_for_unit(data[0], 1..BITS, prev_value)?
     };
 
     // remaining bytes (every byte except first)
@@ -127,9 +129,9 @@ fn calc_v_data_for_slice(data: &[usize]) -> Result<usize, Error> {
                 // start with last bit of previous byte
                 // prev_byte_idx is of the previous byte because we start with index 1 --> 0 in
                 // the iterator
-                let prev_value = data[prev_idx] & 0x1;
+                let prev_value = get_bit_from_value(data[prev_idx], BITS - 1);
 
-                calc_v_data_for_unit(word, 0..usize::BITS, prev_value == 1)?
+                calc_v_data_for_unit(word, 0..BITS, prev_value)?
                     .checked_add(sum)
                     .ok_or(Error::Overflow(format!("Adding byte sum to sum {sum}")))
             },
@@ -152,21 +154,18 @@ fn calc_v_data_for_slice(data: &[usize]) -> Result<usize, Error> {
 /// Calculate v for a single byte
 fn calc_v_data_for_unit(
     value: usize,
-    mut bits: Range<u32>,
-    prev_bit: bool,
-) -> Result<usize, Error> {
-    let mut prev_value = prev_bit as usize;
-
+    mut bits: Range<usize>,
+    mut prev_bit: bool,
+) -> Result<usize, Error> {    
     bits.try_fold(0_usize, |sum, bit_idx| {
-        let current_bit = (value >> (usize::BITS - 1 - bit_idx)) & 0x1;
-
-        let res = if current_bit == prev_value {
+        let current_bit = get_bit_from_value(value, bit_idx);
+        let res = if current_bit == prev_bit {
             Ok(sum)
         } else {
             sum.checked_add(1)
                 .ok_or(Error::Overflow(format!("adding 1 to byte sum {sum}")))
         };
-        prev_value = current_bit;
+        prev_bit = current_bit;
         res
     })
 }

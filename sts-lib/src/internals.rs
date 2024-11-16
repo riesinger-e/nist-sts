@@ -48,3 +48,19 @@ register_thread_pool! {
             .expect("Could not build STS library thread pool. This should never happen!")
     });
 }
+
+/// Returns the bit on the given idx from the sequence
+#[inline]
+pub(crate) const fn get_bit_from_sequence(seq: &[usize], bit_idx: usize) -> bool {
+    let word_idx = bit_idx / (usize::BITS as usize);
+    let bit_idx = bit_idx % (usize::BITS as usize);
+    
+    get_bit_from_value(seq[word_idx], bit_idx)
+}
+
+/// Returns the bit on the given idx from the value
+#[inline]
+pub(crate) const fn get_bit_from_value(value: usize, bit_idx: usize) -> bool {
+    let mask = 1 << (usize::BITS as usize - bit_idx - 1);
+    (value & mask) != 0
+}

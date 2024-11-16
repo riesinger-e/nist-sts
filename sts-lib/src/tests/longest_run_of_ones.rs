@@ -13,7 +13,7 @@
 
 use crate::bitvec::array_chunks::BitVecChunks;
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc};
+use crate::internals::{check_f64, get_bit_from_value, igamc};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -88,48 +88,50 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
 }
 
 trait LongestRunOfOnesPrimitive: Copy + Send + Sync {
-    const BITS: u32;
+    const BITS: usize;
 
     /// Count the bits with value 1 in the value
     fn count_ones(self) -> u32;
 
     /// Get the bit accessed by the specified right shift
-    fn get_bit(self, right_shift: u32) -> bool;
+    fn get_bit(self, idx: usize) -> bool;
 }
 
 impl LongestRunOfOnesPrimitive for u8 {
-    const BITS: u32 = u8::BITS;
+    const BITS: usize = u8::BITS as usize;
 
     fn count_ones(self) -> u32 {
         u8::count_ones(self)
     }
 
-    fn get_bit(self, right_shift: u32) -> bool {
-        ((self >> right_shift) & 0x01) == 1
+    fn get_bit(self, idx: usize) -> bool {
+        let mask = 1 << (<Self as LongestRunOfOnesPrimitive>::BITS - idx - 1);
+        (self & mask) != 0
     }
 }
 
 impl LongestRunOfOnesPrimitive for u16 {
-    const BITS: u32 = u16::BITS;
+    const BITS: usize = u16::BITS as usize;
 
     fn count_ones(self) -> u32 {
         u16::count_ones(self)
     }
 
-    fn get_bit(self, right_shift: u32) -> bool {
-        ((self >> right_shift) & 0x01) == 1
+    fn get_bit(self, idx: usize) -> bool {
+        let mask = 1 << (<Self as LongestRunOfOnesPrimitive>::BITS - idx - 1);
+        (self & mask) != 0
     }
 }
 
 impl LongestRunOfOnesPrimitive for usize {
-    const BITS: u32 = usize::BITS;
+    const BITS: usize = usize::BITS as usize;
 
     fn count_ones(self) -> u32 {
         usize::count_ones(self)
     }
 
-    fn get_bit(self, right_shift: u32) -> bool {
-        ((self >> right_shift) & 0x01) == 1
+    fn get_bit(self, idx: usize) -> bool {
+        get_bit_from_value(self, idx)
     }
 }
 
@@ -156,18 +158,18 @@ fn longest_run_of_ones<
                 let mut max_run_length: usize = 0;
 
                 for unit in chunk {
-                    if unit.count_ones() == T::BITS {
+                    if unit.count_ones() as usize == T::BITS {
                         // easy case: all ones
                         current_run_length = current_run_length
-                            .checked_add(T::BITS as usize)
+                            .checked_add(T::BITS)
                             .ok_or(Error::Overflow(format!(
                                 "adding {} to run length {current_run_length}",
                                 T::BITS
                             )))?;
                     } else {
                         // we have to inspect bit by bit
-                        for shift in (0..T::BITS).rev() {
-                            if unit.get_bit(shift) {
+                        for idx in 0..T::BITS {
+                            if unit.get_bit(idx) {
                                 current_run_length =
                                     current_run_length.checked_add(1).ok_or(Error::Overflow(
                                         format!("adding 1 to run length {current_run_length}"),

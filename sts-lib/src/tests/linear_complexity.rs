@@ -12,7 +12,7 @@
 //! This is expected behaviour.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc};
+use crate::internals::{check_f64, get_bit_from_sequence, igamc};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -230,10 +230,10 @@ pub(crate) fn berlekamp_massey(
         // compute discrepancy
         let mut sum = false;
         for i in 1..(l + 1) {
-            sum ^= get_bit(&c, i).unwrap() & get_bit(sequence, start_bit + n - i).unwrap();
+            sum ^= get_bit_from_sequence(&c, i) & get_bit_from_sequence(sequence, start_bit + n - i);
         }
 
-        let s_n = get_bit(sequence, start_bit + n).unwrap();
+        let s_n = get_bit_from_sequence(sequence, start_bit + n);
         let d = s_n ^ sum;
 
         if d {
@@ -265,15 +265,4 @@ pub(crate) fn berlekamp_massey(
     }
 
     l
-}
-
-/// Get the bit in a sequence with optional additional bits at the given position
-fn get_bit(sequence: &[usize], position: usize) -> Option<bool> {
-    let idx = position / (usize::BITS as usize);
-    let bit_idx = position % (usize::BITS as usize);
-
-    let value = sequence.get(idx)?;
-
-    let bit = (value >> ((usize::BITS as usize) - bit_idx - 1)) & 0x1;
-    Some(bit == 1)
 }

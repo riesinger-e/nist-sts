@@ -19,7 +19,7 @@
 //! big.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc};
+use crate::internals::{check_f64, get_bit_from_value, igamc};
 use crate::{Error, TestResult};
 use std::num::NonZero;
 use std::ops::Range;
@@ -73,7 +73,7 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
     for &word in words {
         handle_word(
             word,
-            0..usize::BITS,
+            0..(usize::BITS as usize),
             &mut prev,
             &mut last_index,
             &mut states_per_cycle,
@@ -81,7 +81,7 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
     }
 
     if let Some(word) = last_word {
-        let bits = 0..(data.bit_count_last_word as u32);
+        let bits = 0..(data.bit_count_last_word as usize);
         handle_word(
             word,
             bits,
@@ -153,26 +153,24 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
 /// Handle step 1 to 5 for one word, with a specified bit range
 fn handle_word(
     word: usize,
-    bits: Range<u32>,
+    bits: Range<usize>,
     prev: &mut i64,
     last_index: &mut usize,
     states: &mut Vec<[u8; 8]>,
 ) {
-    bits.map(|bit| usize::BITS - bit - 1)
-        .map(|shift| 1 << shift)
-        .for_each(|mask| {
-            if word & mask != 0 {
-                *prev += 1
-            } else {
-                *prev -= 1
-            }
+    bits.for_each(|bit| {
+        if get_bit_from_value(word, bit) {
+            *prev += 1
+        } else {
+            *prev -= 1
+        }
 
-            // increment counter for state occurrences per cycle
-            if set_state(&mut states[*last_index], *prev) {
-                states.push(Default::default());
-                *last_index += 1;
-            }
-        });
+        // increment counter for state occurrences per cycle
+        if set_state(&mut states[*last_index], *prev) {
+            states.push(Default::default());
+            *last_index += 1;
+        }
+    });
 }
 
 /// Sets the state of the current cycle based on the current cumulative sum.

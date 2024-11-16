@@ -13,7 +13,7 @@
 //! The input length must be at least 10^6 bits, otherwise, an error is returned.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc};
+use crate::internals::{check_f64, erfc, get_bit_from_value};
 use crate::{Error, TestResult};
 use std::num::NonZero;
 use std::ops::Range;
@@ -53,7 +53,7 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
     for &word in words {
         handle_word(
             word,
-            0..usize::BITS,
+            0..(usize::BITS as usize),
             &mut prev,
             &mut num_cycles,
             &mut frequencies,
@@ -61,7 +61,7 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
     }
 
     if let Some(word) = last_word {
-        let bits = 0..(data.bit_count_last_word as u32);
+        let bits = 0..(data.bit_count_last_word as usize);
         handle_word(word, bits, &mut prev, &mut num_cycles, &mut frequencies)?;
     }
 
@@ -126,27 +126,25 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
 /// Handle step 1 to 4 for one word, with a specified bit range
 fn handle_word(
     word: usize,
-    bits: Range<u32>,
+    mut bits: Range<usize>,
     prev: &mut i64,
     num_cycles: &mut usize,
     frequencies: &mut [usize; 18],
 ) -> Result<(), Error> {
-    bits.map(|bit| usize::BITS - bit - 1)
-        .map(|shift| 1 << shift)
-        .try_for_each(|mask| -> Result<(), Error> {
-            if word & mask != 0 {
-                *prev += 1
-            } else {
-                *prev -= 1
-            }
+    bits.try_for_each(|bit| -> Result<(), Error> {
+        if get_bit_from_value(word, bit) {
+            *prev += 1
+        } else {
+            *prev -= 1
+        }
 
-            // increment counter for state occurrences per cycle
-            if inc_frequency(frequencies, *prev)? {
-                *num_cycles += 1;
-            }
+        // increment counter for state occurrences per cycle
+        if inc_frequency(frequencies, *prev)? {
+            *num_cycles += 1;
+        }
 
-            Ok(())
-        })
+        Ok(())
+    })
 }
 
 /// Increments the right frequency counter based on the current value, returns true if a new

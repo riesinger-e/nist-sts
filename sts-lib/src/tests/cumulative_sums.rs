@@ -9,7 +9,7 @@
 //! [Error::InvalidParameter].
 
 use crate::bitvec::BitVec;
-use crate::internals::check_f64;
+use crate::internals::{check_f64, get_bit_from_value};
 use crate::{Error, TestResult};
 use statrs::distribution;
 use statrs::distribution::ContinuousCDF;
@@ -160,10 +160,10 @@ fn handle_value(
         mut max: u64,
         mut prev: i64,
         value: usize,
-        shifts: impl Iterator<Item = usize>,
+        indexes: impl Iterator<Item = usize>,
     ) -> (u64, i64) {
-        shifts.map(|shift| 1 << shift).for_each(|mask| {
-            if value & mask != 0 {
+        indexes.for_each(|idx| {
+            if get_bit_from_value(value, idx) {
                 prev += 1
             } else {
                 prev -= 1
@@ -177,16 +177,11 @@ fn handle_value(
         (max, prev)
     }
 
-    // convert to iterator of shifts to do
-    let iter = bits_to_read
-        .into_iter()
-        .map(|bit_idx| usize::BITS as usize - bit_idx - 1);
-
     if rev {
         // if going backwards, the LSB is the first bit to watch
-        internal(max, prev, value, iter.rev())
+        internal(max, prev, value, bits_to_read.rev())
     } else {
         // if going forward, the MSB is the first bit to watch
-        internal(max, prev, value, iter)
+        internal(max, prev, value, bits_to_read)
     }
 }

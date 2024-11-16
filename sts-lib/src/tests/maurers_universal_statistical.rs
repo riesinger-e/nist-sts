@@ -148,18 +148,22 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
 
 /// Extract a usize value with length block_length, starting from the start_bit_idx in the BitVec.
 /// The block length may not be more than `usize::BITS`, i.e. not more than 32.
+///
+/// The highest index of the block will be stored in the LSB.
 const fn extract_block(data: &BitVec, total_start_bit_idx: usize, block_size_bits: usize) -> usize {
-    debug_assert!(block_size_bits < usize::BITS as usize);
+    const BITS: usize = usize::BITS as usize;
+
+    debug_assert!(block_size_bits < BITS);
 
     // calculate necessary indices
-    let start_idx = total_start_bit_idx / (usize::BITS as usize);
-    let start_bit_idx = total_start_bit_idx % (usize::BITS as usize);
+    let start_idx = total_start_bit_idx / BITS;
+    let start_bit_idx = total_start_bit_idx % BITS;
 
     let end_bit_idx = start_bit_idx + block_size_bits - 1;
-    let end_idx = start_idx + end_bit_idx / (usize::BITS as usize);
+    let end_idx = start_idx + (end_bit_idx / BITS);
 
     // Calculate the shift
-    let shift = (usize::BITS as usize) - (end_bit_idx % (usize::BITS as usize)) - 1;
+    let shift = BITS - (end_bit_idx % BITS) - 1;
 
     // create the mask
     let mask = (1 << block_size_bits) - 1;
@@ -167,7 +171,7 @@ const fn extract_block(data: &BitVec, total_start_bit_idx: usize, block_size_bit
     let value = if start_idx == end_idx {
         data.words[start_idx] >> shift
     } else {
-        data.words[start_idx] << ((usize::BITS as usize) - shift) | data.words[end_idx] >> shift
+        data.words[start_idx] << (BITS - shift) | data.words[end_idx] >> shift
     };
 
     value & mask

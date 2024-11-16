@@ -6,7 +6,7 @@
 
 use crate::bitvec::iter::BitVecIntoIter;
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc};
+use crate::internals::{check_f64, get_bit_from_value, igamc};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -300,10 +300,8 @@ fn frequency_block_test_bits(data: &BitVec, block_length_bits: usize) -> Result<
                 if block_idx == block_count {
                     break;
                 }
-
-                let bit = value >> (WORD_SIZE - bit_idx - 1) & 1;
-
-                if bit == 1 {
+                
+                if get_bit_from_value(*value, bit_idx) {
                     count_ones_per_block[block_idx].fetch_add(1, Ordering::Relaxed);
                 }
             }
