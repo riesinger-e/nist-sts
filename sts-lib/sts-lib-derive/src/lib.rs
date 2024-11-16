@@ -5,44 +5,81 @@
 use proc_macro::TokenStream;
 use std::option::IntoIter;
 use quote::quote;
-use syn::{parse_quote, Ident, ItemFn, ItemStatic, Meta};
+use syn::{parse_quote, Attribute, Expr, Ident, ItemFn, Meta, Token};
 use syn::__private::Span;
+use syn::parse::{Parse, ParseStream};
 
-const THREADPOOL_NAME: &str = "__STS_MACRO_INTERNALS_THREADPOOL";
+/// The thread pool to be registered: `static POOL = LazyLock::new(|| ThreadpoolBuilder::new().build().unwrap());`.
+struct ThreadpoolItem {
+    pub attrs: Vec<Attribute>,
+    pub _static_token: Token![static],
+    pub ident: Ident,
+    pub _eq_token: Token![=],
+    pub expr: Box<Expr>,
+    pub _semi_token: Token![;],
+}
+
+impl Parse for ThreadpoolItem {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(ThreadpoolItem {
+            attrs: input.call(Attribute::parse_outer)?,
+            _static_token: input.parse()?,
+            ident: input.parse()?,
+            _eq_token: input.parse()?,
+            expr: input.parse()?,
+            _semi_token: input.parse()?,
+        })
+    }
+}
+
+/// Returns the export name of the given threadpool
+fn threadpool_name() -> String {
+    const THREADPOOL_NAME: &str = "__STS_MACRO_INTERNALS_THREADPOOL";
+    let crate_name = std::env::var("CARGO_PKG_NAME")
+        .expect("CARGO_PKG_NAME must be set to the name of the calling crate")
+        .replace('-', "_");
+
+    format!("{THREADPOOL_NAME}_{crate_name}")
+}
 
 /// Registers the specified static to be used as the thread pool for use in the [use_thread_pool]
 /// macro. This macro must be called exactly once if using [use_thread_pool].
 ///
 /// This macro must be used on a static item of type `std::sync::lazy_lock::LazyLock<rayon::ThreadPool>`.
-/// The visibility of the item will always be set to public, and it will not be mut.
+/// The visibility of the item must not be set, and the item must not be mut.
 ///
-/// The given static may not use `#[export_name]`
-#[proc_macro_attribute]
-pub fn register_thread_pool(_: TokenStream, input: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(input as ItemStatic);
+/// The given static may not use `#[export_name]`.
+///
+/// This macro may only be called once per crate.
+///
+/// Example:
+/// ```ignore
+/// use sts_lib_derive::register_thread_pool;
+/// use rayon::ThreadPoolBuilder;
+/// use std::sync::OnceLock;
+///
+/// register_thread_pool! {
+///     static THREAD_POOL = LazyLock::new(|| ThreadPoolBuilder::new().build().unwrap());
+/// }
+/// ```
+#[proc_macro]
+pub fn register_thread_pool(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as ThreadpoolItem);
 
-    let ItemStatic {
+    let ThreadpoolItem {
         attrs,
-        // disregard visibility --> always set to public
-        vis: _,
-        static_token: _,
-        // disregard any mutability
-        mutability: _,
+        _static_token: _,
         ident,
-        colon_token: _,
-        // disregard the type and set it manually - if the user tries to use another type, an error
-        // will happen because of inference breaking
-        ty: _,
-        eq_token: _,
+        _eq_token: _,
         expr,
-        semi_token: _,
+        _semi_token: _,
     } = input;
 
     // check attributes - attribute export_name must not be used, because it is added by this macro.
     // also need to check if #[used] is already there
     let mut used_already_exists = false;
 
-    for attr in attrs.iter() {        
+    for attr in attrs.iter() {
         match &attr.meta {
             Meta::List(list) if attr.path().is_ident("unsafe") => list
                 .parse_nested_meta(|meta| {
@@ -61,7 +98,9 @@ pub fn register_thread_pool(_: TokenStream, input: TokenStream) -> TokenStream {
             _ => (),
         }
     }
-    
+
+    let threadpool_name = threadpool_name();
+
     let used_attribute: IntoIter<Ident> = if !used_already_exists {
         Some(parse_quote!(used)).into_iter()
     } else {
@@ -71,7 +110,7 @@ pub fn register_thread_pool(_: TokenStream, input: TokenStream) -> TokenStream {
     TokenStream::from(quote! {
         #(#attrs)*
         #(#[#used_attribute])*
-        #[export_name = #THREADPOOL_NAME]
+        #[export_name = #threadpool_name]
         pub static #ident: ::std::sync::LazyLock<::rayon::ThreadPool> = #expr;
     })
 }
@@ -100,7 +139,7 @@ pub fn use_thread_pool(_: TokenStream, input: TokenStream) -> TokenStream {
         block: body,
     } = input;
     
-    let threadpool_name: Ident = Ident::new(THREADPOOL_NAME, Span::call_site());
+    let threadpool_name: Ident = Ident::new(&threadpool_name(), Span::call_site());
 
     TokenStream::from(quote! {
         #(#attrs)*

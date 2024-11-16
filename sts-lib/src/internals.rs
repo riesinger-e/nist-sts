@@ -36,14 +36,15 @@ pub(crate) fn check_f64(value: f64) -> Result<(), Error> {
 /// is better for CPU-bound tasks. Note: use [crate::set_max_threads] to set this variable.
 pub(crate) static RAYON_THREAD_COUNT: OnceLock<usize> = OnceLock::new();
 
-/// The threadpool itself, lazily initialized on first use.
-#[register_thread_pool]
-pub static THREAD_POOL: LazyLock<ThreadPool> = LazyLock::new(|| {
-    let num_threads = *RAYON_THREAD_COUNT.get_or_init(num_cpus::get_physical);
+register_thread_pool! {
+    /// The threadpool itself, lazily initialized on first use.
+    static THREAD_POOL = LazyLock::new(|| {
+        let num_threads = *RAYON_THREAD_COUNT.get_or_init(num_cpus::get_physical);
 
-    ThreadPoolBuilder::new()
-        .num_threads(num_threads)
-        .thread_name(|idx| format!("sts-{idx}"))
-        .build()
-        .expect("Could not build STS library thread pool. This should never happen!")
-});
+        ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .thread_name(|idx| format!("sts-{idx}"))
+            .build()
+            .expect("Could not build STS library thread pool. This should never happen!")
+    });
+}
