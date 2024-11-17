@@ -163,29 +163,27 @@ impl BitVec {
 
         let (slice, value) = self.as_full_slice();
 
-        let mut rest = None;
-        let mut rest_for_iter: ArrayVec<[u8; size_of::<usize>() / size_of::<u8>() - 1]> =
-            ArrayVec::new();
-
-        if let Some(value) = value {
+        let (rest_for_iter, rest) = if let Some(value) = value {
             let mut values = ArrayVec::from(value.to_be_bytes());
 
-            for value in values
+            let full_elements = values
                 .drain(..)
-                .take((self.bit_count_last_word as usize) / (u8::BITS as usize))
-            {
-                rest_for_iter.push(value)
-            }
+                .take((self.bit_count_last_word as usize) / (u8::BITS as usize));
+            let rest_for_iter: ArrayVec<[u8; size_of::<usize>() / size_of::<u8>() - 1]> =
+                ArrayVec::from_iter(full_elements);
 
-            if (self.bit_count_last_word as usize) % (u8::BITS as usize) != 0 {
-                rest = Some(values[0])
-            }
-        }
+            let rest = ((self.bit_count_last_word as usize) % (u8::BITS as usize) != 0)
+                .then_some(values[0]);
+
+            (rest_for_iter, rest)
+        } else {
+            (ArrayVec::new(), None)
+        };
 
         let bytes = slice
             .par_iter()
             .flat_map(|v| v.to_be_bytes())
-            .chain(rest_for_iter.into_par_iter().copied())
+            .chain(rest_for_iter.into_iter().par_bridge())
             .collect::<Vec<u8>>();
 
         (bytes, rest)
