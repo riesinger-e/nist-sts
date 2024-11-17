@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "const-calculation-scripts/scripts",
-    "libcerf",
     "sts-lib",
     "sts-lib/sts-lib-derive",
     "sts-cbindings",
@@ -11,7 +10,6 @@ members = [
 ]
 # by default, only build the rust library and command-line application - c and python bindings may need additional dependencies
 default-members = [
-    "libcerf",
     "sts-lib",
     "sts-cmd",
 ]

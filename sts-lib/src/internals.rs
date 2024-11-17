@@ -1,6 +1,5 @@
 //! Internal functions that are used by tests - can be changed anytime
 
-use libcerf::erfcx;
 use rayon::ThreadPoolBuilder;
 use std::fmt::Debug;
 use std::sync::{LazyLock, OnceLock};
@@ -9,14 +8,7 @@ use sts_lib_derive::register_thread_pool;
 use crate::Error;
 
 /// The [complementary error function](https://en.wikipedia.org/wiki/Error_function)
-pub(crate) fn erfc(value: f64) -> f64 {
-    // from https://en.wikipedia.org/wiki/Error_function#Complementary_error_function
-
-    // if arithmetic underflow is observed, switching to pure erfcx would likely help
-
-    let exponent = -(value * value);
-    f64::exp(exponent) * erfcx(value)
-}
+pub(crate) use statrs::function::erf::erfc;
 
 /// igamc, the upper regularized incomplete gamma function.
 pub(crate) use statrs::function::gamma::checked_gamma_ur as igamc;
