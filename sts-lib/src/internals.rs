@@ -87,7 +87,7 @@ macro_rules! impl_bit_primitive {
     }
 }
 
-impl_bit_primitive!(u8, usize);
+impl_bit_primitive!(u8, u32, usize);
 
 /// Returns the bit on the given idx from the sequence
 #[inline]

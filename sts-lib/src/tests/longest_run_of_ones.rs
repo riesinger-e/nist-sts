@@ -68,17 +68,14 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
         ))),
         128..=6271 => {
             let data = data.par_chunks_exact(8 / (u8::BITS as usize));
-            
             longest_run_of_ones_imp(data, TABLE_SORTING_CRITERIA_8, PROBABILITIES_8)
         }
         6272..=749_999 => {
             let data = data.par_chunks_exact(128 / (u8::BITS as usize));
-
             longest_run_of_ones_imp(data, TABLE_SORTING_CRITERIA_128, PROBABILITIES_128)
         }
         750_000.. => {
             let data = data.par_chunks_exact(10_000 / (u8::BITS as usize));
-
             longest_run_of_ones_imp(data, TABLE_SORTING_CRITERIA_10_4, PROBABILITIES_10_4)
         }
     }

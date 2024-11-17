@@ -35,7 +35,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18], Error> {
     #[cfg(not(test))]
     {
-        if data.len_bit() < 1_000_000 {
+        if data.len_bit() < MIN_INPUT_LENGTH.get() {
             return Err(Error::InvalidParameter(format!(
                 "The input bit length must be at >= 10^6. Is: {}",
                 data.len_bit()

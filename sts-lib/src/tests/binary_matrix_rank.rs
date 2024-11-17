@@ -10,7 +10,7 @@
 //! reference implementation, i.e. when testing with e.1e6.bin, the deviation is a whole 0.2.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc};
+use crate::internals::{check_f64, igamc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -35,7 +35,7 @@ const PROBABILITIES: [f64; 3] = [0.2887880951538411, 0.5775761901732046, 0.12835
 /// See also the [module docs](crate::tests::binary_matrix_rank).
 #[use_thread_pool]
 pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
-    if data.len_bit() < 38_912 {
+    if data.len_bit() < MIN_INPUT_LENGTH.get() {
         return Ok(TestResult::new_with_comment(
             0.0,
             "Data is too short! Minimum is 38 912 Bits.",
@@ -121,8 +121,7 @@ impl Matrix {
 
     /// Get the bit in the given row and column
     fn bit(&self, row_idx: usize, col_idx: usize) -> bool {
-        let bit = (self.0[row_idx] >> ((u32::BITS as usize) - col_idx - 1)) & 0x01;
-        bit == 1
+        self.0[row_idx].get_bit(col_idx as u32)
     }
 
     /// xor 2 rows, save the result in row target

@@ -66,7 +66,7 @@ pub fn linear_complexity_test(
     arg: LinearComplexityTestArg,
 ) -> Result<TestResult, Error> {
     // Step 0: validate input arguments
-    if data.len_bit() < 1_000_000 {
+    if data.len_bit() < MIN_INPUT_LENGTH.get() {
         return Err(Error::InvalidParameter(format!(
             "Length of input data must be >= 10^6. Is: {}",
             data.len_bit()

@@ -31,7 +31,7 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 /// If the bit length is less than 100 bits, [Error::InvalidParameter] is raised.
 #[use_thread_pool]
 pub fn cumulative_sums_test(data: &BitVec) -> Result<[TestResult; 2], Error> {
-    if data.len_bit() < 100 {
+    if data.len_bit() < MIN_INPUT_LENGTH.get() {
         Err(Error::InvalidParameter(format!(
             "Sequence length must be >= 100. Is: {}",
             data.len_bit()
