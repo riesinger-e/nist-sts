@@ -6,7 +6,7 @@
 //! It is recommended (but not required) for the input to be of at least 1000 bits.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc, BitPrimitive};
+use crate::internals::{check_f64, checked_add, erfc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use rustfft::num_complex::Complex;
@@ -91,21 +91,13 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
                 check_f64(norm)?;
 
                 if norm < t {
-                    count.checked_add(1).ok_or(Error::Overflow(format!(
-                        "adding 1 to count of elements in fft that are > {t}"
-                    )))
+                    checked_add!(count, 1)
                 } else {
                     Ok(count)
                 }
             },
         )
-        .try_reduce(
-            || 0_usize,
-            |a, b| {
-                a.checked_add(b)
-                    .ok_or(Error::Overflow(format!("fft: adding part-sum {a} to {b}")))
-            },
-        )? as f64;
+        .try_reduce(|| 0_usize, |a, b| checked_add!(a, b))? as f64;
 
     // Step 7: compute d = (n_1 - n_0) / sqrt(data.len_bit() * 0.95 * 0.05 / 4.0)
     let d = (n_1 - n_0) / f64::sqrt((data.len_bit() as f64) * 0.95 * 0.05 / 4.0);

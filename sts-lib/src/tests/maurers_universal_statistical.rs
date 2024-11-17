@@ -7,7 +7,7 @@
 //! be used is 2020 bits, smaller inputs will raise an error.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc};
+use crate::internals::{check_f64, checked_mul, erfc};
 use crate::{Error, TestResult};
 use std::f64::consts::SQRT_2;
 use std::num::NonZero;
@@ -75,12 +75,7 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
     // init blocks.
     for block_idx in (0..count_init_blocks).rev() {
         // calculate the start byte and the bit position in the start byte for this block
-        let total_start_bit =
-            block_idx
-                .checked_mul(block_length)
-                .ok_or(Error::Overflow(format!(
-                    "multiplying {block_idx} by {block_length}"
-                )))?;
+        let total_start_bit = checked_mul!(block_idx, block_length)?;
 
         let current_block = extract_block(data, total_start_bit, block_length);
 
@@ -104,12 +99,7 @@ pub fn maurers_universal_statistical_test(data: &BitVec) -> Result<TestResult, E
     for block_idx in 0..count_test_blocks {
         let block_idx = block_idx + count_init_blocks;
 
-        let total_start_bit =
-            block_idx
-                .checked_mul(block_length)
-                .ok_or(Error::Overflow(format!(
-                    "multiplying {block_idx} by {block_length}"
-                )))?;
+        let total_start_bit = checked_mul!(block_idx, block_length)?;
 
         let current_block = extract_block(data, total_start_bit, block_length);
 

@@ -60,7 +60,7 @@ where
 
     /// Get a specific bit from the primitive.
     fn get_bit(self, bit_idx: u32) -> bool;
-    
+
     /// Return the number of '1' bits in the primitive.
     fn count_ones(self) -> u32;
 }
@@ -75,7 +75,7 @@ macro_rules! impl_bit_primitive {
                 let mask = 1 << (Self::BITS - bit_idx - 1);
                 (self & mask) != 0
             }
-            
+
             #[inline]
             fn count_ones(self) -> u32 {
                 <$primitive>::count_ones(self)
@@ -97,3 +97,29 @@ pub(crate) fn get_bit_from_sequence<T: BitPrimitive>(seq: &[T], bit_idx: u32) ->
 
     seq[word_idx as usize].get_bit(bit_idx)
 }
+
+/// Generate a macro for checked arithmetic that returns a good error message
+macro_rules! gen_checked_arithmetic {
+    ($method: ident => $op: literal) => {
+        macro_rules! $method {
+            ($p1: expr, $p2: expr) => {
+                $p1.$method($p2)
+                    .ok_or_else(|| $crate::Error::Overflow(format!("{} ({}) {} {} ({})", $p1, stringify!($p1), $op, $p2, stringify!($p2))))
+            }
+        }
+    };
+    ($m: ident => $op: literal, $($m2: ident => $o2: literal),+ $(,)?) => {
+        gen_checked_arithmetic!($m => $op);
+        gen_checked_arithmetic!($($m2 => $op),+);
+    }
+}
+
+gen_checked_arithmetic! {
+    checked_add => '+',
+    checked_add_unsigned => '+',
+    checked_sub_unsigned => '-',
+    checked_mul => '*',
+}
+
+#[allow(clippy::single_component_path_imports)]
+pub(super) use {checked_add, checked_add_unsigned, checked_mul, checked_sub_unsigned};

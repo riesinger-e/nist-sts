@@ -193,10 +193,7 @@ fn main() {
     let executable = args.bin_path;
     if let Some(exe) = &executable {
         if !exe.exists() {
-            panic!(
-                "Executable {} does not exist! Aborting..",
-                exe.display()
-            );
+            panic!("Executable {} does not exist! Aborting..", exe.display());
         }
         if !exe.is_file() {
             panic!(

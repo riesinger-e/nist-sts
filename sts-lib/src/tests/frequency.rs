@@ -4,7 +4,7 @@
 //! be roughly 50:50.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc};
+use crate::internals::{check_f64, checked_add, checked_add_unsigned, checked_sub_unsigned, erfc};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::f64::consts::FRAC_1_SQRT_2;
@@ -41,44 +41,25 @@ pub fn frequency_test(data: &BitVec) -> Result<TestResult, Error> {
 
                 // Adding and subtracting the count from the sum ist the same as conversion to -1 and +1.
                 // Conversion to usize is definitely safe - count_ones and count_zeros range `0..=8`
-                sum = sum
-                    .checked_add_unsigned(count_ones)
-                    .ok_or(Error::Overflow(format!(
-                        "adding Ones to the sum: {sum} + {count_ones}"
-                    )))?;
-                sum = sum
-                    .checked_sub_unsigned(count_zeros)
-                    .ok_or(Error::Overflow(format!(
-                        "removing Zeroes from the sum: {sum} + {count_zeros}"
-                    )))?;
+                sum = checked_add_unsigned!(sum, count_ones)?;
+                sum = checked_sub_unsigned!(sum, count_zeros)?;
                 Ok(sum)
             },
         )
-        .try_reduce(
-            || 0_isize,
-            |a, b| {
-                a.checked_add(b).ok_or(Error::Overflow(format!(
-                    "Adding two parts of the sum: {a}, {b}"
-                )))
-            },
-        )?;
+        .try_reduce(|| 0_isize, |a, b| checked_add!(a, b))?;
 
     if data.bit_count_last_word != 0 {
         // subtracted too many zeros in the last word, add them again
         let zeroes = (usize::BITS as usize) - (data.bit_count_last_word as usize);
 
-        sum = sum
-            .checked_add_unsigned(zeroes)
-            .ok_or(Error::Overflow(format!(
-                "correcting the zero count: {sum} + {zeroes}"
-            )))?;
+        sum = checked_add_unsigned!(sum, zeroes)?;
     }
 
     // Step 2: compute s_obs = abs(sum) / sqrt(n)
-    let s_obs = (sum
-        .checked_abs()
-        .ok_or(Error::Overflow(format!("abs({sum}) - type isize")))? as f64)
-        / f64::sqrt(data.len_bit() as f64);
+    let s_obs =
+        (sum.checked_abs()
+            .ok_or_else(|| Error::Overflow(format!("abs({sum})")))? as f64)
+            / f64::sqrt(data.len_bit() as f64);
 
     check_f64(s_obs)?;
 

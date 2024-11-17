@@ -20,7 +20,7 @@
 //! This test needs arguments, see [OverlappingTemplateTestArgs].
 
 use crate::bitvec::BitVec;
-use crate::internals::igamc;
+use crate::internals::{checked_mul, igamc};
 use crate::tests::template_matching::{create_mask, overflowing_right_shift};
 use crate::{Error, TestResult};
 use bigdecimal::num_bigint::BigInt;
@@ -172,7 +172,7 @@ pub fn overlapping_template_matching_test(
             let el_idx = matches.clamp(0, freedom - 1);
             let prev = occurrences[el_idx].fetch_add(1, Ordering::Relaxed);
             if prev == usize::MAX {
-                Err(Error::Overflow(format!(" adding 1 to {}", prev)))
+                Err(Error::Overflow(format!("{prev} (occurrences) + 1")))
             } else {
                 Ok(())
             }
@@ -368,11 +368,7 @@ fn count_matches_per_chunk(
     // For each block, calculate the times each template matches.
     (0..block_count).into_par_iter().map(move |block_idx| {
         // calculate the start byte and the bit position in the start byte for this block
-        let total_start_bit = block_idx
-            .checked_mul(block_length_bit)
-            .ok_or(Error::Overflow(format!(
-                "multiplying {block_idx} by {block_length_bit}"
-            )))?;
+        let total_start_bit = checked_mul!(block_idx, block_length_bit)?;
 
         // calculate the max shifts
         let max_shifts = block_length_bit - (template_len - 1);

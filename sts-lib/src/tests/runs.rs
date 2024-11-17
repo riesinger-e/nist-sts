@@ -5,7 +5,7 @@
 //! Each tested [BitVec] should have at least 100 bits length.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc, BitPrimitive};
+use crate::internals::{check_f64, checked_add, erfc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -32,20 +32,9 @@ pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
         .par_iter()
         .try_fold(
             || 0_usize,
-            |sum, value| {
-                sum.checked_add(value.count_ones() as usize)
-                    .ok_or(Error::Overflow(format!(
-                        "adding the ones in the current byte to sum {sum}"
-                    )))
-            },
+            |sum, value| checked_add!(sum, value.count_ones() as usize),
         )
-        .try_reduce(
-            || 0_usize,
-            |a, b| {
-                a.checked_add(b)
-                    .ok_or(Error::Overflow(format!("adding the part-sums {a} and {b}")))
-            },
-        )?;
+        .try_reduce(|| 0_usize, |a, b| checked_add!(a, b))?;
     // don't need to check if the last word was incomplete - we only care about 1, the empty bits
     // in the last word are always zero.
     let pi = (count_ones as f64) / (data.len_bit() as f64);
@@ -84,9 +73,7 @@ pub fn runs_test(data: &BitVec) -> Result<TestResult, Error> {
         v
     };
 
-    let v = v
-        .checked_add(1)
-        .ok_or(Error::Overflow(format!("adding 1 to v {v}")))?;
+    let v = checked_add!(v, 1)?;
 
     // Step 4: compute p_value = erfc( abs(v - 2*bit_len*pi*(1-pi)) / (2*sqrt(2*bit_len)*pi*(1-pi)) )
     let numerator = f64::abs((v as f64) - 2.0 * (data.len_bit() as f64) * pi * (1.0 - pi));
@@ -129,24 +116,13 @@ fn calc_v_data_for_slice(data: &[usize]) -> Result<usize, Error> {
                 // the iterator
                 let prev_value = data[prev_idx].get_bit(usize::BITS - 1);
 
-                calc_v_data_for_unit(word, 0..usize::BITS, prev_value)?
-                    .checked_add(sum)
-                    .ok_or(Error::Overflow(format!("Adding byte sum to sum {sum}")))
+                let v_data = calc_v_data_for_unit(word, 0..usize::BITS, prev_value)?;
+                checked_add!(sum, v_data)
             },
         )
-        .try_reduce(
-            || 0_usize,
-            |a, b| {
-                a.checked_add(b)
-                    .ok_or(Error::Overflow(format!("adding sum {a} to {b}")))
-            },
-        )?;
+        .try_reduce(|| 0_usize, |a, b| checked_add!(a, b))?;
 
-    v_first_word
-        .checked_add(v_rem_words)
-        .ok_or(Error::Overflow(format!(
-            "adding first byte sum {v_first_word} to rem byte sum {v_rem_words}"
-        )))
+    checked_add!(v_first_word, v_rem_words)
 }
 
 /// Calculate v for a single byte
@@ -160,8 +136,7 @@ fn calc_v_data_for_unit(
         let res = if current_bit == prev_bit {
             Ok(sum)
         } else {
-            sum.checked_add(1)
-                .ok_or(Error::Overflow(format!("adding 1 to byte sum {sum}")))
+            checked_add!(sum, 1)
         };
         prev_bit = current_bit;
         res

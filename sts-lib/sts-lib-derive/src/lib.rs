@@ -3,11 +3,11 @@
 //! About the implementation: compare to https://docs.rust-embedded.org/embedonomicon/singleton.html
 
 use proc_macro::TokenStream;
-use std::option::IntoIter;
 use quote::quote;
-use syn::{parse_quote, Attribute, Expr, Ident, ItemFn, Meta, Token};
+use std::option::IntoIter;
 use syn::__private::Span;
 use syn::parse::{Parse, ParseStream};
+use syn::{parse_quote, Attribute, Expr, Ident, ItemFn, Meta, Token};
 
 /// The thread pool to be registered: `static POOL = LazyLock::new(|| ThreadpoolBuilder::new().build().unwrap());`.
 struct ThreadpoolItem {
@@ -83,18 +83,24 @@ pub fn register_thread_pool(input: TokenStream) -> TokenStream {
         match &attr.meta {
             Meta::List(list) if attr.path().is_ident("unsafe") => list
                 .parse_nested_meta(|meta| {
-                    assert!(!meta.path.is_ident("export_name"), "Attribute 'export_name' must be used by this macro!");
+                    assert!(
+                        !meta.path.is_ident("export_name"),
+                        "Attribute 'export_name' must be used by this macro!"
+                    );
                     Ok(())
                 })
                 .unwrap(),
             Meta::NameValue(name_value) => {
-                assert!(!name_value.path.is_ident("export_name"), "Attribute 'export_name' must be used by this macro!")
+                assert!(
+                    !name_value.path.is_ident("export_name"),
+                    "Attribute 'export_name' must be used by this macro!"
+                )
             }
             Meta::Path(path) => {
                 if path.is_ident("used") {
                     used_already_exists = true;
                 }
-            },
+            }
             _ => (),
         }
     }
@@ -138,14 +144,14 @@ pub fn use_thread_pool(_: TokenStream, input: TokenStream) -> TokenStream {
         sig: signature,
         block: body,
     } = input;
-    
+
     let threadpool_name: Ident = Ident::new(&threadpool_name(), Span::call_site());
 
     TokenStream::from(quote! {
         #(#attrs)*
         #visibility #signature {
             let body = || #body;
-            
+
             unsafe {
                 extern "Rust" {
                     static #threadpool_name: ::std::sync::LazyLock<::rayon::ThreadPool>;

@@ -12,7 +12,7 @@
 //! This is expected behaviour.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, get_bit_from_sequence, igamc};
+use crate::internals::{check_f64, checked_add, checked_mul, get_bit_from_sequence, igamc};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -113,25 +113,13 @@ pub fn linear_complexity_test(
             || [0_usize; FREEDOM_DEGREES + 1],
             |mut sum, block_idx| {
                 // calculate the start byte and the bit position in the start byte for this block
-                let total_start_bit =
-                    block_idx
-                        .checked_mul(block_length)
-                        .ok_or(Error::Overflow(format!(
-                            "multiplying {block_idx} by {block_length}"
-                        )))?;
+                let total_start_bit = checked_mul!(block_idx, block_length)?;
 
                 let start_idx = total_start_bit / (usize::BITS as usize);
                 let start_bit_idx = total_start_bit % (usize::BITS as usize);
 
                 let end_idx =
-                    ((block_idx + 1)
-                        .checked_mul(block_length)
-                        .ok_or(Error::Overflow(format!(
-                            "multiplying {} by {block_length}",
-                            block_idx + 1,
-                        )))?
-                        - 1)
-                        / (usize::BITS as usize);
+                    (checked_mul!(block_idx + 1, block_length)? - 1) / (usize::BITS as usize);
 
                 // Step 2
                 let l_i = berlekamp_massey(
@@ -161,13 +149,7 @@ pub fn linear_complexity_test(
                     6
                 };
 
-                sum[idx_to_increment] =
-                    sum[idx_to_increment]
-                        .checked_add(1)
-                        .ok_or(Error::Overflow(format!(
-                            "adding 1 to {}",
-                            sum[idx_to_increment]
-                        )))?;
+                sum[idx_to_increment] = checked_add!(sum[idx_to_increment], 1)?;
 
                 Ok::<_, Error>(sum)
             },
@@ -176,9 +158,7 @@ pub fn linear_complexity_test(
             || [0_usize; FREEDOM_DEGREES + 1],
             |mut a, b| {
                 for i in 0..(FREEDOM_DEGREES + 1) {
-                    a[i] = a[i]
-                        .checked_add(b[i])
-                        .ok_or(Error::Overflow(format!("adding {} to {}", a[i], b[i])))?;
+                    a[i] = checked_add!(a[i], b[i])?;
                 }
 
                 Ok(a)
@@ -233,7 +213,8 @@ pub(crate) fn berlekamp_massey(
         // compute discrepancy
         let mut sum = false;
         for i in 1..(l + 1) {
-            sum ^= get_bit_from_sequence(&c, i) & get_bit_from_sequence(sequence, start_bit + n - i);
+            sum ^=
+                get_bit_from_sequence(&c, i) & get_bit_from_sequence(sequence, start_bit + n - i);
         }
 
         let s_n = get_bit_from_sequence(sequence, start_bit + n);

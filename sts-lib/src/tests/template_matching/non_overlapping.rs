@@ -9,7 +9,7 @@ use std::num::NonZero;
 
 use super::{create_mask, overflowing_right_shift, TemplateArg};
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc};
+use crate::internals::{check_f64, checked_mul, igamc};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use sts_lib_derive::use_thread_pool;
@@ -168,11 +168,7 @@ fn count_matches_per_chunk_per_template<'a>(
     // For each block, calculate the times each template matches.
     (0..block_count).map(move |block_idx| {
         // calculate the start byte and the bit position in the start byte for this block
-        let total_start_bit = block_idx
-            .checked_mul(block_length_bit)
-            .ok_or(Error::Overflow(format!(
-                "multiplying {block_idx} by {block_length_bit}"
-            )))?;
+        let total_start_bit = checked_mul!(block_idx, block_length_bit)?;
 
         let start_bit_idx = total_start_bit % (usize::BITS as usize);
 

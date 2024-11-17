@@ -13,7 +13,7 @@
 //! The input length must be at least 10^6 bits, otherwise, an error is returned.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc, BitPrimitive};
+use crate::internals::{check_f64, checked_add, erfc, BitPrimitive};
 use crate::{Error, TestResult};
 use std::num::NonZero;
 use std::ops::Range;
@@ -161,12 +161,7 @@ fn inc_frequency(frequencies: &mut [usize; 18], value: i64) -> Result<bool, Erro
         10.. => return Ok(false),
     };
 
-    frequencies[idx] = frequencies[idx]
-        .checked_add(1)
-        .ok_or(Error::Overflow(format!(
-            "Frequency {} overflowed when adding 1.",
-            frequencies[idx]
-        )))?;
+    frequencies[idx] = checked_add!(frequencies[idx], 1)?;
 
     Ok(false)
 }

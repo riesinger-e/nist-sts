@@ -101,10 +101,7 @@ pub fn approximate_entropy_test(
 
             let prev = freq[idx].fetch_add(1, Ordering::Relaxed);
             if prev == usize::MAX {
-                return Err(Error::Overflow(format!(
-                    "Adding 1 to frequency count {}",
-                    prev
-                )));
+                return Err(Error::Overflow(format!("{prev} (frequency count) + 1")));
             }
             Ok(())
         })

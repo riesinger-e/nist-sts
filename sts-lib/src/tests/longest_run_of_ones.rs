@@ -11,13 +11,13 @@
 //! The probability constants were recalculated, so you might see a deviation when comparing the
 //! output with the reference implementation. In testing, the deviations were not too big.
 
+use crate::bitvec::chunks::Chunk;
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc, BitPrimitive};
+use crate::internals::{check_f64, checked_add, igamc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
 use sts_lib_derive::use_thread_pool;
-use crate::bitvec::chunks::Chunk;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
 pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
@@ -120,9 +120,7 @@ fn longest_run_of_ones_imp<'a, const BUCKET_COUNT: usize>(
                 a.iter_mut()
                     .zip(b.into_iter())
                     .try_for_each(|(a, b)| -> Result<(), Error> {
-                        *a = a
-                            .checked_add(b)
-                            .ok_or(Error::Overflow(format!("Adding run part sums {a} and {b}")))?;
+                        *a = checked_add!(a, b)?;
                         Ok(())
                     })?;
                 Ok(a)
@@ -164,23 +162,12 @@ fn handle_chunk_part<T: BitPrimitive>(
     for unit in chunk {
         if unit.count_ones() == T::BITS {
             // easy case: all ones
-            *current_run_length =
-                current_run_length
-                    .checked_add(T::BITS as usize)
-                    .ok_or(Error::Overflow(format!(
-                        "adding {} to run length {current_run_length}",
-                        T::BITS
-                    )))?;
+            *current_run_length = checked_add!(current_run_length, T::BITS as usize)?;
         } else {
             // we have to inspect bit by bit
             for idx in 0..T::BITS {
                 if unit.get_bit(idx) {
-                    *current_run_length =
-                        current_run_length
-                            .checked_add(1)
-                            .ok_or(Error::Overflow(format!(
-                                "adding 1 to run length {current_run_length}"
-                            )))?;
+                    *current_run_length = checked_add!(current_run_length, 1)?;
                 } else {
                     // run of ones ended here
                     if current_run_length > max_run_length {
@@ -206,25 +193,14 @@ fn add_run_to_table<const BUCKET_COUNT: usize>(
 
     // first and last element need different comparisons
     if run_length <= criteria[0] {
-        table[0] = table[0].checked_add(1).ok_or(Error::Overflow(format!(
-            "adding 1 to table value {}",
-            table[0]
-        )))?;
+        table[0] = checked_add!(table[0], 1)?;
     } else if run_length >= criteria[last_idx] {
-        table[last_idx] = table[last_idx]
-            .checked_add(1)
-            .ok_or(Error::Overflow(format!(
-                "adding 1 to table value {}",
-                table[last_idx]
-            )))?;
+        table[last_idx] = checked_add!(table[last_idx], 1)?;
     } else {
         // this is an index in the middle - iterate over every criterion except first and last
         for i in 1..last_idx {
             if run_length == criteria[i] {
-                table[i] = table[i].checked_add(1).ok_or(Error::Overflow(format!(
-                    "adding 1 to table value {}",
-                    table[i]
-                )))?;
+                table[i] = checked_add!(table[i], 1)?;
                 break;
             }
         }

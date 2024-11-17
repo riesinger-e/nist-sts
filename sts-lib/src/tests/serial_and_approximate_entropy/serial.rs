@@ -107,10 +107,7 @@ pub fn serial_test(
                 .unwrap_or_else(|| panic!("serial_test: idx for (m - {i}) should be valid"));
             let prev = frequencies[i as usize][idx].fetch_add(1, Ordering::Relaxed);
             if prev == usize::MAX {
-                return Err(Error::Overflow(format!(
-                    "Adding 1 to frequency count {}",
-                    prev
-                )));
+                return Err(Error::Overflow(format!("{prev} (frequency count) + 1")));
             }
         }
 

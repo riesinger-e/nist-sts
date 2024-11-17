@@ -10,7 +10,7 @@
 //! reference implementation, i.e. when testing with e.1e6.bin, the deviation is a whole 0.2.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, igamc, BitPrimitive};
+use crate::internals::{check_f64, checked_add, igamc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -53,26 +53,16 @@ pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
                 let mut matrix = Matrix(chunk);
                 // Step 2: determine the binary rank of each matrix
                 let binary_rank = matrix.binary_rank();
-                
+
                 // Step 3: categorise based on the binary rank
                 if binary_rank == M {
-                    categories[0] = categories[0].checked_add(1).ok_or(Error::Overflow(
-                        format!("adding 1 to the rank category F_M, value {}", categories[0]),
-                    ))?;
+                    categories[0] = checked_add!(categories[0], 1)?;
                 } else if binary_rank == M - 1 {
-                    categories[1] =
-                        categories[1].checked_add(1).ok_or(Error::Overflow(format!(
-                            "adding 1 to the rank category F_M-1, value {}",
-                            categories[1]
-                        )))?;
+                    categories[1] = checked_add!(categories[1], 1)?;
                 } else {
-                    categories[2] =
-                        categories[2].checked_add(1).ok_or(Error::Overflow(format!(
-                            "adding 1 to the rank category F_rem, value {}",
-                            categories[2]
-                        )))?;
+                    categories[2] = checked_add!(categories[2], 1)?;
                 }
-                
+
                 Ok::<_, Error>(categories)
             },
         )
@@ -80,10 +70,7 @@ pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
             || [0_usize; 3],
             |mut a, b| {
                 for i in 0..3 {
-                    a[i] = a[i].checked_add(b[i]).ok_or(Error::Overflow(format!(
-                        "adding part category sums {} and {}",
-                        a[i], b[i]
-                    )))?;
+                    a[i] = checked_add!(a[i], b[i])?;
                 }
 
                 Ok::<_, Error>(a)
