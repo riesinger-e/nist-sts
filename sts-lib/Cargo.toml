@@ -17,6 +17,6 @@ rayon = "1.10.0"
 rustfft = "6.2.0"
 statrs = "0.17.1"
 strum = { version = "0.26.2", features = ["derive"] }
-thiserror = "1.0.61"
+thiserror = "2.0.3"
 sts-lib-derive = { path = "./sts-lib-derive" }
 tinyvec = "1.8.0"

@@ -9,7 +9,7 @@ type TestResultIteratorItem = (sts_lib::Test, Result<Vec<sts_lib::TestResult>, E
 /// Iterator for the result of the [run_tests] function.
 #[pyclass]
 pub struct TestResultIterator {
-    iter: Box<dyn Iterator<Item = TestResultIteratorItem> + Send + 'static>,
+    iter: Box<dyn Iterator<Item = TestResultIteratorItem> + Send + Sync + 'static>,
 }
 
 #[pymethods]
@@ -18,17 +18,17 @@ impl TestResultIterator {
         this
     }
 
-    pub fn __next__(mut this: PyRefMut<'_, Self>) -> PyResult<Option<(Test, PyObject)>> {
+    pub fn __next__(mut this: PyRefMut<'_, Self>) -> PyResult<Option<(Test, Bound<PyAny>)>> {
         if let Some((test, res)) = this.iter.next() {
             let res = match res {
                 Ok(res) => {
                     if res.len() == 1 {
-                        TestResult(res[0]).into_py(this.py())
+                        TestResult(res[0]).into_pyobject(this.py())?.into_any()
                     } else {
                         res.into_iter()
                             .map(TestResult)
                             .collect::<Vec<_>>()
-                            .into_py(this.py())
+                            .into_pyobject(this.py())?
                     }
                 }
                 Err(e) => return Err(TestError::new_err(e.to_string())),

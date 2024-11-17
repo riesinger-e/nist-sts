@@ -44,9 +44,9 @@ pub mod nist_sts {
     /// Initialization function, takes care that the custom error types are in the module.
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
-        m.add("TestError", m.py().get_type_bound::<TestError>())?;
-        m.add("RunnerError", m.py().get_type_bound::<RunnerError>())?;
-        m.add("LibError", m.py().get_type_bound::<StsError>())?;
+        m.add("TestError", m.py().get_type::<TestError>())?;
+        m.add("RunnerError", m.py().get_type::<RunnerError>())?;
+        m.add("LibError", m.py().get_type::<StsError>())?;
         Ok(())
     }
 

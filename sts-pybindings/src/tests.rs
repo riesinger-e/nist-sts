@@ -393,14 +393,18 @@ pub struct TestResultLen8 {
     data: [sts_lib::TestResult; 8],
 }
 
-impl IntoPy<PyObject> for TestResultLen8 {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for TestResultLen8 {
+    type Target = PyTuple;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let data: Vec<_> = self
             .data
             .into_iter()
-            .map(|res| TestResult(res).into_py(py))
-            .collect();
-        PyTuple::new_bound(py, data).into_py(py)
+            .map(|res| TestResult(res).into_pyobject(py))
+            .collect::<Result<_, _>>()?;
+        PyTuple::new(py, data)
     }
 }
 
@@ -409,13 +413,17 @@ pub struct TestResultLen18 {
     data: [sts_lib::TestResult; 18],
 }
 
-impl IntoPy<PyObject> for TestResultLen18 {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for TestResultLen18 {
+    type Target = PyTuple;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let data: Vec<_> = self
             .data
             .into_iter()
-            .map(|res| TestResult(res).into_py(py))
-            .collect();
-        PyTuple::new_bound(py, data).into_py(py)
+            .map(|res| TestResult(res).into_pyobject(py))
+            .collect::<Result<_, _>>()?;
+        PyTuple::new(py, data)
     }
 }
