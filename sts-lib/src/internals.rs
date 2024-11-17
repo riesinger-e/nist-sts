@@ -2,6 +2,7 @@
 
 use libcerf::erfcx;
 use rayon::ThreadPoolBuilder;
+use std::fmt::Debug;
 use std::sync::{LazyLock, OnceLock};
 use sts_lib_derive::register_thread_pool;
 
@@ -49,18 +50,50 @@ register_thread_pool! {
     });
 }
 
-/// Returns the bit on the given idx from the sequence
-#[inline]
-pub(crate) const fn get_bit_from_sequence(seq: &[usize], bit_idx: usize) -> bool {
-    let word_idx = bit_idx / (usize::BITS as usize);
-    let bit_idx = bit_idx % (usize::BITS as usize);
+/// Trait for primitive types that are used to store bits.
+pub(crate) trait BitPrimitive
+where
+    Self: Sized + Copy + Clone + Debug,
+{
+    /// How many bits are stored in the primitive
+    const BITS: u32;
+
+    /// Get a specific bit from the primitive.
+    fn get_bit(self, bit_idx: u32) -> bool;
     
-    get_bit_from_value(seq[word_idx], bit_idx)
+    /// Return the number of '1' bits in the primitive.
+    fn count_ones(self) -> u32;
 }
 
-/// Returns the bit on the given idx from the value
+macro_rules! impl_bit_primitive {
+    ($primitive: ty) => {
+        impl BitPrimitive for $primitive {
+            const BITS: u32 = <$primitive>::BITS;
+
+            #[inline]
+            fn get_bit(self, bit_idx: u32) -> bool {
+                let mask = 1 << (Self::BITS - bit_idx - 1);
+                (self & mask) != 0
+            }
+            
+            #[inline]
+            fn count_ones(self) -> u32 {
+                <$primitive>::count_ones(self)
+            }
+        }
+    };
+    ($($primitive: ty),* $(,)?) => {
+        $(impl_bit_primitive!($primitive);)*
+    }
+}
+
+impl_bit_primitive!(u8, usize);
+
+/// Returns the bit on the given idx from the sequence
 #[inline]
-pub(crate) const fn get_bit_from_value(value: usize, bit_idx: usize) -> bool {
-    let mask = 1 << (usize::BITS as usize - bit_idx - 1);
-    (value & mask) != 0
+pub(crate) fn get_bit_from_sequence<T: BitPrimitive>(seq: &[T], bit_idx: u32) -> bool {
+    let word_idx = bit_idx / T::BITS;
+    let bit_idx = bit_idx % T::BITS;
+
+    seq[word_idx as usize].get_bit(bit_idx)
 }

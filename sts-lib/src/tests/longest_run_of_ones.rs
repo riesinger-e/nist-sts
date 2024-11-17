@@ -11,13 +11,13 @@
 //! The probability constants were recalculated, so you might see a deviation when comparing the
 //! output with the reference implementation. In testing, the deviations were not too big.
 
-use crate::bitvec::array_chunks::BitVecChunks;
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, get_bit_from_value, igamc};
+use crate::internals::{check_f64, igamc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
 use sts_lib_derive::use_thread_pool;
+use crate::bitvec::chunks::Chunk;
 
 /// The minimum input length, in bits, for this test, as recommended by NIST.
 pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
@@ -67,80 +67,27 @@ pub fn longest_run_of_ones_test(data: &BitVec) -> Result<TestResult, Error> {
             bit_len
         ))),
         128..=6271 => {
-            const BLOCK_SIZE: usize = 8 / (u8::BITS as usize);
-            let data = BitVecChunks::<u8>::par_chunks::<BLOCK_SIZE>(data);
-
-            longest_run_of_ones(data, TABLE_SORTING_CRITERIA_8, PROBABILITIES_8)
+            let data = data.par_chunks_exact(8 / (u8::BITS as usize));
+            
+            longest_run_of_ones_imp(data, TABLE_SORTING_CRITERIA_8, PROBABILITIES_8)
         }
         6272..=749_999 => {
-            const BLOCK_SIZE: usize = 128 / (usize::BITS as usize);
-            let data = BitVecChunks::<usize>::par_chunks::<BLOCK_SIZE>(data);
+            let data = data.par_chunks_exact(128 / (u8::BITS as usize));
 
-            longest_run_of_ones(data, TABLE_SORTING_CRITERIA_128, PROBABILITIES_128)
+            longest_run_of_ones_imp(data, TABLE_SORTING_CRITERIA_128, PROBABILITIES_128)
         }
         750_000.. => {
-            const BLOCK_SIZE: usize = 10_000 / (u16::BITS as usize);
-            let data = BitVecChunks::<u16>::par_chunks::<BLOCK_SIZE>(data);
+            let data = data.par_chunks_exact(10_000 / (u8::BITS as usize));
 
-            longest_run_of_ones(data, TABLE_SORTING_CRITERIA_10_4, PROBABILITIES_10_4)
+            longest_run_of_ones_imp(data, TABLE_SORTING_CRITERIA_10_4, PROBABILITIES_10_4)
         }
     }
 }
 
-trait LongestRunOfOnesPrimitive: Copy + Send + Sync {
-    const BITS: usize;
-
-    /// Count the bits with value 1 in the value
-    fn count_ones(self) -> u32;
-
-    /// Get the bit accessed by the specified right shift
-    fn get_bit(self, idx: usize) -> bool;
-}
-
-impl LongestRunOfOnesPrimitive for u8 {
-    const BITS: usize = u8::BITS as usize;
-
-    fn count_ones(self) -> u32 {
-        u8::count_ones(self)
-    }
-
-    fn get_bit(self, idx: usize) -> bool {
-        let mask = 1 << (<Self as LongestRunOfOnesPrimitive>::BITS - idx - 1);
-        (self & mask) != 0
-    }
-}
-
-impl LongestRunOfOnesPrimitive for u16 {
-    const BITS: usize = u16::BITS as usize;
-
-    fn count_ones(self) -> u32 {
-        u16::count_ones(self)
-    }
-
-    fn get_bit(self, idx: usize) -> bool {
-        let mask = 1 << (<Self as LongestRunOfOnesPrimitive>::BITS - idx - 1);
-        (self & mask) != 0
-    }
-}
-
-impl LongestRunOfOnesPrimitive for usize {
-    const BITS: usize = usize::BITS as usize;
-
-    fn count_ones(self) -> u32 {
-        usize::count_ones(self)
-    }
-
-    fn get_bit(self, idx: usize) -> bool {
-        get_bit_from_value(self, idx)
-    }
-}
-
-fn longest_run_of_ones<
-    const BUCKET_COUNT: usize,
-    const BLOCK_SIZE: usize,
-    T: LongestRunOfOnesPrimitive,
->(
-    data: impl IndexedParallelIterator<Item = [T; BLOCK_SIZE]>,
+/// The real implementation. Bucket count is decided based on the block size.
+/// Each chunk must have exactly block_size bits.
+fn longest_run_of_ones_imp<'a, const BUCKET_COUNT: usize>(
+    data: impl IndexedParallelIterator<Item = Chunk<'a>>,
     table_criteria: [usize; BUCKET_COUNT],
     probabilities: [f64; BUCKET_COUNT],
 ) -> Result<TestResult, Error> {
@@ -157,40 +104,16 @@ fn longest_run_of_ones<
                 let mut current_run_length: usize = 0;
                 let mut max_run_length: usize = 0;
 
-                for unit in chunk {
-                    if unit.count_ones() as usize == T::BITS {
-                        // easy case: all ones
-                        current_run_length = current_run_length
-                            .checked_add(T::BITS)
-                            .ok_or(Error::Overflow(format!(
-                                "adding {} to run length {current_run_length}",
-                                T::BITS
-                            )))?;
-                    } else {
-                        // we have to inspect bit by bit
-                        for idx in 0..T::BITS {
-                            if unit.get_bit(idx) {
-                                current_run_length =
-                                    current_run_length.checked_add(1).ok_or(Error::Overflow(
-                                        format!("adding 1 to run length {current_run_length}"),
-                                    ))?;
-                            } else {
-                                // run of ones ended here
-                                if current_run_length > max_run_length {
-                                    max_run_length = current_run_length;
-                                }
-                                current_run_length = 0;
-                            }
-                        }
-                    }
-                }
+                handle_chunk_part(&chunk.start, &mut current_run_length, &mut max_run_length)?;
+                handle_chunk_part(chunk.middle, &mut current_run_length, &mut max_run_length)?;
+                handle_chunk_part(&chunk.end, &mut current_run_length, &mut max_run_length)?;
 
                 // for the last bit
                 if current_run_length > max_run_length {
                     max_run_length = current_run_length;
                 }
 
-                add_run_to_table(&mut table, table_criteria.as_slice(), max_run_length)?;
+                add_run_to_table(&mut table, &table_criteria, max_run_length)?;
                 Ok(table)
             },
         )
@@ -234,14 +157,55 @@ fn longest_run_of_ones<
     Ok(TestResult::new(p_value))
 }
 
+/// Handles a part of the current Chunk: start, middle, or end. Calculates the current run length
+/// and saves the max run length if it changes.
+fn handle_chunk_part<T: BitPrimitive>(
+    chunk: &[T],
+    current_run_length: &mut usize,
+    max_run_length: &mut usize,
+) -> Result<(), Error> {
+    for unit in chunk {
+        if unit.count_ones() == T::BITS {
+            // easy case: all ones
+            *current_run_length =
+                current_run_length
+                    .checked_add(T::BITS as usize)
+                    .ok_or(Error::Overflow(format!(
+                        "adding {} to run length {current_run_length}",
+                        T::BITS
+                    )))?;
+        } else {
+            // we have to inspect bit by bit
+            for idx in 0..T::BITS {
+                if unit.get_bit(idx) {
+                    *current_run_length =
+                        current_run_length
+                            .checked_add(1)
+                            .ok_or(Error::Overflow(format!(
+                                "adding 1 to run length {current_run_length}"
+                            )))?;
+                } else {
+                    // run of ones ended here
+                    if current_run_length > max_run_length {
+                        *max_run_length = *current_run_length;
+                    }
+                    *current_run_length = 0;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// to sort a given run length into the run table described in 2.4.4 (2)
-fn add_run_to_table(
-    table: &mut [usize],
-    criteria: &[usize],
+fn add_run_to_table<const BUCKET_COUNT: usize>(
+    table: &mut [usize; BUCKET_COUNT],
+    criteria: &[usize; BUCKET_COUNT],
     run_length: usize,
 ) -> Result<(), Error> {
     // length is at least 4 (table is one of three constants)
-    let last_idx = criteria.len() - 1;
+    let last_idx = BUCKET_COUNT - 1;
 
     // first and last element need different comparisons
     if run_length <= criteria[0] {

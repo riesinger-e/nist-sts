@@ -13,7 +13,7 @@
 //! The input length must be at least 10^6 bits, otherwise, an error is returned.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc, get_bit_from_value};
+use crate::internals::{check_f64, erfc, BitPrimitive};
 use crate::{Error, TestResult};
 use std::num::NonZero;
 use std::ops::Range;
@@ -53,7 +53,7 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
     for &word in words {
         handle_word(
             word,
-            0..(usize::BITS as usize),
+            0..usize::BITS,
             &mut prev,
             &mut num_cycles,
             &mut frequencies,
@@ -61,7 +61,7 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
     }
 
     if let Some(word) = last_word {
-        let bits = 0..(data.bit_count_last_word as usize);
+        let bits = 0..(data.bit_count_last_word as u32);
         handle_word(word, bits, &mut prev, &mut num_cycles, &mut frequencies)?;
     }
 
@@ -126,13 +126,13 @@ pub fn random_excursions_variant_test(data: &BitVec) -> Result<[TestResult; 18],
 /// Handle step 1 to 4 for one word, with a specified bit range
 fn handle_word(
     word: usize,
-    mut bits: Range<usize>,
+    mut bits: Range<u32>,
     prev: &mut i64,
     num_cycles: &mut usize,
     frequencies: &mut [usize; 18],
 ) -> Result<(), Error> {
     bits.try_for_each(|bit| -> Result<(), Error> {
-        if get_bit_from_value(word, bit) {
+        if word.get_bit(bit) {
             *prev += 1
         } else {
             *prev -= 1

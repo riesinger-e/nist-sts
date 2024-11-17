@@ -19,7 +19,7 @@
 //! big.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, get_bit_from_value, igamc};
+use crate::internals::{check_f64, igamc, BitPrimitive};
 use crate::{Error, TestResult};
 use std::num::NonZero;
 use std::ops::Range;
@@ -73,7 +73,7 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
     for &word in words {
         handle_word(
             word,
-            0..(usize::BITS as usize),
+            0..usize::BITS,
             &mut prev,
             &mut last_index,
             &mut states_per_cycle,
@@ -81,7 +81,7 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
     }
 
     if let Some(word) = last_word {
-        let bits = 0..(data.bit_count_last_word as usize);
+        let bits = 0..(data.bit_count_last_word as u32);
         handle_word(
             word,
             bits,
@@ -153,13 +153,13 @@ pub fn random_excursions_test(data: &BitVec) -> Result<[TestResult; 8], Error> {
 /// Handle step 1 to 5 for one word, with a specified bit range
 fn handle_word(
     word: usize,
-    bits: Range<usize>,
+    bits: Range<u32>,
     prev: &mut i64,
     last_index: &mut usize,
     states: &mut Vec<[u8; 8]>,
 ) {
     bits.for_each(|bit| {
-        if get_bit_from_value(word, bit) {
+        if word.get_bit(bit) {
             *prev += 1
         } else {
             *prev -= 1

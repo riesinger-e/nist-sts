@@ -6,7 +6,7 @@
 //! It is recommended (but not required) for the input to be of at least 1000 bits.
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, erfc, get_bit_from_value};
+use crate::internals::{check_f64, erfc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use rustfft::num_complex::Complex;
@@ -44,12 +44,12 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
         .par_iter()
         .flat_map_iter(|&word| {
             // one number per bit
-            convert_word(word, 0..(usize::BITS as usize))
+            convert_word(word, 0..usize::BITS)
         })
         .collect::<Vec<_>>();
     // add remaining bits
     if let Some(last_word) = last_word {
-        let bits = 0..(data.bit_count_last_word as usize);
+        let bits = 0..(data.bit_count_last_word as u32);
         x.extend(convert_word(last_word, bits))
     }
 
@@ -120,9 +120,9 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
 
 /// Convert a word into a sequence of bit, with bit 1 -> 1.0 and bit 0 -> -1.0
 #[inline]
-fn convert_word(word: usize, bits: Range<usize>) -> impl Iterator<Item = Complex<f32>> {
+fn convert_word(word: usize, bits: Range<u32>) -> impl Iterator<Item = Complex<f32>> {
     bits.map(move |bit| {
-        let bit = get_bit_from_value(word, bit);
+        let bit = word.get_bit(bit);
         Complex::from(if bit { 1.0 } else { -1.0 })
     })
 }

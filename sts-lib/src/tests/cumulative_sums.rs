@@ -9,7 +9,7 @@
 //! [Error::InvalidParameter].
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, get_bit_from_value};
+use crate::internals::{check_f64, BitPrimitive};
 use crate::{Error, TestResult};
 use statrs::distribution;
 use statrs::distribution::ContinuousCDF;
@@ -50,7 +50,7 @@ pub(crate) fn cusum_test_internal(data: &BitVec, mode: bool) -> Result<TestResul
     // create a range iterator if the last value needs to be handled differently (not a full word).
     // range iterator goes from LSB to MSB by default (reverse order).
     let (full_words, last_word) = data.as_full_slice();
-    let last_word = last_word.map(|w| (w, 0..(data.bit_count_last_word as usize)));
+    let last_word = last_word.map(|w| (w, 0..(data.bit_count_last_word as u32)));
 
     // Step 1: form a normalized sequence: 1 -> 1, 0 -> -1
     // Step 2: compute partial sums of subsequences of the original sequence, each starting with
@@ -135,11 +135,11 @@ pub(crate) fn cusum_test_internal(data: &BitVec, mode: bool) -> Result<TestResul
 fn handle_slice(mut max: u64, mut prev: i64, data: &[usize], rev: bool) -> (u64, i64) {
     if rev {
         for &value in data.iter().rev() {
-            (max, prev) = handle_value(max, prev, value, 0..(usize::BITS as usize), rev);
+            (max, prev) = handle_value(max, prev, value, 0..usize::BITS, rev);
         }
     } else {
         for &value in data.iter() {
-            (max, prev) = handle_value(max, prev, value, 0..(usize::BITS as usize), rev);
+            (max, prev) = handle_value(max, prev, value, 0..usize::BITS, rev);
         }
     }
 
@@ -153,17 +153,17 @@ fn handle_value(
     max: u64,
     prev: i64,
     value: usize,
-    bits_to_read: Range<usize>,
+    bits_to_read: Range<u32>,
     rev: bool,
 ) -> (u64, i64) {
     fn internal(
         mut max: u64,
         mut prev: i64,
         value: usize,
-        indexes: impl Iterator<Item = usize>,
+        indexes: impl Iterator<Item = u32>,
     ) -> (u64, i64) {
         indexes.for_each(|idx| {
-            if get_bit_from_value(value, idx) {
+            if value.get_bit(idx) {
                 prev += 1
             } else {
                 prev -= 1

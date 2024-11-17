@@ -3,15 +3,17 @@
 // Since the test needs an even count of values, the code can be optimized to be quite simple on both
 // 32 and 64-bit platforms.
 
-use rayon::iter::plumbing::{bridge, Consumer, Producer, ProducerCallback, UnindexedConsumer};
 use crate::bitvec::BitVec;
+use rayon::iter::plumbing::{bridge, Consumer, Producer, ProducerCallback, UnindexedConsumer};
 use rayon::prelude::*;
 
 /// Supports iteration over N u32 at a time. N must be even.
-pub struct BitVecU32Chunks<'a, const N: usize> (&'a [usize]);
+pub struct BitVecU32Chunks<'a, const N: usize>(&'a [usize]);
 
 impl<'a, const N: usize> BitVecU32Chunks<'a, N> {
     /// Split the iterator into 2, with the first one having the specified length.
+    ///
+    /// Panics if the length is greater than the iterator length.
     //noinspection RsAssertEqual
     fn split(self, len: usize) -> (Self, Self) {
         const { assert!(N % 2 == 0, "N must be even") };
@@ -61,7 +63,6 @@ impl<'a, const N: usize> Iterator for BitVecU32Chunks<'a, N> {
             }
         });
 
-
         Some(result)
     }
 
@@ -99,7 +100,6 @@ impl<'a, const N: usize> ExactSizeIterator for BitVecU32Chunks<'a, N> {
             }
         };
 
-
         len / N
     }
 }
@@ -122,7 +122,6 @@ impl<'a, const N: usize> DoubleEndedIterator for BitVecU32Chunks<'a, N> {
             }
         });
 
-
         Some(result)
     }
 
@@ -139,6 +138,7 @@ impl<'a, const N: usize> DoubleEndedIterator for BitVecU32Chunks<'a, N> {
     }
 }
 
+/// Supports iteration over N u32 at a time. N must be even. Parallel.
 pub struct BitVecU32ParChunks<'a, const N: usize>(BitVecU32Chunks<'a, N>);
 
 impl<'a, const N: usize> IndexedParallelIterator for BitVecU32ParChunks<'a, N> {
@@ -177,12 +177,13 @@ impl<'a, const N: usize> ParallelIterator for BitVecU32ParChunks<'a, N> {
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
     where
-        C: UnindexedConsumer<Self::Item>
+        C: UnindexedConsumer<Self::Item>,
     {
         bridge(self, consumer)
     }
 }
 
+// constructors on BitVec
 impl BitVec {
     /// Returns an iterator that yields N u32 values at a time. N must be even.
     // const context does not support assert_eq!()

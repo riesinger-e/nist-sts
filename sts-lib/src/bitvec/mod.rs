@@ -6,8 +6,8 @@ use std::ops::Deref;
 use sts_lib_derive::use_thread_pool;
 use tinyvec::ArrayVec;
 
-pub mod array_chunks;
 pub mod array_chunks_u32;
+pub mod chunks;
 
 /// A list of bits, tightly packed - used in all tests
 #[derive(Clone, Debug)]
@@ -164,7 +164,8 @@ impl BitVec {
         let (slice, value) = self.as_full_slice();
 
         let mut rest = None;
-        let mut rest_for_iter: ArrayVec<[u8; size_of::<usize>() / size_of::<u8>() - 1]> = ArrayVec::new();
+        let mut rest_for_iter: ArrayVec<[u8; size_of::<usize>() / size_of::<u8>() - 1]> =
+            ArrayVec::new();
 
         if let Some(value) = value {
             let mut values = ArrayVec::from(value.to_be_bytes());
@@ -181,7 +182,8 @@ impl BitVec {
             }
         }
 
-        let bytes = slice.par_iter()
+        let bytes = slice
+            .par_iter()
             .flat_map(|v| v.to_be_bytes())
             .chain(rest_for_iter.into_par_iter().copied())
             .collect::<Vec<u8>>();

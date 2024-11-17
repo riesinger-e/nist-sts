@@ -5,7 +5,7 @@
 //! This test needs an argument, see [FrequencyBlockTestArg].
 
 use crate::bitvec::BitVec;
-use crate::internals::{check_f64, get_bit_from_value, igamc};
+use crate::internals::{check_f64, igamc, BitPrimitive};
 use crate::{Error, TestResult};
 use rayon::prelude::*;
 use std::num::NonZero;
@@ -44,8 +44,6 @@ pub fn frequency_block_test(
     data: &BitVec,
     test_arg: FrequencyBlockTestArg,
 ) -> Result<TestResult, Error> {
-    const BITS: usize = usize::BITS as usize;
-
     // Step 0 - get the block length or calculate one
     let block_length = match test_arg {
         FrequencyBlockTestArg::Manual(block_length) => block_length.get(),
@@ -59,12 +57,12 @@ pub fn frequency_block_test(
     // We can't split in chunks here, because chunks would only catch whole words.
 
     // How many words are needed - there could be unused words at the end
-    let words_needed = if block_length * block_count % BITS == 0 {
+    let words_needed = if block_length * block_count % (usize::BITS as usize) == 0 {
         // no remainder
-        block_length * block_count / BITS
+        block_length * block_count / (usize::BITS as usize)
     } else {
         // a remainder is left: 1 additional byte is needed for it.
-        block_length * block_count / BITS + 1
+        block_length * block_count / (usize::BITS as usize) + 1
     };
 
     let count_ones_per_block = {
@@ -78,25 +76,26 @@ pub fn frequency_block_test(
         .enumerate()
         .for_each(|(idx, value)| {
             // returns the block idx for the specified bit idx
-            let block_idx = |bit_idx: usize| (idx * BITS + bit_idx) / block_length;
+            let block_idx =
+                |bit_idx: u32| (idx * (usize::BITS as usize) + (bit_idx as usize)) / block_length;
 
             if block_idx(0) == block_count {
                 return;
             }
 
-            if block_idx(0) == block_idx(BITS - 1) {
+            if block_idx(0) == block_idx(usize::BITS - 1) {
                 // the whole word is the same block.
                 count_ones_per_block[block_idx(0)]
                     .fetch_add(value.count_ones() as usize, Ordering::Relaxed);
             } else {
                 // have to go bit by bit
-                for bit_idx in 0..BITS {
+                for bit_idx in 0..usize::BITS {
                     let block_idx = block_idx(bit_idx);
                     if block_idx == block_count {
                         break;
                     }
 
-                    if get_bit_from_value(*value, bit_idx) {
+                    if value.get_bit(bit_idx) {
                         count_ones_per_block[block_idx].fetch_add(1, Ordering::Relaxed);
                     }
                 }

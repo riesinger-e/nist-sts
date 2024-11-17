@@ -217,11 +217,14 @@ pub(crate) fn berlekamp_massey(
     let mut c: Vec<usize> = vec![0; total_bit_len / (usize::BITS as usize) + 1];
     c[0] = 1 << (usize::BITS - 1);
     // the linear complexity
-    let mut l = 0_usize;
+    let mut l = 0_u32;
     // the value m
-    let mut m = -1_isize;
+    let mut m = -1_i32;
     // B(D) - binary polynom
     let mut b: Vec<usize> = vec![1 << (usize::BITS - 1)];
+
+    let total_bit_len = total_bit_len as u32;
+    let start_bit = start_bit as u32;
 
     // for all following calculations:
     // In a base 2 system, PLUS is the same as XOR and MULT is the same as AND.
@@ -240,9 +243,9 @@ pub(crate) fn berlekamp_massey(
             let t = c.clone();
 
             // addition of polynoms: shift is the power
-            let shift = ((n as isize) - m) as usize;
-            let idx_forward = shift / (usize::BITS as usize);
-            let shift = shift % (usize::BITS as usize);
+            let shift = n.wrapping_add_signed(-m); // = n - m
+            let idx_forward = (shift / usize::BITS) as usize;
+            let shift = shift % usize::BITS;
 
             for (idx, bit) in b.iter().enumerate() {
                 if idx + idx_forward < c.len() {
@@ -250,7 +253,7 @@ pub(crate) fn berlekamp_massey(
                     c[idx + idx_forward] ^= shifted_value;
 
                     if idx + idx_forward + 1 < c.len() && shift > 0 {
-                        let carry_over = bit << ((usize::BITS as usize) - shift);
+                        let carry_over = bit << (usize::BITS - shift);
                         c[idx + idx_forward + 1] ^= carry_over;
                     }
                 }
@@ -258,11 +261,11 @@ pub(crate) fn berlekamp_massey(
 
             if l <= n / 2 {
                 l = n + 1 - l;
-                m = n as isize;
+                m = n as _;
                 b = t;
             }
         }
     }
 
-    l
+    l as usize
 }
