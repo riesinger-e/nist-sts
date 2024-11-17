@@ -184,7 +184,7 @@ pub fn overlapping_template_matching_test(
     // with N denoting the block count, v_i denoting each entry in the occurrences array for the template,
     // and pi_i denoting the value of PI_VALUES in the corresponding index.
     let chi = Box::into_iter(occurrences)
-        .zip(pi_values)
+        .zip(Box::into_iter(pi_values))
         .fold(0.0, |sum, (v_i, pi_i)| {
             let numerator = f64::powi((v_i.into_inner() as f64) - (block_count as f64) * pi_i, 2);
             let denominator = (block_count as f64) * pi_i;
@@ -201,7 +201,7 @@ pub fn overlapping_template_matching_test(
 /// If this function is chosen, the freedom degrees must be 6.
 ///
 /// Returns an array with 6 pi values
-fn calculate_nist_pis(block_length: usize, template_length: usize) -> Vec<f64> {
+fn calculate_nist_pis(block_length: usize, template_length: usize) -> Box<[f64]> {
     let lambda =
         ((block_length - template_length + 1) as f64) / f64::powi(2.0, template_length as i32);
     let eta = lambda / 2.0;
@@ -217,11 +217,11 @@ fn calculate_nist_pis(block_length: usize, template_length: usize) -> Vec<f64> {
     ];
     pi.push(1.0 - pi.iter().sum::<f64>());
 
-    pi
+    pi.into_boxed_slice()
 }
 
 /// Type for a pi caching hashmap
-type CacheHashMap = HashMap<(usize, usize, usize), Vec<f64>>;
+type CacheHashMap = HashMap<(usize, usize, usize), Box<[f64]>>;
 
 /// Calculate the PI values according to Hamano & Kaneko (as it should be according to the paper).
 ///
@@ -241,7 +241,7 @@ pub(crate) fn calculate_hamano_kaneko_pis(
     block_length: usize,
     template_length: usize,
     freedom: usize,
-) -> Vec<f64> {
+) -> Box<[f64]> {
     // index transformation helper for the column indexes - rust does not support negative indexes.
     #[inline]
     fn idx(i: isize) -> usize {
@@ -267,7 +267,7 @@ pub(crate) fn calculate_hamano_kaneko_pis(
                 0.10057114399877809,
                 0.07043232634639843,
                 0.13986544587282246,
-            ],
+            ].into_boxed_slice(),
         )]))
     });
 
@@ -336,19 +336,21 @@ pub(crate) fn calculate_hamano_kaneko_pis(
 
     // Step 4: calculate each pi value using formula (1) and calculate the last value
     // create the pi vector, the last element is the sum of all pi elements
-    let mut pi_sum = Decimal::from(0u8);
+    let mut last_pi = Decimal::from(1u8);
     let mut pis = tables
         .iter()
         .map(|row| {
             let divisor = BigInt::from(2u16).pow(block_length as u32).into();
             let pi = &row[block_length + 1] / &divisor;
 
-            pi_sum += &pi;
+            last_pi -= &pi;
             pi.to_f64().unwrap()
         })
         .collect::<Vec<_>>();
-    pis.push((Decimal::from(1u8) - pi_sum).to_f64().unwrap());
+    pis.push(last_pi.to_f64().unwrap());
 
+    let pis = pis.into_boxed_slice();
+    
     // insert values into cache
     {
         let mut cache = CACHE.lock().unwrap();
