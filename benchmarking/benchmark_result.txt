@@ -1,371 +1,371 @@
 Statistics for test file /home/elias/code/nist-sts/sts-lib/test-files/e.1e6.bin:
 	Test Frequency
-		Average time of this implementation:          0.212659 ms
-		Average time of the reference implementation: 3.063860 ms
-		faster: This implementation takes 6.94% of the time of the reference implementation.
+		Average time of this implementation:          0.053884 ms
+		Average time of the reference implementation: 3.065380 ms
+		faster: This implementation takes 1.76% of the time of the reference implementation.
 	Test FrequencyWithinABlock
-		Average time of this implementation:          0.037378 ms
-		Average time of the reference implementation: 1.257140 ms
-		faster: This implementation takes 2.97% of the time of the reference implementation.
+		Average time of this implementation:          0.073897 ms
+		Average time of the reference implementation: 1.259790 ms
+		faster: This implementation takes 5.87% of the time of the reference implementation.
 	Test Runs
-		Average time of this implementation:          1.776243 ms
-		Average time of the reference implementation: 8.414290 ms
-		faster: This implementation takes 21.11% of the time of the reference implementation.
+		Average time of this implementation:          0.290250 ms
+		Average time of the reference implementation: 8.431470 ms
+		faster: This implementation takes 3.44% of the time of the reference implementation.
 	Test LongestRunOfOnes
-		Average time of this implementation:          1.711522 ms
-		Average time of the reference implementation: 5.139950 ms
-		faster: This implementation takes 33.30% of the time of the reference implementation.
+		Average time of this implementation:          0.253369 ms
+		Average time of the reference implementation: 5.142840 ms
+		faster: This implementation takes 4.93% of the time of the reference implementation.
 	Test BinaryMatrixRank
-		Average time of this implementation:          0.318144 ms
-		Average time of the reference implementation: 45.506220 ms
-		faster: This implementation takes 0.70% of the time of the reference implementation.
+		Average time of this implementation:          0.281489 ms
+		Average time of the reference implementation: 45.379080 ms
+		faster: This implementation takes 0.62% of the time of the reference implementation.
 	Test SpectralDft
-		Average time of this implementation:          10.874646 ms
-		Average time of the reference implementation: 84.579280 ms
-		faster: This implementation takes 12.86% of the time of the reference implementation.
+		Average time of this implementation:          7.739380 ms
+		Average time of the reference implementation: 84.086130 ms
+		faster: This implementation takes 9.20% of the time of the reference implementation.
 	Test NonOverlappingTemplateMatching
-		Average time of this implementation:          16.582874 ms
-		Average time of the reference implementation: 1159.037360 ms
-		faster: This implementation takes 1.43% of the time of the reference implementation.
+		Average time of this implementation:          12.386143 ms
+		Average time of the reference implementation: 1159.303870 ms
+		faster: This implementation takes 1.07% of the time of the reference implementation.
 	Test OverlappingTemplateMatching
-		Average time of this implementation:          0.137362 ms
-		Average time of the reference implementation: 21.425540 ms
-		faster: This implementation takes 0.64% of the time of the reference implementation.
+		Average time of this implementation:          0.118939 ms
+		Average time of the reference implementation: 21.429750 ms
+		faster: This implementation takes 0.56% of the time of the reference implementation.
 	Test MaurersUniversalStatistical
-		Average time of this implementation:          7.263643 ms
-		Average time of the reference implementation: 14.177420 ms
-		faster: This implementation takes 51.23% of the time of the reference implementation.
+		Average time of this implementation:          0.943703 ms
+		Average time of the reference implementation: 14.076870 ms
+		faster: This implementation takes 6.70% of the time of the reference implementation.
 	Test LinearComplexity
-		Average time of this implementation:          13.902887 ms
-		Average time of the reference implementation: 1585.477700 ms
-		faster: This implementation takes 0.88% of the time of the reference implementation.
+		Average time of this implementation:          10.601167 ms
+		Average time of the reference implementation: 1585.186870 ms
+		faster: This implementation takes 0.67% of the time of the reference implementation.
 	Test Serial
-		Average time of this implementation:          3.952058 ms
-		Average time of the reference implementation: 282.090610 ms
-		faster: This implementation takes 1.40% of the time of the reference implementation.
+		Average time of this implementation:          5.340717 ms
+		Average time of the reference implementation: 282.114850 ms
+		faster: This implementation takes 1.89% of the time of the reference implementation.
 	Test ApproximateEntropy
-		Average time of this implementation:          2.625330 ms
-		Average time of the reference implementation: 65.692260 ms
-		faster: This implementation takes 4.00% of the time of the reference implementation.
+		Average time of this implementation:          3.319839 ms
+		Average time of the reference implementation: 65.597580 ms
+		faster: This implementation takes 5.06% of the time of the reference implementation.
 	Test CumulativeSums
-		Average time of this implementation:          1.542466 ms
-		Average time of the reference implementation: 5.605450 ms
-		faster: This implementation takes 27.52% of the time of the reference implementation.
+		Average time of this implementation:          1.529669 ms
+		Average time of the reference implementation: 5.606690 ms
+		faster: This implementation takes 27.28% of the time of the reference implementation.
 	Test RandomExcursions
-		Average time of this implementation:          0.969494 ms
-		Average time of the reference implementation: 4.607930 ms
-		faster: This implementation takes 21.04% of the time of the reference implementation.
+		Average time of this implementation:          0.959346 ms
+		Average time of the reference implementation: 4.669050 ms
+		faster: This implementation takes 20.55% of the time of the reference implementation.
 	Test RandomExcursionsVariant
-		Average time of this implementation:          1.798306 ms
-		Average time of the reference implementation: 19.560800 ms
-		faster: This implementation takes 9.19% of the time of the reference implementation.
+		Average time of this implementation:          0.832000 ms
+		Average time of the reference implementation: 19.531510 ms
+		faster: This implementation takes 4.26% of the time of the reference implementation.
 
 Statistics for test file /home/elias/code/nist-sts/sts-lib/test-files/pi.1e6.bin:
 	Test Frequency
-		Average time of this implementation:          0.209575 ms
-		Average time of the reference implementation: 3.063640 ms
-		faster: This implementation takes 6.84% of the time of the reference implementation.
+		Average time of this implementation:          0.053417 ms
+		Average time of the reference implementation: 3.065280 ms
+		faster: This implementation takes 1.74% of the time of the reference implementation.
 	Test FrequencyWithinABlock
-		Average time of this implementation:          0.036746 ms
-		Average time of the reference implementation: 1.256700 ms
-		faster: This implementation takes 2.92% of the time of the reference implementation.
+		Average time of this implementation:          0.075401 ms
+		Average time of the reference implementation: 1.258320 ms
+		faster: This implementation takes 5.99% of the time of the reference implementation.
 	Test Runs
-		Average time of this implementation:          1.811891 ms
-		Average time of the reference implementation: 8.406850 ms
-		faster: This implementation takes 21.55% of the time of the reference implementation.
+		Average time of this implementation:          0.295245 ms
+		Average time of the reference implementation: 8.413850 ms
+		faster: This implementation takes 3.51% of the time of the reference implementation.
 	Test LongestRunOfOnes
-		Average time of this implementation:          1.726353 ms
-		Average time of the reference implementation: 5.135030 ms
-		faster: This implementation takes 33.62% of the time of the reference implementation.
+		Average time of this implementation:          0.259227 ms
+		Average time of the reference implementation: 5.139360 ms
+		faster: This implementation takes 5.04% of the time of the reference implementation.
 	Test BinaryMatrixRank
-		Average time of this implementation:          0.317761 ms
-		Average time of the reference implementation: 45.400990 ms
-		faster: This implementation takes 0.70% of the time of the reference implementation.
+		Average time of this implementation:          0.282394 ms
+		Average time of the reference implementation: 45.342720 ms
+		faster: This implementation takes 0.62% of the time of the reference implementation.
 	Test SpectralDft
-		Average time of this implementation:          10.898155 ms
-		Average time of the reference implementation: 84.427230 ms
-		faster: This implementation takes 12.91% of the time of the reference implementation.
+		Average time of this implementation:          7.721143 ms
+		Average time of the reference implementation: 83.995840 ms
+		faster: This implementation takes 9.19% of the time of the reference implementation.
 	Test NonOverlappingTemplateMatching
-		Average time of this implementation:          16.833881 ms
-		Average time of the reference implementation: 1158.774100 ms
-		faster: This implementation takes 1.45% of the time of the reference implementation.
+		Average time of this implementation:          13.792103 ms
+		Average time of the reference implementation: 1158.840870 ms
+		faster: This implementation takes 1.19% of the time of the reference implementation.
 	Test OverlappingTemplateMatching
-		Average time of this implementation:          0.140937 ms
-		Average time of the reference implementation: 21.422790 ms
-		faster: This implementation takes 0.66% of the time of the reference implementation.
+		Average time of this implementation:          0.129931 ms
+		Average time of the reference implementation: 21.443810 ms
+		faster: This implementation takes 0.61% of the time of the reference implementation.
 	Test MaurersUniversalStatistical
-		Average time of this implementation:          7.227988 ms
-		Average time of the reference implementation: 14.171740 ms
-		faster: This implementation takes 51.00% of the time of the reference implementation.
+		Average time of this implementation:          0.943544 ms
+		Average time of the reference implementation: 14.082400 ms
+		faster: This implementation takes 6.70% of the time of the reference implementation.
 	Test LinearComplexity
-		Average time of this implementation:          14.158844 ms
-		Average time of the reference implementation: 1583.505930 ms
-		faster: This implementation takes 0.89% of the time of the reference implementation.
+		Average time of this implementation:          12.092390 ms
+		Average time of the reference implementation: 1583.691490 ms
+		faster: This implementation takes 0.76% of the time of the reference implementation.
 	Test Serial
-		Average time of this implementation:          3.677734 ms
-		Average time of the reference implementation: 281.943330 ms
-		faster: This implementation takes 1.30% of the time of the reference implementation.
+		Average time of this implementation:          4.480878 ms
+		Average time of the reference implementation: 282.006050 ms
+		faster: This implementation takes 1.59% of the time of the reference implementation.
 	Test ApproximateEntropy
-		Average time of this implementation:          2.607710 ms
-		Average time of the reference implementation: 65.623200 ms
-		faster: This implementation takes 3.97% of the time of the reference implementation.
+		Average time of this implementation:          3.052648 ms
+		Average time of the reference implementation: 65.628580 ms
+		faster: This implementation takes 4.65% of the time of the reference implementation.
 	Test CumulativeSums
-		Average time of this implementation:          1.531295 ms
-		Average time of the reference implementation: 5.594110 ms
-		faster: This implementation takes 27.37% of the time of the reference implementation.
+		Average time of this implementation:          1.528900 ms
+		Average time of the reference implementation: 5.625690 ms
+		faster: This implementation takes 27.18% of the time of the reference implementation.
 	Test RandomExcursions
-		Average time of this implementation:          0.937417 ms
-		Average time of the reference implementation: 4.501240 ms
-		faster: This implementation takes 20.83% of the time of the reference implementation.
+		Average time of this implementation:          0.927874 ms
+		Average time of the reference implementation: 4.500970 ms
+		faster: This implementation takes 20.61% of the time of the reference implementation.
 	Test RandomExcursionsVariant
-		Average time of this implementation:          1.256659 ms
-		Average time of the reference implementation: 19.459340 ms
-		faster: This implementation takes 6.46% of the time of the reference implementation.
+		Average time of this implementation:          0.670976 ms
+		Average time of the reference implementation: 19.447710 ms
+		faster: This implementation takes 3.45% of the time of the reference implementation.
 
 Statistics for test file /home/elias/code/nist-sts/sts-lib/test-files/sha1.1e6.bin:
 	Test Frequency
-		Average time of this implementation:          0.192302 ms
-		Average time of the reference implementation: 3.064060 ms
-		faster: This implementation takes 6.28% of the time of the reference implementation.
+		Average time of this implementation:          0.055154 ms
+		Average time of the reference implementation: 3.064530 ms
+		faster: This implementation takes 1.80% of the time of the reference implementation.
 	Test FrequencyWithinABlock
-		Average time of this implementation:          0.035056 ms
-		Average time of the reference implementation: 1.259990 ms
-		faster: This implementation takes 2.78% of the time of the reference implementation.
+		Average time of this implementation:          0.077664 ms
+		Average time of the reference implementation: 1.256710 ms
+		faster: This implementation takes 6.18% of the time of the reference implementation.
 	Test Runs
-		Average time of this implementation:          1.514036 ms
-		Average time of the reference implementation: 8.408550 ms
-		faster: This implementation takes 18.01% of the time of the reference implementation.
+		Average time of this implementation:          0.288971 ms
+		Average time of the reference implementation: 8.425270 ms
+		faster: This implementation takes 3.43% of the time of the reference implementation.
 	Test LongestRunOfOnes
-		Average time of this implementation:          1.463413 ms
-		Average time of the reference implementation: 5.130810 ms
-		faster: This implementation takes 28.52% of the time of the reference implementation.
+		Average time of this implementation:          0.252000 ms
+		Average time of the reference implementation: 5.141430 ms
+		faster: This implementation takes 4.90% of the time of the reference implementation.
 	Test BinaryMatrixRank
-		Average time of this implementation:          0.308291 ms
-		Average time of the reference implementation: 45.377520 ms
-		faster: This implementation takes 0.68% of the time of the reference implementation.
+		Average time of this implementation:          0.277683 ms
+		Average time of the reference implementation: 45.456970 ms
+		faster: This implementation takes 0.61% of the time of the reference implementation.
 	Test SpectralDft
-		Average time of this implementation:          10.521801 ms
-		Average time of the reference implementation: 84.763200 ms
-		faster: This implementation takes 12.41% of the time of the reference implementation.
+		Average time of this implementation:          7.808463 ms
+		Average time of the reference implementation: 84.048500 ms
+		faster: This implementation takes 9.29% of the time of the reference implementation.
 	Test NonOverlappingTemplateMatching
-		Average time of this implementation:          14.104905 ms
-		Average time of the reference implementation: 1158.767590 ms
-		faster: This implementation takes 1.22% of the time of the reference implementation.
+		Average time of this implementation:          12.250182 ms
+		Average time of the reference implementation: 1159.081340 ms
+		faster: This implementation takes 1.06% of the time of the reference implementation.
 	Test OverlappingTemplateMatching
-		Average time of this implementation:          0.126352 ms
-		Average time of the reference implementation: 21.439490 ms
-		faster: This implementation takes 0.59% of the time of the reference implementation.
+		Average time of this implementation:          0.119928 ms
+		Average time of the reference implementation: 21.433610 ms
+		faster: This implementation takes 0.56% of the time of the reference implementation.
 	Test MaurersUniversalStatistical
-		Average time of this implementation:          7.233728 ms
-		Average time of the reference implementation: 14.156910 ms
-		faster: This implementation takes 51.10% of the time of the reference implementation.
+		Average time of this implementation:          0.946116 ms
+		Average time of the reference implementation: 14.075790 ms
+		faster: This implementation takes 6.72% of the time of the reference implementation.
 	Test LinearComplexity
-		Average time of this implementation:          11.717946 ms
-		Average time of the reference implementation: 1585.050430 ms
-		faster: This implementation takes 0.74% of the time of the reference implementation.
+		Average time of this implementation:          10.427684 ms
+		Average time of the reference implementation: 1582.391880 ms
+		faster: This implementation takes 0.66% of the time of the reference implementation.
 	Test Serial
-		Average time of this implementation:          4.705562 ms
-		Average time of the reference implementation: 282.053770 ms
-		faster: This implementation takes 1.67% of the time of the reference implementation.
+		Average time of this implementation:          5.352106 ms
+		Average time of the reference implementation: 282.076600 ms
+		faster: This implementation takes 1.90% of the time of the reference implementation.
 	Test ApproximateEntropy
-		Average time of this implementation:          3.164776 ms
-		Average time of the reference implementation: 65.583990 ms
-		faster: This implementation takes 4.83% of the time of the reference implementation.
+		Average time of this implementation:          3.261137 ms
+		Average time of the reference implementation: 65.585850 ms
+		faster: This implementation takes 4.97% of the time of the reference implementation.
 	Test CumulativeSums
-		Average time of this implementation:          1.527506 ms
-		Average time of the reference implementation: 5.603620 ms
-		faster: This implementation takes 27.26% of the time of the reference implementation.
+		Average time of this implementation:          1.525447 ms
+		Average time of the reference implementation: 5.604550 ms
+		faster: This implementation takes 27.22% of the time of the reference implementation.
 	Test RandomExcursions
-		Average time of this implementation:          0.900332 ms
-		Average time of the reference implementation: 2.926790 ms
-		faster: This implementation takes 30.76% of the time of the reference implementation.
+		Average time of this implementation:          0.903429 ms
+		Average time of the reference implementation: 2.941060 ms
+		faster: This implementation takes 30.72% of the time of the reference implementation.
 	Test RandomExcursionsVariant
-		Average time of this implementation:          1.141357 ms
-		Average time of the reference implementation: 2.213690 ms
-		faster: This implementation takes 51.56% of the time of the reference implementation.
+		Average time of this implementation:          0.814309 ms
+		Average time of the reference implementation: 2.207550 ms
+		faster: This implementation takes 36.89% of the time of the reference implementation.
 
 Statistics for test file /home/elias/code/nist-sts/sts-lib/test-files/sqrt2.1e6.bin:
 	Test Frequency
-		Average time of this implementation:          0.196338 ms
-		Average time of the reference implementation: 3.065130 ms
-		faster: This implementation takes 6.41% of the time of the reference implementation.
+		Average time of this implementation:          0.056635 ms
+		Average time of the reference implementation: 3.062800 ms
+		faster: This implementation takes 1.85% of the time of the reference implementation.
 	Test FrequencyWithinABlock
-		Average time of this implementation:          0.036059 ms
-		Average time of the reference implementation: 1.261160 ms
-		faster: This implementation takes 2.86% of the time of the reference implementation.
+		Average time of this implementation:          0.078756 ms
+		Average time of the reference implementation: 1.255560 ms
+		faster: This implementation takes 6.27% of the time of the reference implementation.
 	Test Runs
-		Average time of this implementation:          1.632915 ms
-		Average time of the reference implementation: 8.405230 ms
-		faster: This implementation takes 19.43% of the time of the reference implementation.
+		Average time of this implementation:          0.287155 ms
+		Average time of the reference implementation: 8.408380 ms
+		faster: This implementation takes 3.42% of the time of the reference implementation.
 	Test LongestRunOfOnes
-		Average time of this implementation:          1.562358 ms
-		Average time of the reference implementation: 5.135610 ms
-		faster: This implementation takes 30.42% of the time of the reference implementation.
+		Average time of this implementation:          0.249462 ms
+		Average time of the reference implementation: 5.154150 ms
+		faster: This implementation takes 4.84% of the time of the reference implementation.
 	Test BinaryMatrixRank
-		Average time of this implementation:          0.311833 ms
-		Average time of the reference implementation: 45.527370 ms
-		faster: This implementation takes 0.68% of the time of the reference implementation.
-	Test SpectralDft
-		Average time of this implementation:          10.565362 ms
-		Average time of the reference implementation: 84.760910 ms
-		faster: This implementation takes 12.46% of the time of the reference implementation.
-	Test NonOverlappingTemplateMatching
-		Average time of this implementation:          14.955668 ms
-		Average time of the reference implementation: 1158.797860 ms
-		faster: This implementation takes 1.29% of the time of the reference implementation.
-	Test OverlappingTemplateMatching
-		Average time of this implementation:          0.132782 ms
-		Average time of the reference implementation: 21.420840 ms
+		Average time of this implementation:          0.280026 ms
+		Average time of the reference implementation: 45.403970 ms
 		faster: This implementation takes 0.62% of the time of the reference implementation.
+	Test SpectralDft
+		Average time of this implementation:          7.855231 ms
+		Average time of the reference implementation: 84.006720 ms
+		faster: This implementation takes 9.35% of the time of the reference implementation.
+	Test NonOverlappingTemplateMatching
+		Average time of this implementation:          12.180606 ms
+		Average time of the reference implementation: 1158.765300 ms
+		faster: This implementation takes 1.05% of the time of the reference implementation.
+	Test OverlappingTemplateMatching
+		Average time of this implementation:          0.118768 ms
+		Average time of the reference implementation: 21.501320 ms
+		faster: This implementation takes 0.55% of the time of the reference implementation.
 	Test MaurersUniversalStatistical
-		Average time of this implementation:          7.226539 ms
-		Average time of the reference implementation: 14.160570 ms
-		faster: This implementation takes 51.03% of the time of the reference implementation.
+		Average time of this implementation:          0.937892 ms
+		Average time of the reference implementation: 14.090610 ms
+		faster: This implementation takes 6.66% of the time of the reference implementation.
 	Test LinearComplexity
-		Average time of this implementation:          12.534440 ms
-		Average time of the reference implementation: 1590.220830 ms
-		faster: This implementation takes 0.79% of the time of the reference implementation.
+		Average time of this implementation:          10.410503 ms
+		Average time of the reference implementation: 1585.434330 ms
+		faster: This implementation takes 0.66% of the time of the reference implementation.
 	Test Serial
-		Average time of this implementation:          4.518590 ms
-		Average time of the reference implementation: 282.031940 ms
-		faster: This implementation takes 1.60% of the time of the reference implementation.
+		Average time of this implementation:          5.459223 ms
+		Average time of the reference implementation: 282.018610 ms
+		faster: This implementation takes 1.94% of the time of the reference implementation.
 	Test ApproximateEntropy
-		Average time of this implementation:          2.968939 ms
-		Average time of the reference implementation: 65.656970 ms
-		faster: This implementation takes 4.52% of the time of the reference implementation.
+		Average time of this implementation:          3.332773 ms
+		Average time of the reference implementation: 65.603780 ms
+		faster: This implementation takes 5.08% of the time of the reference implementation.
 	Test CumulativeSums
-		Average time of this implementation:          1.544135 ms
-		Average time of the reference implementation: 5.614000 ms
-		faster: This implementation takes 27.51% of the time of the reference implementation.
+		Average time of this implementation:          1.557429 ms
+		Average time of the reference implementation: 5.608470 ms
+		faster: This implementation takes 27.77% of the time of the reference implementation.
 	Test RandomExcursions
-		Average time of this implementation:          1.011825 ms
-		Average time of the reference implementation: 4.661510 ms
-		faster: This implementation takes 21.71% of the time of the reference implementation.
+		Average time of this implementation:          1.018175 ms
+		Average time of the reference implementation: 4.663960 ms
+		faster: This implementation takes 21.83% of the time of the reference implementation.
 	Test RandomExcursionsVariant
-		Average time of this implementation:          2.168172 ms
-		Average time of the reference implementation: 19.620650 ms
-		faster: This implementation takes 11.05% of the time of the reference implementation.
+		Average time of this implementation:          0.778520 ms
+		Average time of the reference implementation: 19.616970 ms
+		faster: This implementation takes 3.97% of the time of the reference implementation.
 
 Statistics for test file /home/elias/code/nist-sts/sts-lib/test-files/sqrt3.1e6.bin:
 	Test Frequency
-		Average time of this implementation:          0.191113 ms
-		Average time of the reference implementation: 3.063980 ms
-		faster: This implementation takes 6.24% of the time of the reference implementation.
+		Average time of this implementation:          0.054932 ms
+		Average time of the reference implementation: 3.062840 ms
+		faster: This implementation takes 1.79% of the time of the reference implementation.
 	Test FrequencyWithinABlock
-		Average time of this implementation:          0.035398 ms
-		Average time of the reference implementation: 1.264330 ms
-		faster: This implementation takes 2.80% of the time of the reference implementation.
+		Average time of this implementation:          0.081877 ms
+		Average time of the reference implementation: 1.255290 ms
+		faster: This implementation takes 6.52% of the time of the reference implementation.
 	Test Runs
-		Average time of this implementation:          1.562989 ms
-		Average time of the reference implementation: 8.413970 ms
-		faster: This implementation takes 18.58% of the time of the reference implementation.
+		Average time of this implementation:          0.290810 ms
+		Average time of the reference implementation: 8.402910 ms
+		faster: This implementation takes 3.46% of the time of the reference implementation.
 	Test LongestRunOfOnes
-		Average time of this implementation:          1.482004 ms
-		Average time of the reference implementation: 5.135910 ms
-		faster: This implementation takes 28.86% of the time of the reference implementation.
+		Average time of this implementation:          0.255174 ms
+		Average time of the reference implementation: 5.157260 ms
+		faster: This implementation takes 4.95% of the time of the reference implementation.
 	Test BinaryMatrixRank
-		Average time of this implementation:          0.309973 ms
-		Average time of the reference implementation: 45.802820 ms
-		faster: This implementation takes 0.68% of the time of the reference implementation.
+		Average time of this implementation:          0.279351 ms
+		Average time of the reference implementation: 45.409550 ms
+		faster: This implementation takes 0.62% of the time of the reference implementation.
 	Test SpectralDft
-		Average time of this implementation:          10.566306 ms
-		Average time of the reference implementation: 84.812400 ms
-		faster: This implementation takes 12.46% of the time of the reference implementation.
+		Average time of this implementation:          7.835504 ms
+		Average time of the reference implementation: 84.072300 ms
+		faster: This implementation takes 9.32% of the time of the reference implementation.
 	Test NonOverlappingTemplateMatching
-		Average time of this implementation:          14.288546 ms
-		Average time of the reference implementation: 1158.745690 ms
-		faster: This implementation takes 1.23% of the time of the reference implementation.
+		Average time of this implementation:          12.843453 ms
+		Average time of the reference implementation: 1158.594520 ms
+		faster: This implementation takes 1.11% of the time of the reference implementation.
 	Test OverlappingTemplateMatching
-		Average time of this implementation:          0.126398 ms
-		Average time of the reference implementation: 21.429680 ms
-		faster: This implementation takes 0.59% of the time of the reference implementation.
+		Average time of this implementation:          0.122273 ms
+		Average time of the reference implementation: 21.509980 ms
+		faster: This implementation takes 0.57% of the time of the reference implementation.
 	Test MaurersUniversalStatistical
-		Average time of this implementation:          7.250495 ms
-		Average time of the reference implementation: 14.155530 ms
-		faster: This implementation takes 51.22% of the time of the reference implementation.
+		Average time of this implementation:          0.943824 ms
+		Average time of the reference implementation: 14.082110 ms
+		faster: This implementation takes 6.70% of the time of the reference implementation.
 	Test LinearComplexity
-		Average time of this implementation:          11.970203 ms
-		Average time of the reference implementation: 1587.385490 ms
-		faster: This implementation takes 0.75% of the time of the reference implementation.
+		Average time of this implementation:          11.212265 ms
+		Average time of the reference implementation: 1585.785990 ms
+		faster: This implementation takes 0.71% of the time of the reference implementation.
 	Test Serial
-		Average time of this implementation:          4.766140 ms
-		Average time of the reference implementation: 281.878060 ms
-		faster: This implementation takes 1.69% of the time of the reference implementation.
+		Average time of this implementation:          5.077683 ms
+		Average time of the reference implementation: 281.909070 ms
+		faster: This implementation takes 1.80% of the time of the reference implementation.
 	Test ApproximateEntropy
-		Average time of this implementation:          3.025005 ms
-		Average time of the reference implementation: 65.564720 ms
-		faster: This implementation takes 4.61% of the time of the reference implementation.
+		Average time of this implementation:          3.214472 ms
+		Average time of the reference implementation: 65.543330 ms
+		faster: This implementation takes 4.90% of the time of the reference implementation.
 	Test CumulativeSums
-		Average time of this implementation:          1.534678 ms
-		Average time of the reference implementation: 5.625030 ms
-		faster: This implementation takes 27.28% of the time of the reference implementation.
+		Average time of this implementation:          1.541978 ms
+		Average time of the reference implementation: 5.621570 ms
+		faster: This implementation takes 27.43% of the time of the reference implementation.
 	Test RandomExcursions
-		Average time of this implementation:          0.989154 ms
-		Average time of the reference implementation: 4.639940 ms
+		Average time of this implementation:          0.987734 ms
+		Average time of the reference implementation: 4.633600 ms
 		faster: This implementation takes 21.32% of the time of the reference implementation.
 	Test RandomExcursionsVariant
-		Average time of this implementation:          1.939346 ms
-		Average time of the reference implementation: 19.569840 ms
-		faster: This implementation takes 9.91% of the time of the reference implementation.
+		Average time of this implementation:          0.755120 ms
+		Average time of the reference implementation: 19.573570 ms
+		faster: This implementation takes 3.86% of the time of the reference implementation.
 
 Overall statistics:
 	Test Frequency
-		Average time of this implementation:          0.200397 ms
-		Average time of the reference implementation: 3.064134 ms
-		faster: This implementation takes 6.54% of the time of the reference implementation.
+		Average time of this implementation:          0.054805 ms
+		Average time of the reference implementation: 3.064166 ms
+		faster: This implementation takes 1.79% of the time of the reference implementation.
 	Test FrequencyWithinABlock
-		Average time of this implementation:          0.036128 ms
-		Average time of the reference implementation: 1.259864 ms
-		faster: This implementation takes 2.87% of the time of the reference implementation.
+		Average time of this implementation:          0.077519 ms
+		Average time of the reference implementation: 1.257134 ms
+		faster: This implementation takes 6.17% of the time of the reference implementation.
 	Test Runs
-		Average time of this implementation:          1.659615 ms
-		Average time of the reference implementation: 8.409778 ms
-		faster: This implementation takes 19.73% of the time of the reference implementation.
+		Average time of this implementation:          0.290486 ms
+		Average time of the reference implementation: 8.416376 ms
+		faster: This implementation takes 3.45% of the time of the reference implementation.
 	Test LongestRunOfOnes
-		Average time of this implementation:          1.589130 ms
-		Average time of the reference implementation: 5.135462 ms
-		faster: This implementation takes 30.94% of the time of the reference implementation.
+		Average time of this implementation:          0.253846 ms
+		Average time of the reference implementation: 5.147008 ms
+		faster: This implementation takes 4.93% of the time of the reference implementation.
 	Test BinaryMatrixRank
-		Average time of this implementation:          0.313201 ms
-		Average time of the reference implementation: 45.522984 ms
-		faster: This implementation takes 0.69% of the time of the reference implementation.
-	Test SpectralDft
-		Average time of this implementation:          10.685254 ms
-		Average time of the reference implementation: 84.668604 ms
-		faster: This implementation takes 12.62% of the time of the reference implementation.
-	Test NonOverlappingTemplateMatching
-		Average time of this implementation:          15.353175 ms
-		Average time of the reference implementation: 1158.824520 ms
-		faster: This implementation takes 1.32% of the time of the reference implementation.
-	Test OverlappingTemplateMatching
-		Average time of this implementation:          0.132766 ms
-		Average time of the reference implementation: 21.427668 ms
+		Average time of this implementation:          0.280188 ms
+		Average time of the reference implementation: 45.398458 ms
 		faster: This implementation takes 0.62% of the time of the reference implementation.
+	Test SpectralDft
+		Average time of this implementation:          7.791944 ms
+		Average time of the reference implementation: 84.041898 ms
+		faster: This implementation takes 9.27% of the time of the reference implementation.
+	Test NonOverlappingTemplateMatching
+		Average time of this implementation:          12.690498 ms
+		Average time of the reference implementation: 1158.917180 ms
+		faster: This implementation takes 1.10% of the time of the reference implementation.
+	Test OverlappingTemplateMatching
+		Average time of this implementation:          0.121968 ms
+		Average time of the reference implementation: 21.463694 ms
+		faster: This implementation takes 0.57% of the time of the reference implementation.
 	Test MaurersUniversalStatistical
-		Average time of this implementation:          7.240479 ms
-		Average time of the reference implementation: 14.164434 ms
-		faster: This implementation takes 51.12% of the time of the reference implementation.
+		Average time of this implementation:          0.943016 ms
+		Average time of the reference implementation: 14.081556 ms
+		faster: This implementation takes 6.70% of the time of the reference implementation.
 	Test LinearComplexity
-		Average time of this implementation:          12.856864 ms
-		Average time of the reference implementation: 1586.328076 ms
-		faster: This implementation takes 0.81% of the time of the reference implementation.
+		Average time of this implementation:          10.948802 ms
+		Average time of the reference implementation: 1584.498112 ms
+		faster: This implementation takes 0.69% of the time of the reference implementation.
 	Test Serial
-		Average time of this implementation:          4.324017 ms
-		Average time of the reference implementation: 281.999542 ms
-		faster: This implementation takes 1.53% of the time of the reference implementation.
+		Average time of this implementation:          5.142121 ms
+		Average time of the reference implementation: 282.025036 ms
+		faster: This implementation takes 1.82% of the time of the reference implementation.
 	Test ApproximateEntropy
-		Average time of this implementation:          2.878352 ms
-		Average time of the reference implementation: 65.624228 ms
-		faster: This implementation takes 4.39% of the time of the reference implementation.
+		Average time of this implementation:          3.236174 ms
+		Average time of the reference implementation: 65.591824 ms
+		faster: This implementation takes 4.93% of the time of the reference implementation.
 	Test CumulativeSums
-		Average time of this implementation:          1.536016 ms
-		Average time of the reference implementation: 5.608442 ms
-		faster: This implementation takes 27.39% of the time of the reference implementation.
+		Average time of this implementation:          1.536685 ms
+		Average time of the reference implementation: 5.613394 ms
+		faster: This implementation takes 27.38% of the time of the reference implementation.
 	Test RandomExcursions
-		Average time of this implementation:          0.961644 ms
-		Average time of the reference implementation: 4.267482 ms
-		faster: This implementation takes 22.53% of the time of the reference implementation.
+		Average time of this implementation:          0.959311 ms
+		Average time of the reference implementation: 4.281728 ms
+		faster: This implementation takes 22.40% of the time of the reference implementation.
 	Test RandomExcursionsVariant
-		Average time of this implementation:          1.660768 ms
-		Average time of the reference implementation: 16.084864 ms
-		faster: This implementation takes 10.33% of the time of the reference implementation.
+		Average time of this implementation:          0.770185 ms
+		Average time of the reference implementation: 16.075462 ms
+		faster: This implementation takes 4.79% of the time of the reference implementation.
