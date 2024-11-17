@@ -402,14 +402,6 @@ impl_chunks!(BitVecChunksU8<u8> => |value: usize| {
 impl_chunks_par!(ParBitVecChunksU8(BitVecChunksU8));
 impl_chunks!(BitVecChunksU16<u16>);
 impl_chunks_par!(ParBitVecChunksU16(BitVecChunksU16));
-#[cfg(not(target_pointer_width = "32"))]
-impl_chunks!(BitVecChunksU32<u32>);
-// on 32-bit systems, usize and u32 are the same
-#[cfg(target_pointer_width = "32")]
-impl_chunks!(BitVecChunksU32<u32> => |value: usize| {
-    [value as u32]
-});
-impl_chunks_par!(ParBitVecChunksU32(BitVecChunksU32));
 impl_chunks!(BitVecChunksUsize<usize> => |value: usize| {
     [value]
 });
@@ -493,35 +485,6 @@ impl BitVecChunks<u16> for BitVec {
 
     fn par_chunks<const N: usize>(&self) -> Self::ParIterator<'_, N> {
         ParBitVecChunksU16::new(BitVecChunks::<u16>::chunks::<N>(self))
-    }
-}
-
-impl BitVecChunks<u32> for BitVec {
-    type Iterator<'a, const N: usize> = BitVecChunksU32<'a, N>;
-    type ParIterator<'a, const N: usize> = ParBitVecChunksU32<'a, N>;
-
-    fn chunks<const N: usize>(&self) -> Self::Iterator<'_, N> {
-        let (slice, value) = self.as_full_slice();
-
-        #[allow(unused_mut)]
-        let mut rest = ArrayVec::new();
-        #[cfg(not(target_pointer_width = "32"))]
-        if let Some(value) = value {
-            let values = BitVecChunksU32::<N>::split_usize(value);
-
-            for value in values
-                .into_iter()
-                .take((self.bit_count_last_word as usize) / (u32::BITS as usize))
-            {
-                rest.push(value)
-            }
-        }
-
-        BitVecChunksU32::new(slice, rest)
-    }
-
-    fn par_chunks<const N: usize>(&self) -> Self::ParIterator<'_, N> {
-        ParBitVecChunksU32::new(BitVecChunks::<u32>::chunks::<N>(self))
     }
 }
 

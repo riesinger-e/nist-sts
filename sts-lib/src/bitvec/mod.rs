@@ -7,6 +7,7 @@ use sts_lib_derive::use_thread_pool;
 use tinyvec::ArrayVec;
 
 pub mod array_chunks;
+pub mod array_chunks_u32;
 
 /// A list of bits, tightly packed - used in all tests
 #[derive(Clone, Debug)]

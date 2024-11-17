@@ -9,7 +9,6 @@
 //! Because of this higher precision, results may deviate significantly when compared to the
 //! reference implementation, i.e. when testing with e.1e6.bin, the deviation is a whole 0.2.
 
-use crate::bitvec::array_chunks::{BitVecChunks, ParBitVecChunksU32};
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, igamc};
 use crate::{Error, TestResult};
@@ -44,18 +43,17 @@ pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
     }
 
     // Step 1: divide the sequence into blocks with length M * Q = 32 * 32 bits = 32 u32
-    let data: ParBitVecChunksU32<M> = BitVecChunks::<u32>::par_chunks::<M>(data);
+    let data = data.par_array_chunks_u32::<M>();
     let block_count = data.len();
 
     let categories = data
         .try_fold(
             || [0_usize; 3],
             |mut categories, chunk| {
-                // this cannot fail, the chunks are this exact size
                 let mut matrix = Matrix(chunk);
                 // Step 2: determine the binary rank of each matrix
                 let binary_rank = matrix.binary_rank();
-
+                
                 // Step 3: categorise based on the binary rank
                 if binary_rank == M {
                     categories[0] = categories[0].checked_add(1).ok_or(Error::Overflow(
@@ -74,7 +72,7 @@ pub fn binary_matrix_rank_test(data: &BitVec) -> Result<TestResult, Error> {
                             categories[2]
                         )))?;
                 }
-
+                
                 Ok::<_, Error>(categories)
             },
         )
