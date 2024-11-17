@@ -20,7 +20,7 @@ use std::sync::LazyLock;
 
 /// Test args. These are used by all tests in this module.
 static TEST_ARGS: LazyLock<TestArgs> = LazyLock::new(|| TestArgs {
-    frequency_block: FrequencyBlockTestArg::Bytewise(NonZero::new(128 / 8).unwrap()),
+    frequency_block: FrequencyBlockTestArg::Manual(NonZero::new(128).unwrap()),
     non_overlapping_template: NonOverlappingTemplateTestArgs::new_const::<9, 8>(),
     overlapping_template: OverlappingTemplateTestArgs::new_nist_behaviour(9).unwrap(),
     linear_complexity: LinearComplexityTestArg::ManualBlockLength(NonZero::new(500).unwrap()),

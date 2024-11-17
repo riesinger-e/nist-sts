@@ -78,7 +78,7 @@ impl TryFrom<TomlTestArguments> for TestArgs {
             .map(|arg| match (arg.choose_automatically, arg.block_length) {
                 (_, None) | (Some(true), _) => FrequencyBlockTestArg::ChooseAutomatically,
                 (Some(false), Some(block_length)) | (None, Some(block_length)) => {
-                    FrequencyBlockTestArg::new(block_length)
+                    FrequencyBlockTestArg::Manual(block_length)
                 }
             })
             .unwrap_or_default();

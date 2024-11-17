@@ -1,6 +1,5 @@
 //! Everything needed to store the data to test.
 
-use crate::bitvec::iter::{BitVecIterU8, ParBitVecIterU8};
 use std::ffi::c_char;
 use std::mem;
 use std::ops::Deref;
@@ -8,7 +7,6 @@ use sts_lib_derive::use_thread_pool;
 use tinyvec::ArrayVec;
 
 pub mod array_chunks;
-pub mod iter;
 
 /// A list of bits, tightly packed - used in all tests
 #[derive(Clone, Debug)]
@@ -165,7 +163,7 @@ impl BitVec {
         let (slice, value) = self.as_full_slice();
 
         let mut rest = None;
-        let mut rest_for_iter = ArrayVec::new();
+        let mut rest_for_iter: ArrayVec<[u8; size_of::<usize>() / size_of::<u8>() - 1]> = ArrayVec::new();
 
         if let Some(value) = value {
             let mut values = ArrayVec::from(value.to_be_bytes());
@@ -182,8 +180,10 @@ impl BitVec {
             }
         }
 
-        let bytes =
-            ParBitVecIterU8::new(BitVecIterU8::new(slice, rest_for_iter)).collect::<Vec<u8>>();
+        let bytes = slice.par_iter()
+            .flat_map(|v| v.to_be_bytes())
+            .chain(rest_for_iter.into_par_iter().copied())
+            .collect::<Vec<u8>>();
 
         (bytes, rest)
     }

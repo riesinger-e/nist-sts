@@ -78,7 +78,7 @@ pub enum Test {
 /// use sts_lib::TestArgs;
 /// use sts_lib::tests::frequency_block::FrequencyBlockTestArg;
 /// let args = TestArgs {
-///     frequency_block: FrequencyBlockTestArg::Bitwise(NonZeroUsize::new(23).unwrap()),
+///     frequency_block: FrequencyBlockTestArg::Manual(NonZeroUsize::new(23).unwrap()),
 ///     ..Default::default()
 /// };
 /// ```

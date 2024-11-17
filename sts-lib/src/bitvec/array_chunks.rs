@@ -1,12 +1,16 @@
 //! Special iterators that allow iteration over chunks of values of a given type
 
-use crate::bitvec::iter::{elements_per_usize, shared_split_impl};
 use crate::bitvec::BitVec;
 use rayon::iter::plumbing::{bridge, Consumer, Producer, ProducerCallback, UnindexedConsumer};
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use std::{array, mem};
 use std::mem::MaybeUninit;
 use tinyvec::ArrayVec;
+
+/// how many of the given T fit into one usize
+pub(super) const fn elements_per_usize<T: Sized>() -> usize {
+    size_of::<usize>() / size_of::<T>()
+}
 
 /// Implementation for an iterator yielding chunks of the given type, using a usize slice as base.
 /// A generic implementation is not possible because Rust does not support const generics affecting
@@ -42,7 +46,157 @@ macro_rules! impl_chunks {
                 let len = len * N;
 
                 // start is always taken in full because it is smaller than N
-                shared_split_impl!(self, len, $primitive)
+                if len == 0 {
+                    let part1 = Self {
+                        start: ArrayVec::new(),
+                        data: &[],
+                        end: ArrayVec::new(),
+                    };
+        
+                    (part1, self)
+                } else if len < self.start.len() {
+                    let Self {
+                        mut start,
+                        data,
+                        end,
+                    } = self;
+        
+                    let part1 = Self {
+                        start: ArrayVec::from_iter(start.drain(0..len)),
+                        data: &[],
+                        end: ArrayVec::new(),
+                    };
+        
+                    let part2 = Self { start, data, end };
+        
+                    (part1, part2)
+                } else if len == self.start.len() {
+                    let part1 = Self {
+                        start: self.start,
+                        data: &[],
+                        end: ArrayVec::new(),
+                    };
+        
+                    let part2 = Self {
+                        start: ArrayVec::new(),
+                        data: self.data,
+                        end: self.end,
+                    };
+        
+                    (part1, part2)
+                } else if len - self.start.len() >= self.data.len() * elements_per_usize::<$primitive>()
+                {
+                    // we can take the whole self.data
+                    let rem =
+                        len - self.start.len() - (self.data.len() * elements_per_usize::<$primitive>());
+        
+                    if rem == 0 {
+                        let Self { start, data, end } = self;
+        
+                        let part1 = Self {
+                            start,
+                            data,
+                            end: ArrayVec::new(),
+                        };
+        
+                        let part2 = Self {
+                            start: ArrayVec::new(),
+                            data: &[],
+                            end,
+                        };
+        
+                        (part1, part2)
+                    } else if rem < self.end.len() {
+                        let Self {
+                            start,
+                            data,
+                            mut end,
+                        } = self;
+        
+                        let part1 = Self {
+                            start,
+                            data,
+                            end: ArrayVec::from_iter(end.drain(0..rem)),
+                        };
+        
+                        let part2 = Self {
+                            start: ArrayVec::new(),
+                            data: &[],
+                            end,
+                        };
+        
+                        (part1, part2)
+                    } else {
+                        // rem == self.end.len()
+                        let empty = Self {
+                            start: ArrayVec::new(),
+                            data: &[],
+                            end: ArrayVec::new(),
+                        };
+        
+                        (self, empty)
+                    }
+                } else {
+                    // need to split self.data
+                    let rem = len - self.start.len();
+        
+                    if rem % elements_per_usize::<$primitive>() == 0 {
+                        // clean split is possible
+                        let split_idx = rem / elements_per_usize::<$primitive>();
+                        let (part1, part2) = self.data.split_at(split_idx);
+        
+                        let part1 = Self {
+                            start: self.start,
+                            data: part1,
+                            end: ArrayVec::new(),
+                        };
+        
+                        let part2 = Self {
+                            start: ArrayVec::new(),
+                            data: part2,
+                            end: self.end,
+                        };
+                        (part1, part2)
+                    } else {
+                        // self.data cannot be splitted into pure usize values, need to split a usize
+                        let (part1, middle, part2) = {
+                            let split_idx = rem / elements_per_usize::<$primitive>();
+                            let (part1, temp) = self.data.split_at(split_idx);
+                            let (&middle, part2) = temp.split_first().unwrap();
+                            (part1, middle, part2)
+                        };
+        
+                        // split the middle usize
+                        let (end, start) = {
+                            let values = Self::split_usize(middle);
+                            let split_idx = rem % elements_per_usize::<$primitive>();
+        
+                            let mut end = ArrayVec::new();
+                            for &v in &values[0..split_idx] {
+                                end.push(v);
+                            }
+        
+                            let mut start = ArrayVec::new();
+                            for &v in &values[split_idx..] {
+                                start.push(v);
+                            }
+        
+                            (end, start)
+                        };
+        
+                        let part1 = Self {
+                            start: self.start,
+                            data: part1,
+                            end,
+                        };
+                        let part2 = Self {
+                            start,
+                            data: part2,
+                            end: self.end,
+                        };
+                        (part1, part2)
+                    }
+                }
             }
 
             /// Split a usize into an array of the type

@@ -1,10 +1,8 @@
 //! All unit tests
 
 use crate::bitvec::BitVec;
-use crate::tests::frequency_block::{frequency_block_test, FrequencyBlockTestArg};
 use crate::tests::linear_complexity::berlekamp_massey;
 use crate::tests::template_matching::overlapping::calculate_hamano_kaneko_pis;
-use std::num::NonZero;
 
 mod full_examples;
 mod nist_text_examples;
@@ -245,21 +243,6 @@ fn test_bitvec_crop_less_than_1_byte() {
     let bits = bits << (usize::BITS as usize - length);
     assert_eq!(&*bitvec.words, &[bits]);
     assert_eq!(bitvec.bit_count_last_word, length as u8);
-}
-
-/// Assert that the bitwise and byte-wise version of the frequency block test (No.2) do the same thing
-#[test]
-fn test_frequency_block_bytewise_vs_bitwise() {
-    let input = BitVec::from_ascii_str("1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000")
-        .unwrap();
-
-    // Same argument, but differently expressed
-    let arg1 = FrequencyBlockTestArg::Bitwise(NonZero::new(16).unwrap());
-    let arg2 = FrequencyBlockTestArg::Bytewise(NonZero::new(2).unwrap());
-
-    let res1 = frequency_block_test(&input, arg1).unwrap();
-    let res2 = frequency_block_test(&input, arg2).unwrap();
-    assert_f64_eq!(res1.p_value, res2.p_value);
 }
 
 /// Test the pi calculation according to Hamano and Kaneko. Used in the overlapping template matching

@@ -78,7 +78,7 @@ pub extern "C" fn test_arg_frequency_block_new(
     block_length: usize,
 ) -> Option<Box<TestArgFrequencyBlock>> {
     NonZero::new(block_length).map(|block_length| {
-        let arg = frequency_block::FrequencyBlockTestArg::new(block_length);
+        let arg = frequency_block::FrequencyBlockTestArg::Manual(block_length);
         Box::new(TestArgFrequencyBlock(arg))
     })
 }

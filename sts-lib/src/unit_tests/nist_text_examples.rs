@@ -70,7 +70,7 @@ fn test_frequency_test_2() {
 #[test]
 fn test_frequency_block_test_1() {
     let input = BitVec::from_ascii_str("0110011010").unwrap();
-    let arg = FrequencyBlockTestArg::Bitwise(NonZero::new(3).unwrap());
+    let arg = FrequencyBlockTestArg::Manual(NonZero::new(3).unwrap());
 
     let output = frequency_block_test(&input, arg);
     result_checker(&output);
@@ -86,7 +86,7 @@ fn test_frequency_block_test_1() {
 fn test_frequency_block_test_2() {
     let input = BitVec::from_ascii_str("1100100100001111110110101010001000100001011010001100001000110100110001001100011001100010100010111000")
         .unwrap();
-    let arg = FrequencyBlockTestArg::new(NonZero::new(10).unwrap());
+    let arg = FrequencyBlockTestArg::Manual(NonZero::new(10).unwrap());
 
     let output = frequency_block_test(&input, arg);
     result_checker(&output);

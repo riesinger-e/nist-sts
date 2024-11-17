@@ -208,7 +208,7 @@ fn main() {
 
     // test arguments for the rust version
     let test_args = TestArgs {
-        frequency_block: FrequencyBlockTestArg::Bytewise(NonZero::new(16).unwrap()),
+        frequency_block: FrequencyBlockTestArg::Manual(NonZero::new(128).unwrap()),
         non_overlapping_template: NonOverlappingTemplateTestArgs::new_const::<9, 8>(),
         overlapping_template: OverlappingTemplateTestArgs::new_nist_behaviour(9).unwrap(),
         linear_complexity: LinearComplexityTestArg::ManualBlockLength(NonZero::new(500).unwrap()),

@@ -28,7 +28,7 @@ impl FrequencyBlockTestArg {
             Some(block_length) => {
                 // just checked: is not 0
                 let block_length = NonZero::new(block_length).unwrap();
-                frequency_block::FrequencyBlockTestArg::new(block_length)
+                frequency_block::FrequencyBlockTestArg::Manual(block_length)
             }
         };
         Self(arg)
@@ -36,8 +36,7 @@ impl FrequencyBlockTestArg {
 
     pub fn __repr__(&self) -> String {
         let len = match self.0 {
-            frequency_block::FrequencyBlockTestArg::Bytewise(len) => len.get() * 8,
-            frequency_block::FrequencyBlockTestArg::Bitwise(len) => len.get(),
+            frequency_block::FrequencyBlockTestArg::Manual(len) => len.get(),
             frequency_block::FrequencyBlockTestArg::ChooseAutomatically => {
                 return String::from("FrequencyBlockTestArg()");
             }
