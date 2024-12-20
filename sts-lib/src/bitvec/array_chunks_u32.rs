@@ -10,7 +10,7 @@ use rayon::prelude::*;
 /// Supports iteration over N u32 at a time. N must be even.
 pub struct BitVecU32Chunks<'a, const N: usize>(&'a [usize]);
 
-impl<'a, const N: usize> BitVecU32Chunks<'a, N> {
+impl<const N: usize> BitVecU32Chunks<'_, N> {
     /// Split the iterator into 2, with the first one having the specified length.
     ///
     /// Panics if the length is greater than the iterator length.
@@ -41,7 +41,7 @@ impl<'a, const N: usize> BitVecU32Chunks<'a, N> {
     }
 }
 
-impl<'a, const N: usize> Iterator for BitVecU32Chunks<'a, N> {
+impl<const N: usize> Iterator for BitVecU32Chunks<'_, N> {
     type Item = [u32; N];
 
     //noinspection RsAssertEqual
@@ -87,7 +87,7 @@ impl<'a, const N: usize> Iterator for BitVecU32Chunks<'a, N> {
     }
 }
 
-impl<'a, const N: usize> ExactSizeIterator for BitVecU32Chunks<'a, N> {
+impl<const N: usize> ExactSizeIterator for BitVecU32Chunks<'_, N> {
     fn len(&self) -> usize {
         let len = {
             #[cfg(target_pointer_width = "64")]
@@ -104,7 +104,7 @@ impl<'a, const N: usize> ExactSizeIterator for BitVecU32Chunks<'a, N> {
     }
 }
 
-impl<'a, const N: usize> DoubleEndedIterator for BitVecU32Chunks<'a, N> {
+impl<const N: usize> DoubleEndedIterator for BitVecU32Chunks<'_, N> {
     #[cfg(target_pointer_width = "64")]
     fn next_back(&mut self) -> Option<Self::Item> {
         use std::array;
@@ -141,7 +141,7 @@ impl<'a, const N: usize> DoubleEndedIterator for BitVecU32Chunks<'a, N> {
 /// Supports iteration over N u32 at a time. N must be even. Parallel.
 pub struct BitVecU32ParChunks<'a, const N: usize>(BitVecU32Chunks<'a, N>);
 
-impl<'a, const N: usize> IndexedParallelIterator for BitVecU32ParChunks<'a, N> {
+impl<const N: usize> IndexedParallelIterator for BitVecU32ParChunks<'_, N> {
     fn len(&self) -> usize {
         self.0.len()
     }

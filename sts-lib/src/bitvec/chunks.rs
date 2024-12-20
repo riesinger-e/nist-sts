@@ -58,7 +58,7 @@ pub struct ChunksExact<'a> {
     chunk_len: usize,
 }
 
-impl<'a> ChunksExact<'a> {
+impl ChunksExact<'_> {
     /// Split the iterator into 2, with the first one having the specified length (in bytes).
     ///
     /// Panics if the length is greater than the iterator length.
@@ -176,13 +176,13 @@ impl<'a> Iterator for ChunksExact<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for ChunksExact<'a> {
+impl ExactSizeIterator for ChunksExact<'_> {
     fn len(&self) -> usize {
         self.data.len_byte() / self.chunk_len
     }
 }
 
-impl<'a> DoubleEndedIterator for ChunksExact<'a> {
+impl DoubleEndedIterator for ChunksExact<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.len() > 0 {
             // construct a default instance for mem::swap
@@ -207,7 +207,7 @@ impl<'a> DoubleEndedIterator for ChunksExact<'a> {
 /// Parallel Chunks Iterator
 pub struct ParChunksExact<'a>(ChunksExact<'a>);
 
-impl<'a> IndexedParallelIterator for ParChunksExact<'a> {
+impl IndexedParallelIterator for ParChunksExact<'_> {
     fn len(&self) -> usize {
         self.0.len()
     }
