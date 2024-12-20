@@ -96,7 +96,18 @@ macro_rules! gen_checked_arithmetic {
         macro_rules! $method {
             ($p1: expr, $p2: expr) => {
                 $p1.$method($p2)
-                    .ok_or_else(|| $crate::Error::Overflow(format!("{} ({}) {} {} ({})", $p1, stringify!($p1), $op, $p2, stringify!($p2))))
+                    .ok_or_else(|| 
+                        $crate::Error::Overflow(format!(
+                            "{}, line {}: {} ({}) {} {} ({})", 
+                            file!(), // filename of macro call
+                            line!(), // line number of macro call
+                            $p1, 
+                            stringify!($p1), 
+                            $op, 
+                            $p2, 
+                            stringify!($p2)
+                        ))
+                    )
             }
         }
     };
