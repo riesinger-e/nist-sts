@@ -192,8 +192,9 @@ impl BitVec {
 
 // crate internals
 impl BitVec {
-    /// Returns the bits, stored as the given numerical primitives. The MSB of each value has the lowest index.
-    /// Each value is filled - returns an optional additional value, that may be unfilled,
+    /// Returns the bits, stored in words. The MSB of each value has the lowest index.
+    /// Each value is filled - returns an optional additional value, that may not be full - 
+    /// check `self.bit_count_last_word` for the number of bits in the last word.
     pub(crate) fn as_full_slice(&self) -> (&[usize], Option<usize>) {
         if self.bit_count_last_word == 0 {
             (&self.words, None)

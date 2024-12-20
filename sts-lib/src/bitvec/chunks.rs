@@ -59,7 +59,7 @@ pub struct ChunksExact<'a> {
 }
 
 impl ChunksExact<'_> {
-    /// Split the iterator into 2, with the first one having the specified length (in bytes).
+    /// Split the iterator into 2, with the first one having the specified length (in chunks).
     ///
     /// Panics if the length is greater than the iterator length.
     fn split(mut self, len: usize) -> (Self, Self) {
@@ -254,13 +254,23 @@ impl BitVec {
     /// Returns an iterator that yields chunks of size_in_bytes bytes at a time.
     /// The chunk datatype is [Chunk].
     pub fn chunks_exact(&self, size_in_bytes: usize) -> ChunksExact {
-        let (data, _) = self.as_full_slice();
+        let (data, rest) = self.as_full_slice();
+        
+        // get all full bytes from the rest, if there are any
+        let end = if let Some(rest) = rest {
+            let full_elements = rest.to_be_bytes()
+                .into_iter()
+                .take((self.bit_count_last_word as usize) / (u8::BITS as usize));
+            ArrayVec::from_iter(full_elements)
+        } else {
+            ArrayVec::new()
+        };
 
         ChunksExact {
             data: Chunk {
                 start: ArrayVec::new(),
                 middle: data,
-                end: ArrayVec::new(),
+                end,
             },
             chunk_len: size_in_bytes,
         }
