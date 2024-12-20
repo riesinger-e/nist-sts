@@ -17,7 +17,7 @@ resolver = "2"
 
 # build options for better performance when building the release version
 [profile.release]
-# unwinding the stack into FFI code is undefined behaviour, better abort the program
+# unwinding the stack into FFI code would be undefined behaviour, better abort the program (relevant for the bindings)
 panic = "abort"
 # slower compilation, more optimizations possible
 codegen-units = 1

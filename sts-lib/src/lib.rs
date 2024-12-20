@@ -149,7 +149,7 @@ pub enum Error {
     #[error("Result is infinite.")]
     Infinite,
     #[error(transparent)]
-    GammaFunctionFailed(#[from] statrs::StatsError),
+    GammaFunctionFailed(#[from] statrs::function::gamma::GammaFuncError),
     #[error("Invalid Parameter: {0}")]
     InvalidParameter(String),
 }

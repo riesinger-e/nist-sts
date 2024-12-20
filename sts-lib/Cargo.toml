@@ -15,7 +15,7 @@ lzma-rs = "0.3.0"
 num_cpus = "1.16.0"
 rayon = "1.10.0"
 rustfft = "6.2.0"
-statrs = "0.17.1"
+statrs = "0.18.0"
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "2.0.3"
 sts-lib-derive = { path = "./sts-lib-derive" }
