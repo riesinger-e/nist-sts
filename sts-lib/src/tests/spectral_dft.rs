@@ -64,8 +64,7 @@ pub fn spectral_dft_test(data: &BitVec) -> Result<TestResult, Error> {
     // to keep the Mutex lock as short as possible.
     let fft = {
         let mut fft_planner = FFT_PLANNER.lock().unwrap();
-        // The paper is wrong (?), the formula in 3.6 describes the inverse dft
-        fft_planner.plan_fft_inverse(x.len())
+        fft_planner.plan_fft_forward(x.len())
     };
     // result is stored into the passed buffer
     fft.process(&mut x);
