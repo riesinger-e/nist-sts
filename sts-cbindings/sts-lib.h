@@ -44,7 +44,7 @@
 
 /**
  * The error codes that are returned by some fallible functions.
- * A human-readable error message can be retrieved with [get_last_error].
+ * A human-readable error message can be retrieved with [sts_get_last_error].
  */
 typedef enum {
   /**
@@ -72,7 +72,7 @@ typedef enum {
    */
   ErrorCode_InvalidParameter = 5,
   /**
-   * The function [set_max_threads] failed.
+   * The function [sts_set_max_threads] failed.
    */
   ErrorCode_SetMaxThreads = 6,
   /**
@@ -98,63 +98,63 @@ typedef enum {
  */
 typedef enum {
   /**
-   * See [frequency_test](crate::tests::frequency_test).
+   * See [sts_frequency_test].
    */
   Test_Frequency = 0,
   /**
-   * See [frequency_block_test](crate::tests::frequency_block_test).
+   * See [sts_frequency_block_test].
    */
   Test_FrequencyWithinABlock = 1,
   /**
-   * See [runs_test](crate::tests::runs_test).
+   * See [sts_runs_test].
    */
   Test_Runs = 2,
   /**
-   * See [longest_run_of_ones_test](crate::tests::longest_run_of_ones_test).
+   * See [sts_longest_run_of_ones_test].
    */
   Test_LongestRunOfOnes = 3,
   /**
-   * See [binary_matrix_rank_test](crate::tests::binary_matrix_rank_test).
+   * See [sts_binary_matrix_rank_test].
    */
   Test_BinaryMatrixRank = 4,
   /**
-   * See [spectral_dft_test](crate::tests::spectral_dft_test).
+   * See [sts_spectral_dft_test].
    */
   Test_SpectralDft = 5,
   /**
-   * See [non_overlapping_template_matching_test](crate::tests::non_overlapping_template_matching_test).
+   * See [sts_non_overlapping_template_matching_test].
    */
   Test_NonOverlappingTemplateMatching = 6,
   /**
-   * See [overlapping_template_matching_test](crate::tests::overlapping_template_matching_test).
+   * See [sts_overlapping_template_matching_test].
    */
   Test_OverlappingTemplateMatching = 7,
   /**
-   * See [maurers_universal_statistical_test](crate::tests::maurers_universal_statistical_test).
+   * See [sts_maurers_universal_statistical_test].
    */
   Test_MaurersUniversalStatistical = 8,
   /**
-   * See [linear_complexity_test](crate::tests::linear_complexity_test).
+   * See [sts_linear_complexity_test].
    */
   Test_LinearComplexity = 9,
   /**
-   * See [serial_test](crate::tests::serial_test).
+   * See [sts_serial_test].
    */
   Test_Serial = 10,
   /**
-   * See [approximate_entropy_test](crate::tests::approximate_entropy_test).
+   * See [sts_approximate_entropy_test].
    */
   Test_ApproximateEntropy = 11,
   /**
-   * See [cumulative_sums_test](crate::tests::cumulative_sums_test).
+   * See [sts_cumulative_sums_test].
    */
   Test_CumulativeSums = 12,
   /**
-   * See [random_excursions_test](crate::tests::random_excursions_test).
+   * See [sts_random_excursions_test].
    */
   Test_RandomExcursions = 13,
   /**
-   * See [random_excursions_variant_test](crate::tests::random_excursions_variant_test).
+   * See [sts_random_excursions_variant_test].
    */
   Test_RandomExcursionsVariant = 14,
 } Test;
@@ -235,7 +235,7 @@ typedef struct TestArgNonOverlappingTemplate TestArgNonOverlappingTemplate;
  * These bounds are checked by all creation functions.
  *
  * The original NIST implementation has some glaring inaccuracies,
- * to replicate this exact NIST behaviour, use [test_arg_overlapping_template_new_nist_behaviour]
+ * to replicate this exact NIST behaviour, use [sts_TestArgOverlappingTemplate_new_nist_behaviour]
  */
 typedef struct TestArgOverlappingTemplate TestArgOverlappingTemplate;
 
@@ -294,8 +294,8 @@ extern "C" {
  * * `ptr` may not be mutated for the duration of this call.
  * * All responsibility for `ptr` and `len`, especially for its de-allocation, remains with the caller.
  */
-int get_last_error(char *ptr,
-                   size_t *len);
+int sts_get_last_error(char *ptr,
+                       size_t *len);
 
 /**
  * Sets the maximum of threads to be used by the tests. These method can only be called ONCE and only
@@ -306,9 +306,9 @@ int get_last_error(char *ptr,
  * ## Return values
  *
  * * 0: the call worked.
- * * 1: an error happened - use [get_last_error]
+ * * 1: an error happened - use [sts_get_last_error]
  */
-int set_max_threads(size_t max_threads);
+int sts_set_max_threads(size_t max_threads);
 
 /**
  * Returns the minimum input length, in bits, for the specified test.
@@ -316,9 +316,9 @@ int set_max_threads(size_t max_threads);
  * ## Return values
  *
  * * >0: the call worked. Returned is minimum input length
- * * 0: an error happened - use [get_last_error]
+ * * 0: an error happened - use [sts_get_last_error]
  */
-size_t get_min_length_for_test(Test test);
+size_t sts_get_min_length_for_test(Test test);
 
 /**
  * Creates a Bit Vector from a string, with the ASCII char "0" mapping to 0 and "1" mapping to 1.
@@ -333,19 +333,19 @@ size_t get_min_length_for_test(Test test);
  * * `ptr` must have at least length 1: the nul terminator.
  * * The memory referenced by `ptr` must not be mutated for the duration of this method call.
  * * `ptr`, particularly the de-allocation of it, remains in the responsibility of the caller.
- * * The de-allocation of the returned [BitVec] must be done via [bitvec_destroy].
+ * * The de-allocation of the returned [BitVec] must be done via [sts_BitVec_destroy].
  */
-BitVec *bitvec_from_str(const char *ptr);
+BitVec *sts_BitVec_from_str(const char *ptr);
 
 /**
- * Same as [bitvec_from_str], but allows to specify a maximum count of bits to read from the
+ * Same as [sts_BitVec_from_str], but allows to specify a maximum count of bits to read from the
  * string. When this limit is reached, the String will not be read any further.
  *
  * ## Safety
  *
- * The same safety considerations apply as for [bitvec_from_str]
+ * The same safety considerations apply as for [sts_BitVec_from_str]
  */
-BitVec *bitvec_from_str_with_max_length(const char *ptr, size_t max_length);
+BitVec *sts_BitVec_from_str_with_max_length(const char *ptr, size_t max_length);
 
 /**
  * Creates a BitVec from a byte array, where each byte is filled with 8 bits.
@@ -360,9 +360,9 @@ BitVec *bitvec_from_str_with_max_length(const char *ptr, size_t max_length);
  * * The memory pointed to by `ptr` must be valid for reads of up to `len` bytes.
  * * The memory referenced by `ptr` must not be mutated for the duration of this method call.
  * * `ptr`, particularly the de-allocation of it, remains in the responsibility of the caller.
- * * The de-allocation of the returned [BitVec] must be done via [bitvec_destroy].
+ * * The de-allocation of the returned [BitVec] must be done via [sts_BitVec_destroy].
  */
-BitVec *bitvec_from_bytes(const uint8_t *ptr, size_t len);
+BitVec *sts_BitVec_from_bytes(const uint8_t *ptr, size_t len);
 
 /**
  * Creates a BitVec from a bool array, with each bool representing one bit.
@@ -377,47 +377,47 @@ BitVec *bitvec_from_bytes(const uint8_t *ptr, size_t len);
  * * The memory pointed to by `ptr` must be valid for reads of up to `len` elements.
  * * The memory referenced by `ptr` must not be mutated for the duration of this method call.
  * * `ptr`, particularly the de-allocation of it, remains in the responsibility of the caller.
- * * The de-allocation of the returned [BitVec] must be done via [bitvec_destroy].
+ * * The de-allocation of the returned [BitVec] must be done via [sts_BitVec_destroy].
  */
-BitVec *bitvec_from_bits(const bool *ptr, size_t len);
+BitVec *sts_BitVec_from_bits(const bool *ptr, size_t len);
 
 /**
  * Destroys a created BitVec.
  *
  * ## Safety
  *
- * * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
- *   [bitvec_from_bytes] or [bitvec_from_bits].
+ * * `bitvec` must have been created by either [sts_BitVec_from_str], [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes] or [sts_BitVec_from_bits].
  * * `bitvec` must be a valid pointer.
  * * `bitvec` may not be mutated for the duration of this call..
  */
-BitVec *bitvec_clone(const BitVec *bitvec);
+BitVec *sts_BitVec_clone(const BitVec *bitvec);
 
 /**
  * Destroys a created BitVec.
  *
  * ## Safety
  *
- * * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
- *   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
+ * * `bitvec` must have been created by either [sts_BitVec_from_str], [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes], [sts_BitVec_from_bits] or [sts_BitVec_clone].
  * * `bitvec` may be null.
  * * There must be no other references to `bitvec`.
  * * After this call, the memory referenced by `bitvec` is freed. Trying to access this memory
  *   will lead to undefined behaviour.
  */
-void bitvec_destroy(BitVec *bitvec);
+void sts_BitVec_destroy(BitVec *bitvec);
 
 /**
  * Returns the count of bits in the BitVec.
  *
  * ## Safety
  *
- * * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
- *   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
+ * * `bitvec` must have been created by either [sts_BitVec_from_str], [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes], [sts_BitVec_from_bits] or [sts_BitVec_clone].
  * * `bitvec` must be a valid, non-null pointer.
  * * `bitvec` may not be mutated for the duration of this call.
  */
-size_t bitvec_len_bit(const BitVec *bitvec);
+size_t sts_BitVec_len_bit(const BitVec *bitvec);
 
 /**
  * Crops the BitVec to the given count of bits. Values for `new_bit_len` that are larger than the
@@ -425,19 +425,20 @@ size_t bitvec_len_bit(const BitVec *bitvec);
  *
  * ## Safety
  *
- * * `bitvec` must have been created by either [bitvec_from_str], [bitvec_from_str_with_max_length],
- *   [bitvec_from_bytes], [bitvec_from_bits] or [bitvec_clone].
+ * * `bitvec` must have been created by either [sts_BitVec_from_str], [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes], [sts_BitVec_from_bits] or [sts_BitVec_clone].
  * * `bitvec` must be a valid, non-null pointer.
  * * `bitvec` may not be mutated by other functions for the duration of this call.
  */
-void bitvec_crop(BitVec *bitvec, size_t new_bit_len);
+void sts_BitVec_crop(BitVec *bitvec,
+                     size_t new_bit_len);
 
 /**
  * Creates a default new argument for the Frequency test within a block that chooses a suitable
  * block length automatically.
  * This function never returns `NULL`.
  */
-TestArgFrequencyBlock *test_arg_frequency_block_default(void);
+TestArgFrequencyBlock *sts_TestArgFrequencyBlock_default(void);
 
 /**
  * Destroys the given argument for the Frequency test within a block.
@@ -449,7 +450,7 @@ TestArgFrequencyBlock *test_arg_frequency_block_default(void);
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  * * `ptr` may not be mutated for the duration of this call.
  */
-void test_arg_frequency_block_destroy(TestArgFrequencyBlock *ptr);
+void sts_TestArgFrequencyBlock_destroy(TestArgFrequencyBlock *ptr);
 
 /**
  * Creates a new argument for the Frequency test within a block, specifying the block length in bits.
@@ -458,14 +459,14 @@ void test_arg_frequency_block_destroy(TestArgFrequencyBlock *ptr);
  * - if the given `block_length == 0`, `NULL` is returned.
  * - if the given `block_length != 0`, a pointer to the argument is returned.
  */
-TestArgFrequencyBlock *test_arg_frequency_block_new(size_t block_length);
+TestArgFrequencyBlock *sts_TestArgFrequencyBlock_new(size_t block_length);
 
 /**
  * Creates a default new non-overlapping template test argument that chooses its template length
  * and block count according to the values recommended by NIST.
  * This function never returns `NULL`.
  */
-TestArgNonOverlappingTemplate *test_arg_non_overlapping_template_default(void);
+TestArgNonOverlappingTemplate *sts_TestArgNonOverlappingTemplate_default(void);
 
 /**
  * Destroys the given argument for Non-overlapping Template Matching Test.
@@ -477,7 +478,7 @@ TestArgNonOverlappingTemplate *test_arg_non_overlapping_template_default(void);
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  * * `ptr` may not be mutated for the duration of this call.
  */
-void test_arg_non_overlapping_template_destroy(TestArgNonOverlappingTemplate *ptr);
+void sts_TestArgNonOverlappingTemplate_destroy(TestArgNonOverlappingTemplate *ptr);
 
 /**
  * Creates a new non-overlapping template test argument with the specified template length and block
@@ -487,7 +488,7 @@ void test_arg_non_overlapping_template_destroy(TestArgNonOverlappingTemplate *pt
  * * If both arguments are within the bounds specified in [TestArgNonOverlappingTemplate]: the new argument.
  * * Otherwise: `NULL`
  */
-TestArgNonOverlappingTemplate *test_arg_non_overlapping_template_new(size_t template_len,
+TestArgNonOverlappingTemplate *sts_TestArgNonOverlappingTemplate_new(size_t template_len,
                                                                      size_t count_blocks);
 
 /**
@@ -496,7 +497,7 @@ TestArgNonOverlappingTemplate *test_arg_non_overlapping_template_new(size_t temp
  * and [OVERLAPPING_TEMPLATE_DEFAULT_FREEDOM].
  * This function never returns `NULL`.
  */
-TestArgOverlappingTemplate *test_arg_overlapping_template_default(void);
+TestArgOverlappingTemplate *sts_TestArgOverlappingTemplate_default(void);
 
 /**
  * Destroys the given argument for the Overlapping Template Matching Test.
@@ -508,7 +509,7 @@ TestArgOverlappingTemplate *test_arg_overlapping_template_default(void);
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  * * `ptr` may not be mutated for the duration of this call.
  */
-void test_arg_overlapping_template_destroy(TestArgOverlappingTemplate *ptr);
+void sts_TestArgOverlappingTemplate_destroy(TestArgOverlappingTemplate *ptr);
 
 /**
  * Creates a new Overlapping Template Matching Test argument with the specified template length, block
@@ -518,9 +519,9 @@ void test_arg_overlapping_template_destroy(TestArgOverlappingTemplate *ptr);
  * * If all arguments are within the bounds specified in [TestArgOverlappingTemplate]: the new argument.
  * * Otherwise: `NULL`
  */
-TestArgOverlappingTemplate *test_arg_overlapping_template_new(size_t template_length,
-                                                              size_t block_length,
-                                                              size_t freedom);
+TestArgOverlappingTemplate *sts_TestArgOverlappingTemplate_new(size_t template_length,
+                                                               size_t block_length,
+                                                               size_t freedom);
 
 /**
  * Creates a new Overlapping Template Matching Test argument with the specified template length,
@@ -532,14 +533,14 @@ TestArgOverlappingTemplate *test_arg_overlapping_template_new(size_t template_le
  * * If the argument is within the specified bounds: the new argument.
  * * Otherwise: `NULL`
  */
-TestArgOverlappingTemplate *test_arg_overlapping_template_new_nist_behaviour(size_t template_length);
+TestArgOverlappingTemplate *sts_TestArgOverlappingTemplate_new_nist_behaviour(size_t template_length);
 
 /**
  * Creates a default argument for the Linear Complexity Test, choosing the block length
  * automatically on runtime.
  * This function never returns `NULL`.
  */
-TestArgLinearComplexity *test_arg_linear_complexity_default(void);
+TestArgLinearComplexity *sts_TestArgLinearComplexity_default(void);
 
 /**
  * Destroys the given argument for the Linear Complexity Test.
@@ -551,7 +552,7 @@ TestArgLinearComplexity *test_arg_linear_complexity_default(void);
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  * * `ptr` may not be mutated for the duration of this call.
  */
-void test_arg_linear_complexity_destroy(TestArgLinearComplexity *ptr);
+void sts_TestArgLinearComplexity_destroy(TestArgLinearComplexity *ptr);
 
 /**
  * Creates a new argument for the linear Complexity Test, choosing the block length manually.
@@ -561,14 +562,14 @@ void test_arg_linear_complexity_destroy(TestArgLinearComplexity *ptr);
  * * If the block length is within 500 <= block_length <= 5000: the new argument.
  * * Otherwise: `NULL`
  */
-TestArgLinearComplexity *test_arg_linear_complexity_new(size_t block_length);
+TestArgLinearComplexity *sts_TestArgLinearComplexity_new(size_t block_length);
 
 /**
  * Creates a default argument for the Serial Test, with the block length set to the one
  * recommended by NIST.
  * This function never returns `NULL`.
  */
-TestArgSerial *test_arg_serial_default(void);
+TestArgSerial *sts_TestArgSerial_default(void);
 
 /**
  * Destroys the given argument for the Serial Test.
@@ -580,7 +581,7 @@ TestArgSerial *test_arg_serial_default(void);
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  * * `ptr` may not be mutated for the duration of this call.
  */
-void test_arg_serial_destroy(TestArgSerial *ptr);
+void sts_TestArgSerial_destroy(TestArgSerial *ptr);
 
 /**
  * Creates a new argument for the Serial Test. The block length is checked to fulfill the constraints
@@ -591,14 +592,14 @@ void test_arg_serial_destroy(TestArgSerial *ptr);
  * * if the given block length satisfies the constraints: the new argument.
  * * otherwise: `NULL`
  */
-TestArgSerial *test_arg_serial_new(uint8_t block_length);
+TestArgSerial *sts_TestArgSerial_new(uint8_t block_length);
 
 /**
  * Creates a default argument for the Approximate Entropy Test, with the block length set to the one
  * recommended by NIST.
  * This function never returns `NULL`.
  */
-TestArgApproximateEntropy *test_arg_approximate_entropy_default(void);
+TestArgApproximateEntropy *sts_TestArgApproximateEntropy_default(void);
 
 /**
  * Destroys the given argument for the Approximate Entropy Test.
@@ -610,7 +611,7 @@ TestArgApproximateEntropy *test_arg_approximate_entropy_default(void);
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  * * `ptr` may not be mutated for the duration of this call.
  */
-void test_arg_approximate_entropy_destroy(TestArgApproximateEntropy *ptr);
+void sts_TestArgApproximateEntropy_destroy(TestArgApproximateEntropy *ptr);
 
 /**
  * Creates a new argument for the Approximate Entropy Test. The block length is checked to fulfill
@@ -621,10 +622,10 @@ void test_arg_approximate_entropy_destroy(TestArgApproximateEntropy *ptr);
  * * if the given block length satisfies the constraints: the new argument.
  * * otherwise: `NULL`
  */
-TestArgApproximateEntropy *test_arg_approximate_entropy_new(uint8_t block_length);
+TestArgApproximateEntropy *sts_TestArgApproximateEntropy_new(uint8_t block_length);
 
 /**
- * Destroys the given test result. If you want to destroy a whole list, use [test_result_list_destroy].
+ * Destroys the given test result. If you want to destroy a whole list, use [sts_TestResult_list_destroy].
  * You cannot destroy only a part of a list with this function.
  *
  * ## Safety
@@ -634,11 +635,11 @@ TestArgApproximateEntropy *test_arg_approximate_entropy_new(uint8_t block_length
  * * `ptr` must not be mutated for the duration of this call.
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  */
-void test_result_destroy(TestResult *ptr);
+void sts_TestResult_destroy(TestResult *ptr);
 
 /**
  * Destroys the given list of test results. If you want to destroy only a single test result,
- * use [test_result_destroy].
+ * use [sts_TestResult_destroy].
  *
  * ## Safety
  *
@@ -648,7 +649,7 @@ void test_result_destroy(TestResult *ptr);
  * * `ptr` must not be mutated for the duration of this call.
  * * `ptr` will be invalid after this call, access will lead to undefined behaviour.
  */
-void test_result_list_destroy(TestResult **ptr, size_t count);
+void sts_TestResult_list_destroy(TestResult **ptr, size_t count);
 
 /**
  * Returns the p_value of the test result.
@@ -659,7 +660,7 @@ void test_result_list_destroy(TestResult **ptr, size_t count);
  * * `result` must be a valid pointer.
  * * `result` may not be mutated for the duration of this call.
  */
-double test_result_get_p_value(const TestResult *result);
+double sts_TestResult_get_p_value(const TestResult *result);
 
 /**
  * Checks if the contained p_value passed the given threshold (i.e. if test passed).
@@ -670,7 +671,7 @@ double test_result_get_p_value(const TestResult *result);
  * * `result` must be a valid pointer.
  * * `result` may not be mutated for the duration of this call.
  */
-bool test_result_passed(const TestResult *result, double threshold);
+bool sts_TestResult_passed(const TestResult *result, double threshold);
 
 /**
  * Extracts the (maybe existing) comment contained in the test result.
@@ -697,31 +698,31 @@ bool test_result_passed(const TestResult *result, double threshold);
  * * `ptr` may not be mutated for the duration of this call.
  * * All responsibility for `ptr` and `len`, especially for its de-allocation, remains with the caller.
  */
-int test_result_get_comment(const TestResult *result,
-                            char *ptr,
-                            size_t *len);
+int sts_TestResult_get_comment(const TestResult *result,
+                               char *ptr,
+                               size_t *len);
 
 /**
  * Creates a new test runner. This test runner can be used to run multiple tests on 1 sequence in
  * 1 function call.
  *
- * The result pointer must be freed with [test_runner_destroy]. The resulting pointer will never
+ * The result pointer must be freed with [sts_TestRunner_destroy]. The resulting pointer will never
  * be `NULL`.
  */
-TestRunner *test_runner_new(void);
+TestRunner *sts_TestRunner_new(void);
 
 /**
  * Destroys the given test runner.
  *
  * ## Safety
  *
- * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must have been created by [sts_TestRunner_new()]
  * * `runner` must be valid for reads and writes and non-null.
  * * `runner` may not be mutated for the duration of this call.
  * * `runner` will be an invalid pointer after this call, trying to access its memory will lead to
  *   undefined behaviour.
  */
-void test_runner_destroy(TestRunner *runner);
+void sts_TestRunner_destroy(TestRunner *runner);
 
 /**
  * Returns the result of the given test, if it was run. Since some tests return multiple results,
@@ -730,17 +731,17 @@ void test_runner_destroy(TestRunner *runner);
  * After this call, the result is no longer stored inside the runner.
  *
  * The resulting list of test results must be destroyed with
- * [test_result_list_destroy](crate::test_result::test_result_list_destroy).
+ * [sts_TestResult_list_destroy].
  *
  * ## Safety
  *
- * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must have been created by [sts_TestRunner_new()]
  * * `runner` must be valid for reads and writes and non-null.
  * * `runner` may not be mutated for the duration of this call.
  * * `length` must be a non-null pointer valid for writes.
  * * `length` may not be mutated for the duration of this call.
  */
-TestResult **test_runner_get_result(TestRunner *runner, Test test, size_t *length);
+TestResult **sts_TestRunner_get_result(TestRunner *runner, Test test, size_t *length);
 
 /**
  * Runs all tests on the given bit sequence with the default test arguments.
@@ -749,23 +750,23 @@ TestResult **test_runner_get_result(TestRunner *runner, Test test, size_t *lengt
  *
  * * If all tests ran successfully, `0` is returned.
  * * If an error occurred when running one test, but without aborting the tests, `2` is returned.
- *   The good test results can be retrieved with [test_runner_get_result], the exact error can
- *   be retrieved with [get_last_error](crate::get_last_error).
+ *   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
+ *   be retrieved with [sts_get_last_error).
  *
  * ## Safety
  *
- * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must have been created by [sts_TestRunner_new(]]
  * * `runner` must be valid for reads and writes and non-null.
  * * `runner` may not be mutated for the duration of this call.
- * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
- *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
- *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
- *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
- *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must have been created by either [sts_BitVec_from_str],
+ *   [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes],
+ *   [sts_BitVec_from_bits] or
+ *   [sts_BitVec_clone].
  * * `bitvec` must be a non-null pointer valid for reads.
  * * `bitvec` may not be mutated for the duration of this call.
  */
-int test_runner_run_all_automatic(TestRunner *runner, const BitVec *data);
+int sts_TestRunner_run_all_automatic(TestRunner *runner, const BitVec *data);
 
 /**
  * Runs all chosen tests on the given bit sequence with the default test arguments.
@@ -776,31 +777,31 @@ int test_runner_run_all_automatic(TestRunner *runner, const BitVec *data);
  * * If one of the tests specified was a duplicate of a previous test, `1` is returned.
  * * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
  * * If an error occurred while running the tests, `2` is returned. All other tests are still done.
- *   The good test results can be retrieved with [test_runner_get_result], the exact error can
+ *   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
  *   be retrieved.
  *
  * In each error case, the error message and code can be found out with
- * [get_last_error](crate::get_last_error).
+ * [sts_get_last_error).
  *
  * ## Safety
  *
- * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must have been created by [sts_TestRunner_new(]]
  * * `runner` must be valid for reads and writes and non-null.
  * * `runner` may not be mutated for the duration of this call.
- * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
- *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
- *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
- *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
- *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must have been created by either [sts_BitVec_from_str],
+ *   [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes],
+ *   [sts_BitVec_from_bits] or
+ *   [sts_BitVec_clone].
  * * `bitvec` must be a non-null pointer valid for reads.
  * * `bitvec` may not be mutated for the duration of this call.
  * * `tests` must be a valid, non-null pointer readable for up to `tests_len` elements.
  * * `tests` may not be mutated for the duration of this call.
  */
-int test_runner_run_automatic(TestRunner *runner,
-                              const BitVec *data,
-                              const Test *tests,
-                              size_t tests_len);
+int sts_TestRunner_run_automatic(TestRunner *runner,
+                                 const BitVec *data,
+                                 const Test *tests,
+                                 size_t tests_len);
 
 /**
  * Runs all tests on the given bit sequence with the given test arguments.
@@ -809,27 +810,27 @@ int test_runner_run_automatic(TestRunner *runner,
  *
  * * If all tests ran successfully, `0` is returned.
  * * If an error occurred while running the tests, `2` is returned. All other tests are still done.
- *   The good test results can be retrieved with [test_runner_get_result], the exact error can
+ *   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
  *   be retrieved.
  *
  * ## Safety
  *
- * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must have been created by [sts_TestRunner_new()]
  * * `runner` must be valid for reads and writes and non-null.
  * * `runner` may not be mutated for the duration of this call.
- * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
- *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
- *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
- *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
- *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must have been created by either [sts_BitVec_from_str],
+ *   [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes],
+ *   [sts_BitVec_from_bits] or
+ *   [sts_BitVec_clone].
  * * `bitvec` must be a non-null pointer valid for reads.
  * * `bitvec` may not be mutated for the duration of this call.
- * * `test_args` must have been created by [runner_test_args_new](test_args::runner_test_args_new).
+ * * `test_args` must have been created by [sts_RunnerTestArgs_new].
  * * `test_args` must be a non-null pointer valid for reads.
  */
-int test_runner_run_all_tests(TestRunner *runner,
-                              const BitVec *data,
-                              const RunnerTestArgs *test_args);
+int sts_TestRunner_run_all_tests(TestRunner *runner,
+                                 const BitVec *data,
+                                 const RunnerTestArgs *test_args);
 
 /**
  * Runs all chosen tests on the given bit sequence with the given test arguments.
@@ -840,56 +841,56 @@ int test_runner_run_all_tests(TestRunner *runner,
  * * If one of the tests specified was a duplicate of a previous test, `1` is returned.
  * * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
  * * If an error occurred while running the tests, `2` is returned. All other tests are still done.
- *   The good test results can be retrieved with [test_runner_get_result], the exact error can
+ *   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
  *   be retrieved.
  *
  * In each error case, the error message and code can be found out with
- * [get_last_error](crate::get_last_error).
+ * [sts_get_last_error).
  *
  * ## Safety
  *
- * * `runner` must have been created by [test_runner_new()]
+ * * `runner` must have been created by [sts_TestRunner_new(]]
  * * `runner` must be valid for reads and writes and non-null.
  * * `runner` may not be mutated for the duration of this call.
- * * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
- *   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
- *   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
- *   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
- *   [bitvec_clone](crate::bitvec::bitvec_clone).
+ * * `bitvec` must have been created by either [sts_BitVec_from_str],
+ *   [sts_BitVec_from_str_with_max_length],
+ *   [sts_BitVec_from_bytes],
+ *   [sts_BitVec_from_bits] or
+ *   [sts_BitVec_clone].
  * * `bitvec` must be a non-null pointer valid for reads.
  * * `bitvec` may not be mutated for the duration of this call.
  * * `tests` must be a valid, non-null pointer readable for up to `tests_len` elements.
  * * `tests` may not be mutated for the duration of this call.
- * * `test_args` must have been created by [runner_test_args_new](test_args::runner_test_args_new).
+ * * `test_args` must have been created by [sts_RunnerTestArgs_new].
  * * `test_args` must be a non-null pointer valid for reads.
  */
-int test_runner_run_tests(TestRunner *runner,
-                          const BitVec *data,
-                          const Test *tests,
-                          size_t tests_len,
-                          const RunnerTestArgs *test_args);
+int sts_TestRunner_run_tests(TestRunner *runner,
+                             const BitVec *data,
+                             const Test *tests,
+                             size_t tests_len,
+                             const RunnerTestArgs *test_args);
 
 /**
  * Create new [RunnerTestArgs], prefilled with sane defaults.
  *
  * To set an argument, use the appropriate `runner_test_args_set_...` function.
  *
- * The resulting pointer must be freed via [runner_test_args_destroy].
+ * The resulting pointer must be freed via [sts_RunnerTestArgs_destroy].
  */
-RunnerTestArgs *runner_test_args_new(void);
+RunnerTestArgs *sts_RunnerTestArgs_new(void);
 
 /**
  * Destroy the given [RunnerTestArgs].
  *
  * ## Safety
  *
- * * `args` must have been created by [runner_test_args_new()]
+ * * `args` must have been created by [sts_RunnerTestArgs_new()]
  * * `args` must be valid for reads and writes and non-null.
  * * `args` may not be mutated for the duration of this call.
  * * `args` will be an invalid pointer after this call, trying to access its memory will lead to
  *   undefined behaviour.
  */
-void runner_test_args_destroy(RunnerTestArgs *args);
+void sts_RunnerTestArgs_destroy(RunnerTestArgs *args);
 
 /**
  * Set the argument for the Frequency Block Test to the given value.
@@ -905,7 +906,8 @@ void runner_test_args_destroy(RunnerTestArgs *args);
  * * All responsibility for `arg`, particularly its de-allocation, remains with the caller.
  *   This function copies the content of `arg`.
  */
-void runner_test_args_set_frequency_block(RunnerTestArgs *runner, const TestArgFrequencyBlock *arg);
+void sts_RunnerTestArgs_set_frequency_block(RunnerTestArgs *runner,
+                                            const TestArgFrequencyBlock *arg);
 
 /**
  * Set the argument for the Non-Overlapping Template Matching Test to the given value.
@@ -921,8 +923,8 @@ void runner_test_args_set_frequency_block(RunnerTestArgs *runner, const TestArgF
  * * All responsibility for `arg`, particularly its de-allocation, remains with the caller.
  *   This function copies the content of `arg`.
  */
-void runner_test_args_set_non_overlapping_template(RunnerTestArgs *runner,
-                                                   const TestArgNonOverlappingTemplate *arg);
+void sts_RunnerTestArgs_set_non_overlapping_template(RunnerTestArgs *runner,
+                                                     const TestArgNonOverlappingTemplate *arg);
 
 /**
  * Set the argument for the Overlapping Template Matching Test to the given value.
@@ -938,8 +940,8 @@ void runner_test_args_set_non_overlapping_template(RunnerTestArgs *runner,
  * * All responsibility for `arg`, particularly its de-allocation, remains with the caller.
  *   This function copies the content of `arg`.
  */
-void runner_test_args_set_overlapping_template(RunnerTestArgs *runner,
-                                               const TestArgOverlappingTemplate *arg);
+void sts_RunnerTestArgs_set_overlapping_template(RunnerTestArgs *runner,
+                                                 const TestArgOverlappingTemplate *arg);
 
 /**
  * Set the argument for the Linear Complexity Test to the given value.
@@ -955,8 +957,8 @@ void runner_test_args_set_overlapping_template(RunnerTestArgs *runner,
  * * All responsibility for `arg`, particularly its de-allocation, remains with the caller.
  *   This function copies the content of `arg`.
  */
-void runner_test_args_set_linear_complexity(RunnerTestArgs *runner,
-                                            const TestArgLinearComplexity *arg);
+void sts_RunnerTestArgs_set_linear_complexity(RunnerTestArgs *runner,
+                                              const TestArgLinearComplexity *arg);
 
 /**
  * Set the argument for the Serial Test to the given value.
@@ -972,7 +974,7 @@ void runner_test_args_set_linear_complexity(RunnerTestArgs *runner,
  * * All responsibility for `arg`, particularly its de-allocation, remains with the caller.
  *   This function copies the content of `arg`.
  */
-void runner_test_args_set_serial(RunnerTestArgs *runner, const TestArgSerial *arg);
+void sts_RunnerTestArgs_set_serial(RunnerTestArgs *runner, const TestArgSerial *arg);
 
 /**
  * Set the argument for the Approximate Entropy Test to the given value.
@@ -988,8 +990,8 @@ void runner_test_args_set_serial(RunnerTestArgs *runner, const TestArgSerial *ar
  * * All responsibility for `arg`, particularly its de-allocation, remains with the caller.
  *   This function copies the content of `arg`.
  */
-void runner_test_args_set_approximate_entropy(RunnerTestArgs *runner,
-                                              const TestArgApproximateEntropy *arg);
+void sts_RunnerTestArgs_set_approximate_entropy(RunnerTestArgs *runner,
+                                                const TestArgApproximateEntropy *arg);
 
 /**
  * Frequency (mono bit) test - No. 1
@@ -1009,12 +1011,12 @@ void runner_test_args_set_approximate_entropy(RunnerTestArgs *runner,
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult *frequency_test(const BitVec *data);
+TestResult *sts_frequency_test(const BitVec *data);
 
 /**
  * Frequency Test within a block - No. 2
  *
- * This tests for the same property as [frequency_test], but within M-bit blocks.
+ * This tests for the same property as [sts_frequency_test], but within M-bit blocks.
  * It is recommended that each block has a length of at least 100 bits.
  *
  * ## Return value
@@ -1032,8 +1034,8 @@ TestResult *frequency_test(const BitVec *data);
  * * `test_arg` may not be mutated for the duration of this call.
  * * All responsibility for `data` and `test_arg`, particularly for their destruction, remains with the caller.
  */
-TestResult *frequency_block_test(const BitVec *data,
-                                 const TestArgFrequencyBlock *test_arg);
+TestResult *sts_frequency_block_test(const BitVec *data,
+                                     const TestArgFrequencyBlock *test_arg);
 
 /**
  * Runs test - No. 3
@@ -1054,12 +1056,12 @@ TestResult *frequency_block_test(const BitVec *data,
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult *runs_test(const BitVec *data);
+TestResult *sts_runs_test(const BitVec *data);
 
 /**
  * Test for the Longest Run of Ones in a Block - No. 4
  *
- * This test determines whether the longest run (See [runs_test]) of ones
+ * This test determines whether the longest run (See [sts_runs_test]) of ones
  * in a block is consistent with the expected value for a random sequence.
  *
  * An irregularity in the length of longest run of ones also implies an irregularity in the length
@@ -1079,7 +1081,7 @@ TestResult *runs_test(const BitVec *data);
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult *longest_run_of_ones_test(const BitVec *data);
+TestResult *sts_longest_run_of_ones_test(const BitVec *data);
 
 /**
  * Binary Matrix Rank Test -  No. 5
@@ -1101,7 +1103,7 @@ TestResult *longest_run_of_ones_test(const BitVec *data);
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult *binary_matrix_rank_test(const BitVec *data);
+TestResult *sts_binary_matrix_rank_test(const BitVec *data);
 
 /**
  * The Spectral Discrete Fourier Transform test - No. 6
@@ -1123,7 +1125,7 @@ TestResult *binary_matrix_rank_test(const BitVec *data);
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult *spectral_dft_test(const BitVec *data);
+TestResult *sts_spectral_dft_test(const BitVec *data);
 
 /**
  * Non-overlapping Template Matching test - No. 7
@@ -1151,16 +1153,16 @@ TestResult *spectral_dft_test(const BitVec *data);
  * * `length` may not be mutated for the duration of this call.
  * * All responsibility for `data`, `test_arg` and `length`, particularly for their destruction, remains with the caller.
  */
-TestResult **non_overlapping_template_matching_test(const BitVec *data,
-                                                    const TestArgNonOverlappingTemplate *test_arg,
-                                                    size_t *length);
+TestResult **sts_non_overlapping_template_matching_test(const BitVec *data,
+                                                        const TestArgNonOverlappingTemplate *test_arg,
+                                                        size_t *length);
 
 /**
  * Overlapping Template Matching test - No. 8
  *
  * This test tries to detect RNGs that produce too many occurrences of a given aperiodic pattern.
  * This test uses an m-bit window to search for an m-bit pattern.
- * The big difference to the [non_overlapping_template_matching_test] test is that template matches
+ * The big difference to the [sts_non_overlapping_template_matching_test] test is that template matches
  * may overlap.
  *
  * The default arguments for this test derivate significantly from the NIST reference implementation,
@@ -1200,8 +1202,8 @@ TestResult **non_overlapping_template_matching_test(const BitVec *data,
  * * `test_arg` may not be mutated for the duration of this call.
  * * All responsibility for `data` and `test_arg`, particularly for their destruction, remains with the caller.
  */
-TestResult *overlapping_template_matching_test(const BitVec *data,
-                                               const TestArgOverlappingTemplate *test_arg);
+TestResult *sts_overlapping_template_matching_test(const BitVec *data,
+                                                   const TestArgOverlappingTemplate *test_arg);
 
 /**
  * Maurer's "Universal Statistical" Test - No. 9
@@ -1224,7 +1226,7 @@ TestResult *overlapping_template_matching_test(const BitVec *data,
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult *maurers_universal_statistical_test(const BitVec *data);
+TestResult *sts_maurers_universal_statistical_test(const BitVec *data);
 
 /**
  * The linear complexity test - No. 10
@@ -1250,15 +1252,15 @@ TestResult *maurers_universal_statistical_test(const BitVec *data);
  * * `test_arg` may not be mutated for the duration of this call.
  * * All responsibility for `data` and `test_arg`, particularly for their destruction, remains with the caller.
  */
-TestResult *linear_complexity_test(const BitVec *data,
-                                   const TestArgLinearComplexity *test_arg);
+TestResult *sts_linear_complexity_test(const BitVec *data,
+                                       const TestArgLinearComplexity *test_arg);
 
 /**
  * The serial test - No. 11
  *
  * This test checks the frequency of all 2^m overlapping m-bit patterns in the sequence. Random
  * sequences should be uniform. For *m = 1*, this would be the same as the
- * [Frequency Test](frequency_test).
+ * [Frequency Test](sts_frequency_test).
  *
  * This test needs a parameter [TestArgSerial]. Check the described constraints there.
  *
@@ -1289,13 +1291,13 @@ TestResult *linear_complexity_test(const BitVec *data,
  * * `test_arg` may not be mutated for the duration of this call.
  * * All responsibility for `data` and `test_arg`, particularly for their destruction, remains with the caller.
  */
-TestResult **serial_test(const BitVec *data,
-                         const TestArgSerial *test_arg);
+TestResult **sts_serial_test(const BitVec *data,
+                             const TestArgSerial *test_arg);
 
 /**
  * The approximate entropy test - No. 12
  *
- * This test is similar to the [serial test](serial_test). It compares the frequency
+ * This test is similar to the [serial test](sts_serial_test). It compares the frequency
  * of overlapping blocks with the two block lengths *m* and *m + 1* against the expected result
  * of a random sequence.
  *
@@ -1323,8 +1325,8 @@ TestResult **serial_test(const BitVec *data,
  * * `test_arg` may not be mutated for the duration of this call.
  * * All responsibility for `data` and `test_arg`, particularly for their destruction, remains with the caller.
  */
-TestResult *approximate_entropy_test(const BitVec *data,
-                                     const TestArgApproximateEntropy *test_arg);
+TestResult *sts_approximate_entropy_test(const BitVec *data,
+                                         const TestArgApproximateEntropy *test_arg);
 
 /**
  * The cumulative sums test - No. 13
@@ -1350,12 +1352,12 @@ TestResult *approximate_entropy_test(const BitVec *data,
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult **cumulative_sums_test(const BitVec *data);
+TestResult **sts_cumulative_sums_test(const BitVec *data);
 
 /**
  * The random excursions test - No. 14.
  *
- * This test, similarly to the [cumulative sums test](cumulative_sums_test), calculates
+ * This test, similarly to the [cumulative sums test](sts_cumulative_sums_test), calculates
  * cumulative sums of a digit-adjusted (-1, +1) bit sequence, but only from the beginning to the end.
  * This test checks if the frequency of cumulative sums values per cycle is as expected for
  * a random sequence. A cycle consists of all cumulative sums between 2 "0"-values.
@@ -1382,12 +1384,12 @@ TestResult **cumulative_sums_test(const BitVec *data);
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult **random_excursions_test(const BitVec *data);
+TestResult **sts_random_excursions_test(const BitVec *data);
 
 /**
  * The random excursions variant test.
  *
- * This test is quite similar to the [random excursions test](random_excursions_test),
+ * This test is quite similar to the [random excursions test](sts_random_excursions_test),
  * with the key difference being that the frequencies are calculated over all cycles, instead of per
  * cycle.
  *
@@ -1412,10 +1414,10 @@ TestResult **random_excursions_test(const BitVec *data);
  * * `data` may not be mutated for the duration of this call.
  * * All responsibility for `data`, particularly for its destruction, remains with the caller.
  */
-TestResult **random_excursions_variant_test(const BitVec *data);
+TestResult **sts_random_excursions_variant_test(const BitVec *data);
 
 #ifdef __cplusplus
-} // extern "C"
-#endif // __cplusplus
+}  // extern "C"
+#endif  // __cplusplus
 
-#endif /* STS_LIB_H */
+#endif  /* STS_LIB_H */

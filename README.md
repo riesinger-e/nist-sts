@@ -74,15 +74,15 @@ See `sts-cbindings/README.md`.
 *TLDR:*
 
 ```c++
-BitVec *data = bitvec_from_str("01000100010");
+BitVec *data = sts_BitVec_from_str("01000100010");
 // error handling...
 
-TestResult *result = frequency_test(data);
+TestResult *result = sts_frequency_test(data);
 // do error handling...
 
-printf("P-Value: %lf", test_result_get_p_value(result));
-test_result_destroy(result);
-bitvec_destroy(data);
+printf("P-Value: %lf", sts_TestResult_get_p_value(result));
+sts_TestResult_destroy(result);
+sts_BitVec_destroy(data);
 ```
 
 ## Using the Python API

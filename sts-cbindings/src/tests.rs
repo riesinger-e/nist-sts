@@ -208,15 +208,15 @@ test_wrapper! {
     ///
     /// This test focuses on the numbers of ones and zeros in the sequence - the proportion should
     /// be roughly 50:50.
-    fn frequency_test => tests::frequency::frequency_test;
+    fn sts_frequency_test => tests::frequency::frequency_test;
 }
 
 test_wrapper! {
     /// Frequency Test within a block - No. 2
     ///
-    /// This tests for the same property as [frequency_test], but within M-bit blocks.
+    /// This tests for the same property as [sts_frequency_test], but within M-bit blocks.
     /// It is recommended that each block has a length of at least 100 bits.
-    fn frequency_block_test(TestArgFrequencyBlock) => tests::frequency_block::frequency_block_test;
+    fn sts_frequency_block_test(TestArgFrequencyBlock) => tests::frequency_block::frequency_block_test;
 }
 
 test_wrapper! {
@@ -225,20 +225,20 @@ test_wrapper! {
     /// This tests focuses on the number of runs in the sequence. A run is an uninterrupted sequence of
     /// identical bits.
     /// Each tested [BitVec] should have at least 100 bits length.
-    fn runs_test => tests::runs::runs_test;
+    fn sts_runs_test => tests::runs::runs_test;
 }
 
 test_wrapper! {
     /// Test for the Longest Run of Ones in a Block - No. 4
     ///
-    /// This test determines whether the longest run (See [runs_test]) of ones
+    /// This test determines whether the longest run (See [sts_runs_test]) of ones
     /// in a block is consistent with the expected value for a random sequence.
     ///
     /// An irregularity in the length of longest run of ones also implies an irregularity in the length
     /// of the longest runs of zeroes, meaning that only this test is necessary. See the NIST publication.
     ///
     /// The data has to be at least 128 bits in length.
-    fn longest_run_of_ones_test => tests::longest_run_of_ones::longest_run_of_ones_test;
+    fn sts_longest_run_of_ones_test => tests::longest_run_of_ones::longest_run_of_ones_test;
 }
 
 test_wrapper! {
@@ -248,7 +248,7 @@ test_wrapper! {
     /// These substrings are interpreted as matrices of size 32x32.
     ///
     /// The sequence must consist of at least 38 912 bits = 4864 bytes.
-    fn binary_matrix_rank_test => tests::binary_matrix_rank::binary_matrix_rank_test;
+    fn sts_binary_matrix_rank_test => tests::binary_matrix_rank::binary_matrix_rank_test;
 }
 
 test_wrapper! {
@@ -258,7 +258,7 @@ test_wrapper! {
     /// periodic features that indicate a deviation from a random sequence.
     ///
     /// It is recommended (but not required) for the input to be of at least 1000 bits.
-    fn spectral_dft_test => tests::spectral_dft::spectral_dft_test;
+    fn sts_spectral_dft_test => tests::spectral_dft::spectral_dft_test;
 }
 
 test_wrapper! {
@@ -268,7 +268,7 @@ test_wrapper! {
     /// This test uses an m-bit window to search for an m-bit pattern.
     ///
     /// This test allows for parameters, see [TestArgNonOverlappingTemplate].
-    fn non_overlapping_template_matching_test(TestArgNonOverlappingTemplate => dynamic_array) => tests::template_matching::non_overlapping::non_overlapping_template_matching_test;
+    fn sts_non_overlapping_template_matching_test(TestArgNonOverlappingTemplate => dynamic_array) => tests::template_matching::non_overlapping::non_overlapping_template_matching_test;
 }
 
 test_wrapper! {
@@ -276,7 +276,7 @@ test_wrapper! {
     ///
     /// This test tries to detect RNGs that produce too many occurrences of a given aperiodic pattern.
     /// This test uses an m-bit window to search for an m-bit pattern.
-    /// The big difference to the [non_overlapping_template_matching_test] test is that template matches
+    /// The big difference to the [sts_non_overlapping_template_matching_test] test is that template matches
     /// may overlap.
     ///
     /// The default arguments for this test derivate significantly from the NIST reference implementation,
@@ -300,7 +300,7 @@ test_wrapper! {
     /// This test is quite slow in debug mode when using the more precise pi values (non-NIST behaviour),
     /// taking several seconds - it runs good when using release mode.
     /// For better performance, values that are calculated once are cached.
-    fn overlapping_template_matching_test(TestArgOverlappingTemplate) => tests::template_matching::overlapping::overlapping_template_matching_test;
+    fn sts_overlapping_template_matching_test(TestArgOverlappingTemplate) => tests::template_matching::overlapping::overlapping_template_matching_test;
 }
 
 test_wrapper! {
@@ -311,7 +311,7 @@ test_wrapper! {
     ///
     /// The recommended minimum length of the sequence is 387 840 bits. The absolute minimum length to
     /// be used is 2020 bits, smaller inputs will raise an error.
-    fn maurers_universal_statistical_test => tests::maurers_universal_statistical::maurers_universal_statistical_test;
+    fn sts_maurers_universal_statistical_test => tests::maurers_universal_statistical::maurers_universal_statistical_test;
 }
 
 test_wrapper! {
@@ -322,7 +322,7 @@ test_wrapper! {
     ///
     /// This test needs a parameter, [TestArgLinearComplexity]. Additionally, the input sequence
     /// must have a minimum length of 10^6 bits. Smaller lengths will raise an error.
-    fn linear_complexity_test(TestArgLinearComplexity) => tests::linear_complexity::linear_complexity_test;
+    fn sts_linear_complexity_test(TestArgLinearComplexity) => tests::linear_complexity::linear_complexity_test;
 }
 
 test_wrapper! {
@@ -330,7 +330,7 @@ test_wrapper! {
     ///
     /// This test checks the frequency of all 2^m overlapping m-bit patterns in the sequence. Random
     /// sequences should be uniform. For *m = 1*, this would be the same as the
-    /// [Frequency Test](frequency_test).
+    /// [Frequency Test](sts_frequency_test).
     ///
     /// This test needs a parameter [TestArgSerial]. Check the described constraints there.
     ///
@@ -344,13 +344,13 @@ test_wrapper! {
     ///
     /// If the combination of the given data ([BitVec]) and [TestArgSerial] is invalid,
     /// an error is raised. For the exact constraints, see [TestArgSerial].
-    fn serial_test(TestArgSerial => fixed_array(2)) => tests::serial::serial_test;
+    fn sts_serial_test(TestArgSerial => fixed_array(2)) => tests::serial::serial_test;
 }
 
 test_wrapper! {
     /// The approximate entropy test - No. 12
     ///
-    /// This test is similar to the [serial test](serial_test). It compares the frequency
+    /// This test is similar to the [serial test](sts_serial_test). It compares the frequency
     /// of overlapping blocks with the two block lengths *m* and *m + 1* against the expected result
     /// of a random sequence.
     ///
@@ -362,7 +362,7 @@ test_wrapper! {
     ///
     /// If the combination of the given data ([BitVec]) and [TestArgApproximateEntropy] is invalid,
     /// an error is raised. For the exact constraints, see [TestArgApproximateEntropy].
-    fn approximate_entropy_test(TestArgApproximateEntropy) => tests::approximate_entropy::approximate_entropy_test;
+    fn sts_approximate_entropy_test(TestArgApproximateEntropy) => tests::approximate_entropy::approximate_entropy_test;
 }
 
 test_wrapper! {
@@ -375,13 +375,13 @@ test_wrapper! {
     ///
     /// The input sequence should be at least 100 bits in length, smaller sequences will raise
     /// an error.
-    fn cumulative_sums_test(() => fixed_array(2)) => tests::cumulative_sums::cumulative_sums_test;
+    fn sts_cumulative_sums_test(() => fixed_array(2)) => tests::cumulative_sums::cumulative_sums_test;
 }
 
 test_wrapper! {
     /// The random excursions test - No. 14.
     ///
-    /// This test, similarly to the [cumulative sums test](cumulative_sums_test), calculates
+    /// This test, similarly to the [cumulative sums test](sts_cumulative_sums_test), calculates
     /// cumulative sums of a digit-adjusted (-1, +1) bit sequence, but only from the beginning to the end.
     /// This test checks if the frequency of cumulative sums values per cycle is as expected for
     /// a random sequence. A cycle consists of all cumulative sums between 2 "0"-values.
@@ -394,13 +394,13 @@ test_wrapper! {
     /// the order is: `[-4, -3, -2, -1, +1, +2, +3, +4]`.
     ///
     /// The input length must be at least 10^6 bits, otherwise, an error is raised.
-    fn random_excursions_test(() => fixed_array(8)) => tests::random_excursions::random_excursions_test;
+    fn sts_random_excursions_test(() => fixed_array(8)) => tests::random_excursions::random_excursions_test;
 }
 
 test_wrapper! {
     /// The random excursions variant test.
     ///
-    /// This test is quite similar to the [random excursions test](random_excursions_test),
+    /// This test is quite similar to the [random excursions test](sts_random_excursions_test),
     /// with the key difference being that the frequencies are calculated over all cycles, instead of per
     /// cycle.
     ///
@@ -411,5 +411,5 @@ test_wrapper! {
     /// the order is: `[-9, -8, -7, -6, -5, -4, -3, -2, -1, +1, +2, +3, +4, +5, +6, +7, +8, +9]`.
     ///
     /// The input length must be at least 10^6 bits, otherwise, an error is returned.
-    fn random_excursions_variant_test(() => fixed_array(18)) => tests::random_excursions_variant::random_excursions_variant_test;
+    fn sts_random_excursions_variant_test(() => fixed_array(18)) => tests::random_excursions_variant::random_excursions_variant_test;
 }

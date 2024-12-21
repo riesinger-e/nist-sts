@@ -62,10 +62,10 @@ test_arg! {
 
     /// Creates a default new argument for the Frequency test within a block that chooses a suitable
     /// block length automatically.
-    fn test_arg_frequency_block_default() -> Self;
+    fn sts_TestArgFrequencyBlock_default() -> Self;
 
     /// Destroys the given argument for the Frequency test within a block.
-    fn test_arg_frequency_block_destroy(self);
+    fn sts_TestArgFrequencyBlock_destroy(self);
 }
 
 /// Creates a new argument for the Frequency test within a block, specifying the block length in bits.
@@ -74,7 +74,7 @@ test_arg! {
 /// - if the given `block_length == 0`, `NULL` is returned.
 /// - if the given `block_length != 0`, a pointer to the argument is returned.
 #[no_mangle]
-pub extern "C" fn test_arg_frequency_block_new(
+pub extern "C" fn sts_TestArgFrequencyBlock_new(
     block_length: usize,
 ) -> Option<Box<TestArgFrequencyBlock>> {
     NonZero::new(block_length).map(|block_length| {
@@ -100,10 +100,10 @@ test_arg! {
 
     /// Creates a default new non-overlapping template test argument that chooses its template length
     /// and block count according to the values recommended by NIST.
-    fn test_arg_non_overlapping_template_default() -> Self;
+    fn sts_TestArgNonOverlappingTemplate_default() -> Self;
 
     /// Destroys the given argument for Non-overlapping Template Matching Test.
-    fn test_arg_non_overlapping_template_destroy(self);
+    fn sts_TestArgNonOverlappingTemplate_destroy(self);
 }
 
 /// Creates a new non-overlapping template test argument with the specified template length and block
@@ -113,7 +113,7 @@ test_arg! {
 /// * If both arguments are within the bounds specified in [TestArgNonOverlappingTemplate]: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_non_overlapping_template_new(
+pub extern "C" fn sts_TestArgNonOverlappingTemplate_new(
     template_len: usize,
     count_blocks: usize,
 ) -> Option<Box<TestArgNonOverlappingTemplate>> {
@@ -133,16 +133,16 @@ test_arg! {
     /// These bounds are checked by all creation functions.
     ///
     /// The original NIST implementation has some glaring inaccuracies,
-    /// to replicate this exact NIST behaviour, use [test_arg_overlapping_template_new_nist_behaviour]
+    /// to replicate this exact NIST behaviour, use [sts_TestArgOverlappingTemplate_new_nist_behaviour]
     struct TestArgOverlappingTemplate(overlapping::OverlappingTemplateTestArgs);
 
     /// Creates a new argument for the Overlapping Template Matching Test, using the default values
     /// [OVERLAPPING_TEMPLATE_DEFAULT_TEMPLATE_LENGTH], [OVERLAPPING_TEMPLATE_DEFAULT_BLOCK_LENGTH]
     /// and [OVERLAPPING_TEMPLATE_DEFAULT_FREEDOM].
-    fn test_arg_overlapping_template_default() -> Self;
+    fn sts_TestArgOverlappingTemplate_default() -> Self;
 
     /// Destroys the given argument for the Overlapping Template Matching Test.
-    fn test_arg_overlapping_template_destroy(self);
+    fn sts_TestArgOverlappingTemplate_destroy(self);
 }
 
 /// Creates a new Overlapping Template Matching Test argument with the specified template length, block
@@ -152,7 +152,7 @@ test_arg! {
 /// * If all arguments are within the bounds specified in [TestArgOverlappingTemplate]: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_overlapping_template_new(
+pub extern "C" fn sts_TestArgOverlappingTemplate_new(
     template_length: usize,
     block_length: usize,
     freedom: usize,
@@ -170,7 +170,7 @@ pub extern "C" fn test_arg_overlapping_template_new(
 /// * If the argument is within the specified bounds: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_overlapping_template_new_nist_behaviour(
+pub extern "C" fn sts_TestArgOverlappingTemplate_new_nist_behaviour(
     template_length: usize,
 ) -> Option<Box<TestArgOverlappingTemplate>> {
     overlapping::OverlappingTemplateTestArgs::new_nist_behaviour(template_length)
@@ -189,10 +189,10 @@ test_arg! {
 
     /// Creates a default argument for the Linear Complexity Test, choosing the block length
     /// automatically on runtime.
-    fn test_arg_linear_complexity_default() -> Self;
+    fn sts_TestArgLinearComplexity_default() -> Self;
 
     /// Destroys the given argument for the Linear Complexity Test.
-    fn test_arg_linear_complexity_destroy(self);
+    fn sts_TestArgLinearComplexity_destroy(self);
 }
 
 /// Creates a new argument for the linear Complexity Test, choosing the block length manually.
@@ -202,7 +202,7 @@ test_arg! {
 /// * If the block length is within 500 <= block_length <= 5000: the new argument.
 /// * Otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_linear_complexity_new(
+pub extern "C" fn sts_TestArgLinearComplexity_new(
     block_length: usize,
 ) -> Option<Box<TestArgLinearComplexity>> {
     if (500..=5000).contains(&block_length) {
@@ -236,10 +236,10 @@ test_arg! {
 
     /// Creates a default argument for the Serial Test, with the block length set to the one
     /// recommended by NIST.
-    fn test_arg_serial_default() -> Self;
+    fn sts_TestArgSerial_default() -> Self;
 
     /// Destroys the given argument for the Serial Test.
-    fn test_arg_serial_destroy(self);
+    fn sts_TestArgSerial_destroy(self);
 }
 
 /// Creates a new argument for the Serial Test. The block length is checked to fulfill the constraints
@@ -250,7 +250,7 @@ test_arg! {
 /// * if the given block length satisfies the constraints: the new argument.
 /// * otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_serial_new(block_length: u8) -> Option<Box<TestArgSerial>> {
+pub extern "C" fn sts_TestArgSerial_new(block_length: u8) -> Option<Box<TestArgSerial>> {
     serial::SerialTestArg::new(block_length).map(|arg| Box::new(TestArgSerial(arg)))
 }
 
@@ -275,10 +275,10 @@ test_arg! {
 
     /// Creates a default argument for the Approximate Entropy Test, with the block length set to the one
     /// recommended by NIST.
-    fn test_arg_approximate_entropy_default() -> Self;
+    fn sts_TestArgApproximateEntropy_default() -> Self;
 
     /// Destroys the given argument for the Approximate Entropy Test.
-    fn test_arg_approximate_entropy_destroy(self);
+    fn sts_TestArgApproximateEntropy_destroy(self);
 }
 
 /// Creates a new argument for the Approximate Entropy Test. The block length is checked to fulfill
@@ -289,7 +289,7 @@ test_arg! {
 /// * if the given block length satisfies the constraints: the new argument.
 /// * otherwise: `NULL`
 #[no_mangle]
-pub extern "C" fn test_arg_approximate_entropy_new(
+pub extern "C" fn sts_TestArgApproximateEntropy_new(
     block_length: u8,
 ) -> Option<Box<TestArgApproximateEntropy>> {
     approximate_entropy::ApproximateEntropyTestArg::new(block_length)

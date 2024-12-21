@@ -8,7 +8,7 @@ use sts_lib::TestResult as InternalTestResult;
 #[derive(Copy, Clone)]
 pub struct TestResult(pub(crate) InternalTestResult);
 
-/// Destroys the given test result. If you want to destroy a whole list, use [test_result_list_destroy].
+/// Destroys the given test result. If you want to destroy a whole list, use [sts_TestResult_list_destroy].
 /// You cannot destroy only a part of a list with this function.
 ///
 /// ## Safety
@@ -18,12 +18,12 @@ pub struct TestResult(pub(crate) InternalTestResult);
 /// * `ptr` must not be mutated for the duration of this call.
 /// * `ptr` will be invalid after this call, access will lead to undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_destroy(ptr: Option<Box<TestResult>>) {
+pub unsafe extern "C" fn sts_TestResult_destroy(ptr: Option<Box<TestResult>>) {
     _ = ptr;
 }
 
 /// Destroys the given list of test results. If you want to destroy only a single test result,
-/// use [test_result_destroy].
+/// use [sts_TestResult_destroy].
 ///
 /// ## Safety
 ///
@@ -33,7 +33,7 @@ pub unsafe extern "C" fn test_result_destroy(ptr: Option<Box<TestResult>>) {
 /// * `ptr` must not be mutated for the duration of this call.
 /// * `ptr` will be invalid after this call, access will lead to undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_list_destroy(ptr: *mut Box<TestResult>, count: usize) {
+pub unsafe extern "C" fn sts_TestResult_list_destroy(ptr: *mut Box<TestResult>, count: usize) {
     // SAFETY: caller has to ensure that the pointer is valid with count elements
     _ = unsafe { Box::from_raw(slice::from_raw_parts_mut(ptr, count)) };
 }
@@ -46,7 +46,7 @@ pub unsafe extern "C" fn test_result_list_destroy(ptr: *mut Box<TestResult>, cou
 /// * `result` must be a valid pointer.
 /// * `result` may not be mutated for the duration of this call.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_get_p_value(result: &TestResult) -> f64 {
+pub unsafe extern "C" fn sts_TestResult_get_p_value(result: &TestResult) -> f64 {
     result.0.p_value()
 }
 
@@ -58,7 +58,7 @@ pub unsafe extern "C" fn test_result_get_p_value(result: &TestResult) -> f64 {
 /// * `result` must be a valid pointer.
 /// * `result` may not be mutated for the duration of this call.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_passed(result: &TestResult, threshold: f64) -> bool {
+pub unsafe extern "C" fn sts_TestResult_passed(result: &TestResult, threshold: f64) -> bool {
     result.0.passed(threshold)
 }
 
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn test_result_passed(result: &TestResult, threshold: f64)
 /// * `ptr` may not be mutated for the duration of this call.
 /// * All responsibility for `ptr` and `len`, especially for its de-allocation, remains with the caller.
 #[no_mangle]
-pub unsafe extern "C" fn test_result_get_comment(
+pub unsafe extern "C" fn sts_TestResult_get_comment(
     result: &TestResult,
     ptr: *mut c_char,
     len: &mut usize,

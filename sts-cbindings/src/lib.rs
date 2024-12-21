@@ -39,7 +39,7 @@ thread_local! {
 /// * `ptr` may not be mutated for the duration of this call.
 /// * All responsibility for `ptr` and `len`, especially for its de-allocation, remains with the caller.
 #[no_mangle]
-pub unsafe extern "C" fn get_last_error(ptr: *mut c_char, len: &mut usize) -> c_int {
+pub unsafe extern "C" fn sts_get_last_error(ptr: *mut c_char, len: &mut usize) -> c_int {
     // check if there is an error
     if LAST_ERROR.with_borrow(|(e, _)| matches!(e, ErrorCode::NoError)) {
         return 0;
@@ -95,9 +95,9 @@ pub unsafe extern "C" fn get_last_error(ptr: *mut c_char, len: &mut usize) -> c_
 /// ## Return values
 ///
 /// * 0: the call worked.
-/// * 1: an error happened - use [get_last_error]
+/// * 1: an error happened - use [sts_get_last_error]
 #[no_mangle]
-pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
+pub extern "C" fn sts_set_max_threads(max_threads: usize) -> c_int {
     let max_threads = match NonZero::new(max_threads) {
         Some(max_threads) => max_threads,
         None => {
@@ -121,7 +121,7 @@ pub extern "C" fn set_max_threads(max_threads: usize) -> c_int {
 }
 
 /// The error codes that are returned by some fallible functions.
-/// A human-readable error message can be retrieved with [get_last_error].
+/// A human-readable error message can be retrieved with [sts_get_last_error].
 /// cbindgen:prefix-with-name=true
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -138,7 +138,7 @@ pub enum ErrorCode {
     GammaFunctionFailed = 4,
     /// A test was called with an invalid parameter (value-wise, references are not checked!).
     InvalidParameter = 5,
-    /// The function [set_max_threads] failed.
+    /// The function [sts_set_max_threads] failed.
     SetMaxThreads = 6,
     /// A test passed to the test runner is invalid (Invalid value).
     InvalidTest = 7,
@@ -155,9 +155,9 @@ pub enum ErrorCode {
 /// ## Return values
 ///
 /// * >0: the call worked. Returned is minimum input length
-/// * 0: an error happened - use [get_last_error]
+/// * 0: an error happened - use [sts_get_last_error]
 #[no_mangle]
-pub extern "C" fn get_min_length_for_test(test: RawTest) -> usize {
+pub extern "C" fn sts_get_min_length_for_test(test: RawTest) -> usize {
     let raw_test = test;
     let test = crate::test_runner::test::Test::try_from(raw_test);
 

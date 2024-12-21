@@ -6,13 +6,13 @@
 */
 void print_last_error(void) {
     size_t length = 0;
-    int error_code = get_last_error(NULL, &length);
+    int error_code = sts_get_last_error(NULL, &length);
     if (error_code == 0 ) {
         printf("No error!\n");
     }
 
     char* buffer = malloc(sizeof(char) * length);
-    error_code = get_last_error(buffer, &length);
+    error_code = sts_get_last_error(buffer, &length);
 
     printf("Error (Code %d): %s\n", error_code, buffer);
     free(buffer);
@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
     }
 
     // create a BitVec from the buffer
-    BitVec *data = bitvec_from_bytes(input_data, byte_size);
-    bitvec_crop(data, bit_size);
+    BitVec *data = sts_BitVec_from_bytes(input_data, byte_size);
+    sts_BitVec_crop(data, bit_size);
     free(input_data);
     fclose(input);
 
@@ -60,59 +60,59 @@ int main(int argc, char **argv) {
     }
 
     // Create all test args manually (mainly to show the usage)
-    RunnerTestArgs *test_args = runner_test_args_new();
+    RunnerTestArgs *test_args = sts_RunnerTestArgs_new();
 
-    TestArgFrequencyBlock *test_arg_frequency_block = test_arg_frequency_block_new(128);
+    TestArgFrequencyBlock *test_arg_frequency_block = sts_TestArgFrequencyBlock_new(128);
     if (test_arg_frequency_block == NULL) {
         print_last_error();
         return 1;
     }
-    runner_test_args_set_frequency_block(test_args, test_arg_frequency_block);
-    free(test_arg_frequency_block);
+    sts_RunnerTestArgs_set_frequency_block(test_args, test_arg_frequency_block);
+    sts_TestArgFrequencyBlock_destroy(test_arg_frequency_block);
 
-    TestArgNonOverlappingTemplate *test_arg_non_overlapping_template = test_arg_non_overlapping_template_new(9, 8);
+    TestArgNonOverlappingTemplate *test_arg_non_overlapping_template = sts_TestArgNonOverlappingTemplate_new(9, 8);
     if (test_arg_non_overlapping_template == NULL) {
         print_last_error();
         return 1;
     }
-    runner_test_args_set_non_overlapping_template(test_args, test_arg_non_overlapping_template);
-    free(test_arg_non_overlapping_template);
+    sts_RunnerTestArgs_set_non_overlapping_template(test_args, test_arg_non_overlapping_template);
+    sts_TestArgNonOverlappingTemplate_destroy(test_arg_non_overlapping_template);
 
-    TestArgOverlappingTemplate *test_arg_overlapping_template = test_arg_overlapping_template_new_nist_behaviour(9);
+    TestArgOverlappingTemplate *test_arg_overlapping_template = sts_TestArgOverlappingTemplate_new_nist_behaviour(9);
     if (test_arg_overlapping_template == NULL) {
         print_last_error();
         return 1;
     }
-    runner_test_args_set_overlapping_template(test_args, test_arg_overlapping_template);
-    free(test_arg_overlapping_template);
+    sts_RunnerTestArgs_set_overlapping_template(test_args, test_arg_overlapping_template);
+    sts_TestArgOverlappingTemplate_destroy(test_arg_overlapping_template);
 
-    TestArgLinearComplexity *test_arg_linear_complexity = test_arg_linear_complexity_new(500);
+    TestArgLinearComplexity *test_arg_linear_complexity = sts_TestArgLinearComplexity_new(500);
     if (test_arg_linear_complexity == NULL) {
         print_last_error();
         return 1;
     }
-    runner_test_args_set_linear_complexity(test_args, test_arg_linear_complexity);
-    free(test_arg_linear_complexity);
+    sts_RunnerTestArgs_set_linear_complexity(test_args, test_arg_linear_complexity);
+    sts_TestArgLinearComplexity_destroy(test_arg_linear_complexity);
 
-    TestArgSerial *test_arg_serial = test_arg_serial_new(16);
+    TestArgSerial *test_arg_serial = sts_TestArgSerial_new(16);
     if (test_arg_serial == NULL) {
         print_last_error();
         return 1;
     }
-    runner_test_args_set_serial(test_args, test_arg_serial);
-    free(test_arg_serial);
+    sts_RunnerTestArgs_set_serial(test_args, test_arg_serial);
+    sts_TestArgSerial_destroy(test_arg_serial);
 
-    TestArgApproximateEntropy *test_arg_approximate_entropy = test_arg_approximate_entropy_new(10);
+    TestArgApproximateEntropy *test_arg_approximate_entropy = sts_TestArgApproximateEntropy_new(10);
     if (test_arg_approximate_entropy == NULL) {
         print_last_error();
         return 1;
     }
-    runner_test_args_set_approximate_entropy(test_args, test_arg_approximate_entropy);
-    free(test_arg_approximate_entropy);
+    sts_RunnerTestArgs_set_approximate_entropy(test_args, test_arg_approximate_entropy);
+    sts_TestArgApproximateEntropy_destroy(test_arg_approximate_entropy);
 
     // Create a test runner and run all tests.
-    TestRunner *runner = test_runner_new();
-    if (test_runner_run_all_tests(runner, data, test_args) == 2) {
+    TestRunner *runner = sts_TestRunner_new();
+    if (sts_TestRunner_run_all_tests(runner, data, test_args) == 2) {
         print_last_error();
         // no return - no hard error
     }
@@ -120,15 +120,15 @@ int main(int argc, char **argv) {
     // Print the test results for each test.
     for (int i = 0; i < TEST_COUNT; i++) {
         size_t length = 0;
-        TestResult **results = test_runner_get_result(runner, i, &length);
+        TestResult **results = sts_TestRunner_get_result(runner, i, &length);
 
         for (int j = 0; j < length; j++) {
-            printf("Test: %d: TestResult %d: P-Value: %lf", i + 1, j, test_result_get_p_value(results[j]));
+            printf("Test: %d: TestResult %d: P-Value: %lf", i + 1, j, sts_TestResult_get_p_value(results[j]));
 
             size_t comment_length = 0;
-            if (test_result_get_comment(results[j], NULL, &comment_length) == 0) {
+            if (sts_TestResult_get_comment(results[j], NULL, &comment_length) == 0) {
                 char* comment = malloc(sizeof(char) * comment_length);
-                test_result_get_comment(results[j], comment, &comment_length);
+                sts_TestResult_get_comment(results[j], comment, &comment_length);
                 printf("; Comment: %s\n", comment);
                 free(comment);
             } else {
@@ -136,11 +136,11 @@ int main(int argc, char **argv) {
             }
         }
 
-        test_result_list_destroy(results, length);
+        sts_TestResult_list_destroy(results, length);
     }
 
-    test_runner_destroy(runner);
-    bitvec_destroy(data);
+    sts_TestRunner_destroy(runner);
+    sts_BitVec_destroy(data);
 
     return 0;
 }

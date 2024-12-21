@@ -11,35 +11,35 @@ pub type RawTest = c_int;
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub enum Test {
-    /// See [frequency_test](crate::tests::frequency_test).
+    /// See [sts_frequency_test].
     Frequency = 0,
-    /// See [frequency_block_test](crate::tests::frequency_block_test).
+    /// See [sts_frequency_block_test].
     FrequencyWithinABlock = 1,
-    /// See [runs_test](crate::tests::runs_test).
+    /// See [sts_runs_test].
     Runs = 2,
-    /// See [longest_run_of_ones_test](crate::tests::longest_run_of_ones_test).
+    /// See [sts_longest_run_of_ones_test].
     LongestRunOfOnes = 3,
-    /// See [binary_matrix_rank_test](crate::tests::binary_matrix_rank_test).
+    /// See [sts_binary_matrix_rank_test].
     BinaryMatrixRank = 4,
-    /// See [spectral_dft_test](crate::tests::spectral_dft_test).
+    /// See [sts_spectral_dft_test].
     SpectralDft = 5,
-    /// See [non_overlapping_template_matching_test](crate::tests::non_overlapping_template_matching_test).
+    /// See [sts_non_overlapping_template_matching_test].
     NonOverlappingTemplateMatching = 6,
-    /// See [overlapping_template_matching_test](crate::tests::overlapping_template_matching_test).
+    /// See [sts_overlapping_template_matching_test].
     OverlappingTemplateMatching = 7,
-    /// See [maurers_universal_statistical_test](crate::tests::maurers_universal_statistical_test).
+    /// See [sts_maurers_universal_statistical_test].
     MaurersUniversalStatistical = 8,
-    /// See [linear_complexity_test](crate::tests::linear_complexity_test).
+    /// See [sts_linear_complexity_test].
     LinearComplexity = 9,
-    /// See [serial_test](crate::tests::serial_test).
+    /// See [sts_serial_test].
     Serial = 10,
-    /// See [approximate_entropy_test](crate::tests::approximate_entropy_test).
+    /// See [sts_approximate_entropy_test].
     ApproximateEntropy = 11,
-    /// See [cumulative_sums_test](crate::tests::cumulative_sums_test).
+    /// See [sts_cumulative_sums_test].
     CumulativeSums = 12,
-    /// See [random_excursions_test](crate::tests::random_excursions_test).
+    /// See [sts_random_excursions_test].
     RandomExcursions = 13,
-    /// See [random_excursions_variant_test](crate::tests::random_excursions_variant_test).
+    /// See [sts_random_excursions_variant_test].
     RandomExcursionsVariant = 14,
 }
 

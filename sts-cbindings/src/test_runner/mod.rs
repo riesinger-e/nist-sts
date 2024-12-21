@@ -72,10 +72,10 @@ impl TestRunner {
 /// Creates a new test runner. This test runner can be used to run multiple tests on 1 sequence in
 /// 1 function call.
 ///
-/// The result pointer must be freed with [test_runner_destroy]. The resulting pointer will never
+/// The result pointer must be freed with [sts_TestRunner_destroy]. The resulting pointer will never
 /// be `NULL`.
 #[no_mangle]
-pub extern "C" fn test_runner_new() -> Box<TestRunner> {
+pub extern "C" fn sts_TestRunner_new() -> Box<TestRunner> {
     Box::new(TestRunner(HashMap::new()))
 }
 
@@ -83,13 +83,13 @@ pub extern "C" fn test_runner_new() -> Box<TestRunner> {
 ///
 /// ## Safety
 ///
-/// * `runner` must have been created by [test_runner_new()]
+/// * `runner` must have been created by [sts_TestRunner_new()]
 /// * `runner` must be valid for reads and writes and non-null.
 /// * `runner` may not be mutated for the duration of this call.
 /// * `runner` will be an invalid pointer after this call, trying to access its memory will lead to
 ///   undefined behaviour.
 #[no_mangle]
-pub unsafe extern "C" fn test_runner_destroy(runner: Option<Box<TestRunner>>) {
+pub unsafe extern "C" fn sts_TestRunner_destroy(runner: Option<Box<TestRunner>>) {
     // drop the box
     _ = runner;
 }
@@ -100,17 +100,17 @@ pub unsafe extern "C" fn test_runner_destroy(runner: Option<Box<TestRunner>>) {
 /// After this call, the result is no longer stored inside the runner.
 ///
 /// The resulting list of test results must be destroyed with
-/// [test_result_list_destroy](crate::test_result::test_result_list_destroy).
+/// [sts_TestResult_list_destroy].
 ///
 /// ## Safety
 ///
-/// * `runner` must have been created by [test_runner_new()]
+/// * `runner` must have been created by [sts_TestRunner_new()]
 /// * `runner` must be valid for reads and writes and non-null.
 /// * `runner` may not be mutated for the duration of this call.
 /// * `length` must be a non-null pointer valid for writes.
 /// * `length` may not be mutated for the duration of this call.
 #[no_mangle]
-pub unsafe extern "C" fn test_runner_get_result(
+pub unsafe extern "C" fn sts_TestRunner_get_result(
     runner: &mut TestRunner,
     test: RawTest,
     length: &mut usize,
@@ -144,23 +144,23 @@ pub unsafe extern "C" fn test_runner_get_result(
 ///
 /// * If all tests ran successfully, `0` is returned.
 /// * If an error occurred when running one test, but without aborting the tests, `2` is returned.
-///   The good test results can be retrieved with [test_runner_get_result], the exact error can
-///   be retrieved with [get_last_error](crate::get_last_error).
+///   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
+///   be retrieved with [sts_get_last_error).
 ///
 /// ## Safety
 ///
-/// * `runner` must have been created by [test_runner_new()]
+/// * `runner` must have been created by [sts_TestRunner_new(]]
 /// * `runner` must be valid for reads and writes and non-null.
 /// * `runner` may not be mutated for the duration of this call.
-/// * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
-///   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
-///   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
-///   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
-///   [bitvec_clone](crate::bitvec::bitvec_clone).
+/// * `bitvec` must have been created by either [sts_BitVec_from_str],
+///   [sts_BitVec_from_str_with_max_length],
+///   [sts_BitVec_from_bytes],
+///   [sts_BitVec_from_bits] or
+///   [sts_BitVec_clone].
 /// * `bitvec` must be a non-null pointer valid for reads.
 /// * `bitvec` may not be mutated for the duration of this call.
 #[no_mangle]
-pub unsafe extern "C" fn test_runner_run_all_automatic(
+pub unsafe extern "C" fn sts_TestRunner_run_all_automatic(
     runner: &mut TestRunner,
     data: &BitVec,
 ) -> c_int {
@@ -175,28 +175,28 @@ pub unsafe extern "C" fn test_runner_run_all_automatic(
 /// * If one of the tests specified was a duplicate of a previous test, `1` is returned.
 /// * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
 /// * If an error occurred while running the tests, `2` is returned. All other tests are still done.
-///   The good test results can be retrieved with [test_runner_get_result], the exact error can
+///   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
 ///   be retrieved.
 ///
 /// In each error case, the error message and code can be found out with
-/// [get_last_error](crate::get_last_error).
+/// [sts_get_last_error).
 ///
 /// ## Safety
 ///
-/// * `runner` must have been created by [test_runner_new()]
+/// * `runner` must have been created by [sts_TestRunner_new(]]
 /// * `runner` must be valid for reads and writes and non-null.
 /// * `runner` may not be mutated for the duration of this call.
-/// * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
-///   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
-///   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
-///   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
-///   [bitvec_clone](crate::bitvec::bitvec_clone).
+/// * `bitvec` must have been created by either [sts_BitVec_from_str],
+///   [sts_BitVec_from_str_with_max_length],
+///   [sts_BitVec_from_bytes],
+///   [sts_BitVec_from_bits] or
+///   [sts_BitVec_clone].
 /// * `bitvec` must be a non-null pointer valid for reads.
 /// * `bitvec` may not be mutated for the duration of this call.
 /// * `tests` must be a valid, non-null pointer readable for up to `tests_len` elements.
 /// * `tests` may not be mutated for the duration of this call.
 #[no_mangle]
-pub unsafe extern "C" fn test_runner_run_automatic(
+pub unsafe extern "C" fn sts_TestRunner_run_automatic(
     runner: &mut TestRunner,
     data: &BitVec,
     tests: *const RawTest,
@@ -221,25 +221,25 @@ pub unsafe extern "C" fn test_runner_run_automatic(
 ///
 /// * If all tests ran successfully, `0` is returned.
 /// * If an error occurred while running the tests, `2` is returned. All other tests are still done.
-///   The good test results can be retrieved with [test_runner_get_result], the exact error can
+///   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
 ///   be retrieved.
 ///
 /// ## Safety
 ///
-/// * `runner` must have been created by [test_runner_new()]
+/// * `runner` must have been created by [sts_TestRunner_new()]
 /// * `runner` must be valid for reads and writes and non-null.
 /// * `runner` may not be mutated for the duration of this call.
-/// * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
-///   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
-///   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
-///   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
-///   [bitvec_clone](crate::bitvec::bitvec_clone).
+/// * `bitvec` must have been created by either [sts_BitVec_from_str],
+///   [sts_BitVec_from_str_with_max_length],
+///   [sts_BitVec_from_bytes],
+///   [sts_BitVec_from_bits] or
+///   [sts_BitVec_clone].
 /// * `bitvec` must be a non-null pointer valid for reads.
 /// * `bitvec` may not be mutated for the duration of this call.
-/// * `test_args` must have been created by [runner_test_args_new](test_args::runner_test_args_new).
+/// * `test_args` must have been created by [sts_RunnerTestArgs_new].
 /// * `test_args` must be a non-null pointer valid for reads.
 #[no_mangle]
-pub unsafe extern "C" fn test_runner_run_all_tests(
+pub unsafe extern "C" fn sts_TestRunner_run_all_tests(
     runner: &mut TestRunner,
     data: &BitVec,
     test_args: &RunnerTestArgs,
@@ -257,30 +257,30 @@ pub unsafe extern "C" fn test_runner_run_all_tests(
 /// * If one of the tests specified was a duplicate of a previous test, `1` is returned.
 /// * If one of the tests specified was not a valid test as per the enum [Test], `1` is returned.
 /// * If an error occurred while running the tests, `2` is returned. All other tests are still done.
-///   The good test results can be retrieved with [test_runner_get_result], the exact error can
+///   The good test results can be retrieved with [sts_TestRunner_get_result], the exact error can
 ///   be retrieved.
 ///
 /// In each error case, the error message and code can be found out with
-/// [get_last_error](crate::get_last_error).
+/// [sts_get_last_error).
 ///
 /// ## Safety
 ///
-/// * `runner` must have been created by [test_runner_new()]
+/// * `runner` must have been created by [sts_TestRunner_new(]]
 /// * `runner` must be valid for reads and writes and non-null.
 /// * `runner` may not be mutated for the duration of this call.
-/// * `bitvec` must have been created by either [bitvec_from_str](crate::bitvec::bitvec_from_str),
-///   [bitvec_from_str_with_max_length](crate::bitvec::bitvec_from_str_with_max_length),
-///   [bitvec_from_bytes](crate::bitvec::bitvec_from_bytes),
-///   [bitvec_from_bits](crate::bitvec::bitvec_from_bits) or
-///   [bitvec_clone](crate::bitvec::bitvec_clone).
+/// * `bitvec` must have been created by either [sts_BitVec_from_str],
+///   [sts_BitVec_from_str_with_max_length],
+///   [sts_BitVec_from_bytes],
+///   [sts_BitVec_from_bits] or
+///   [sts_BitVec_clone].
 /// * `bitvec` must be a non-null pointer valid for reads.
 /// * `bitvec` may not be mutated for the duration of this call.
 /// * `tests` must be a valid, non-null pointer readable for up to `tests_len` elements.
 /// * `tests` may not be mutated for the duration of this call.
-/// * `test_args` must have been created by [runner_test_args_new](test_args::runner_test_args_new).
+/// * `test_args` must have been created by [sts_RunnerTestArgs_new].
 /// * `test_args` must be a non-null pointer valid for reads.
 #[no_mangle]
-pub unsafe extern "C" fn test_runner_run_tests(
+pub unsafe extern "C" fn sts_TestRunner_run_tests(
     runner: &mut TestRunner,
     data: &BitVec,
     tests: *const RawTest,
