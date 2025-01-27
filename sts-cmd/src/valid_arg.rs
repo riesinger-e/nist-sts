@@ -2,8 +2,8 @@
 
 use crate::cmd_args::RegularArgs;
 use crate::toml_config::{
-    TomlConfig, TomlFrequencyBlockLinearComplexity, TomlInput, TomlNonOverlapping, TomlOverlapping,
-    TomlSerialApproximateEntropy, TomlTest, TomlTestArguments,
+    TomlConfig, TomlFrequencyBlockLinearComplexity, TomlInput, TomlNonOverlapping, TomlOutput,
+    TomlOverlapping, TomlSerialApproximateEntropy, TomlTest, TomlTestArguments,
 };
 use crate::InputFormat;
 use std::num::NonZero;
@@ -46,6 +46,17 @@ impl From<TomlTest> for TestsToRun {
     }
 }
 
+/// To represent the max_length value and split flag combination
+#[derive(Debug, Clone)]
+pub enum MaxLengthOrSplit {
+    /// A max length was given, unit is bits.
+    MaxLength(NonZero<usize>),
+    /// A split length was given, unit is bytes.
+    Split(NonZero<usize>),
+    /// Neither a max length nor a split length was given.
+    None,
+}
+
 /// A validated config with a valid state that can be used to run tests.
 #[derive(Clone, Debug)]
 pub struct ValidatedConfig {
@@ -53,14 +64,16 @@ pub struct ValidatedConfig {
     pub input_file: PathBuf,
     /// Input format
     pub input_format: InputFormat,
-    /// Optional max length of input data
-    pub max_length: Option<NonZero<usize>>,
+    /// See [MaxLengthOrSplit]
+    pub max_length_or_split: MaxLengthOrSplit,
     /// The exact tests to be run.
     pub tests_to_run: TestsToRun,
     /// Finished test arguments
     pub test_arguments: TestArgs,
     /// An optional path to save the outputs to.
     pub output_path: Option<PathBuf>,
+    /// Write console output about individual tests, else only summaries.
+    pub console_output: bool,
 }
 
 impl ValidatedConfig {
@@ -72,9 +85,11 @@ impl ValidatedConfig {
             input_file,
             input_format,
             max_length,
+            split,
             output_path,
             tests_to_run,
             overrides,
+            no_console,
         } = args;
 
         let input_file =
@@ -88,13 +103,16 @@ impl ValidatedConfig {
             Default::default()
         };
 
+        let max_length_or_split = handle_split(split, max_length)?;
+
         Ok(Self {
             input_file,
             input_format,
-            max_length,
+            max_length_or_split,
             tests_to_run: tests_to_run.into(),
             test_arguments,
             output_path,
+            console_output: !no_console,
         })
     }
 
@@ -107,19 +125,27 @@ impl ValidatedConfig {
                     input_file,
                     input_format,
                     max_length,
+                    split,
                 },
             test,
             output,
             arguments,
         } = toml;
 
+        let TomlOutput {
+            path: output_path,
+            no_console,
+        } = output.unwrap_or_default();
+
         let RegularArgs {
             input_file: args_input_file,
             input_format: args_input_format,
             max_length: args_input_length,
+            split: args_split,
             tests_to_run,
             overrides,
             output_path: args_output_path,
+            no_console: args_no_console,
         } = args;
 
         // cmd args overwrite everywhere
@@ -130,7 +156,9 @@ impl ValidatedConfig {
             .or(input_format)
             .ok_or("The input format is unspecified in the config file and the cmd args!")?;
         let max_length = max_length.or(args_input_length);
-        let output_path = args_output_path.or(output.and_then(|o| o.path));
+        let split = args_split || split;
+        let output_path = args_output_path.or(output_path);
+        let console_output = !(args_no_console || no_console);
 
         let tests_to_run: TestsToRun = {
             let cmd_tests_to_run = tests_to_run.into();
@@ -242,13 +270,16 @@ impl ValidatedConfig {
             Default::default()
         };
 
+        let max_length_or_split = handle_split(split, max_length)?;
+
         Ok(Self {
             input_file,
             input_format,
-            max_length,
+            max_length_or_split,
             tests_to_run,
             test_arguments,
             output_path,
+            console_output,
         })
     }
 }
@@ -291,5 +322,31 @@ fn override_serial_entropy(
 
     if block_length.is_some() {
         outer.block_length = block_length;
+    }
+}
+
+/// Handle the split flag, in combination with max_length
+fn handle_split(
+    split: bool,
+    max_length: Option<NonZero<usize>>,
+) -> Result<MaxLengthOrSplit, &'static str> {
+    if split {
+        let Some(max_length) = max_length else {
+            return Err("max_length should be Some() - split is set");
+        };
+
+        if max_length.get() % 8 != 0 {
+            return Err("max_length must denote full bytes (be divisible by 8)");
+        }
+
+        // since max_length % 8 == 0 and max_length != 0 --> max_length >= 8 --> unwrap()
+        // is unreachable.
+        let split_bytes = NonZero::new(max_length.get() / 8).unwrap();
+        Ok(MaxLengthOrSplit::Split(split_bytes))
+    } else {
+        match max_length {
+            None => Ok(MaxLengthOrSplit::None),
+            Some(max_length) => Ok(MaxLengthOrSplit::MaxLength(max_length)),
+        }
     }
 }

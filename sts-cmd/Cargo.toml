@@ -10,6 +10,7 @@ repository = "https://git.riesinger.xyz/bachelorarbeit/nist-sts"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0.95"
 clap = { version = "4.5.13", features = ["derive"] }
 csv = "1.3.0"
 serde = { version = "1.0.204", features = ["derive"] }

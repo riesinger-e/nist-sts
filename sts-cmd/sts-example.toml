@@ -9,6 +9,12 @@ input-file = "./example-input.bin"
 input-format = "binary"
 # The maximum length (bits) to read from the input file. If missing, the whole file will be read.
 max-length = 1000000
+# If set to true, the input file is split into parts with max-length bits and each part is tested individually.
+# The remainder is discarded. Requires max-length to be whole bytes (divisible by 8).
+# If the output path is set, multiple output files with the names "<FILE_NAME>_<IDX>.<EXTENSION>" will be created,
+# with <FILE_NAME> denoting the user-provided filename, <EXTENSION> the user-provided extension, and <IDX> the
+# index of the tested part, supplied by the application.
+split = false
 
 # This section is optional.
 [output]
@@ -21,6 +27,8 @@ max-length = 1000000
 #
 # If no path is specified, the results will still be printed to the console output.
 path = "./example-output.csv"
+# Reduce the console output to only test run summaries (either all tests passed or not).
+no-console = false
 
 # If test definitions are missing, all tests are run, except for tests whose input length requirements 
 # are not satisfied.

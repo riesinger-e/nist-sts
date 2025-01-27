@@ -32,6 +32,15 @@ pub struct RegularArgs {
     /// The maximum length of the sequence to test, in bits.
     #[arg(short = 'l', long)]
     pub max_length: Option<NonZero<usize>>,
+    /// Split the input file into parts with exactly max_length bits, testing each part.
+    /// 
+    /// The remainder is discarded. Requires max_length to be whole bytes (divisible by 8).
+    /// If the output path is set, multiple output files with the names 
+    /// "<FILE_NAME>_<IDX>.<EXTENSION>" will be created, with <FILE_NAME> denoting the user-provided 
+    /// filename, <EXTENSION> the user-provided extension, and <IDX> the index of the tested part, 
+    /// supplied by the application.
+    #[arg(long, requires = "max_length")]
+    pub split: bool,
     /// Optional path to save the results to. Optional.
     ///
     /// If given, the results will be saved in CSV format with ';' delimiter and the following columns:
@@ -52,6 +61,9 @@ pub struct RegularArgs {
     /// e.g. 'serial.block-length = 3'.
     #[arg(long, value_delimiter = ',')]
     pub overrides: Option<Vec<String>>,
+    /// Reduce the console output to only test run summaries (either all tests passed or not).
+    #[arg(long)]
+    pub no_console: bool,
 }
 
 /// Which tests are to be run. Allows only one of these options to be used.
