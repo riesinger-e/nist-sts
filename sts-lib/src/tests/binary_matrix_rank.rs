@@ -6,8 +6,9 @@
 //! The sequence must consist of at least 38 912 bits = 4864 bytes.
 //!
 //! The probability constants were recalculated, using the generic formula for p_r given in 3.5.
-//! Because of this higher precision, results may deviate significantly when compared to the
-//! reference implementation, i.e. when testing with e.1e6.bin, the deviation is a whole 0.2.
+//! 
+//! Per feedback by Mikołaj Leonarski <m dot leonarski at uw dot edu dot pl>, the 3rd constant was
+//! again corrected from p_{m-2} to 1 - p_m - p_{m-1}.
 
 use crate::bitvec::BitVec;
 use crate::internals::{check_f64, checked_add, igamc, BitPrimitive};
@@ -28,7 +29,11 @@ pub const MIN_INPUT_LENGTH: NonZero<usize> = const {
 const M: usize = u32::BITS as usize;
 
 // Probabilities, calculated with `binary_matrix_probabilities.py`
-const PROBABILITIES: [f64; 3] = [0.2887880951538411, 0.5775761901732046, 0.1283502644231667];
+const PROBABILITIES: [f64; 3] = {
+    let p1 = 0.2887880951538411;
+    let p2 = 0.5775761901732046;
+    [p1, p2, 1.0 - p1 - p2]
+};
 
 /// Binary matrix rank test - No. 5.
 ///

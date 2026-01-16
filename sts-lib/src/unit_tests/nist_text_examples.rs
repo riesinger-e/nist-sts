@@ -163,12 +163,8 @@ fn test_binary_matrix_rank_test() {
 
     let output = output.unwrap();
     assert!(output.passed(DEFAULT_THRESHOLD));
-
-    // the expected value differs slightly from the values from the paper because
-    // 1. some constants were recalculated with higher precision.
-    // 2. the values in the text book are just (slightly) WRONG! - try calculating chi^2 yourself with
-    //    the F_M, F_{M-1} and (N - F_M - F_{M-1}) according to the paper, it does not match!
-    assert_f64_eq!(round(output.p_value, 6), 0.503604);
+    
+    assert_f64_eq!(round(output.p_value, 6), 0.532069);
 }
 
 /// Test the spectral dft test (no 6.) - input and output taken from 2.6.4
